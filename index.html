@@ -663,7 +663,7 @@
                 closeLoginModal();
                 activateArea(role);
             } else {
-                document.getElementById('login-error-msg').classList.remove('hidden');
+                document.getElementById('login-error-msg').classList.add('hidden');
             }
         }
         function logoutSession() { 
@@ -851,7 +851,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // MODULE 2: STUDENTS & STRICT SUBJECT CSV DOWNLOAD / UPLOAD
+        // MODULE 2: STUDENTS & STRICT HEADER / FLEXIBLE ROW CSV DOWNLOAD / UPLOAD
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             classSel.innerHTML = '';
@@ -889,7 +889,10 @@
             tbody.innerHTML = '';
             filtered.forEach((s, idx) => {
                 let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${s.sno || (idx + 1)}</td><td class="px-2 py-3 font-bold">${s.roll}</td><td class="px-3 py-3 font-semibold">${s.name}</td>`;
-                activeSubs.forEach((_, subIdx) => { rowHtml += `<td class="px-2 py-3 text-slate-700">${sanitizeText(s.subjects ? s.subjects[subIdx] : '-')}</td>`; });
+                activeSubs.forEach((_, subIdx) => { 
+                    let subVal = sanitizeText(s.subjects ? s.subjects[subIdx] : '-');
+                    rowHtml += `<td class="px-2 py-3 text-slate-700">${subVal}</td>`; 
+                });
                 rowHtml += `<td class="px-3 py-3 text-right space-x-2 no-print"><button type="button" onclick="editStudent('${s.id}')" class="text-indigo-600 hover:underline">Edit</button><button type="button" onclick="deleteStudent('${s.id}')" class="text-red-600 hover:underline">Delete</button></td>`;
                 let tr = document.createElement('tr'); tr.className = "hover:bg-slate-50 border-b"; tr.innerHTML = rowHtml;
                 tbody.appendChild(tr);
@@ -977,7 +980,7 @@
             const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Class_${formatClass(cls)}_Sec_${sec}_Students.csv`; a.click();
         }
 
-        // STRICT CSV UPLOAD VALIDATION & MISMATCH BLOCK
+        // STRICT HEADER VALIDATION & FLEXIBLE SUBJECT ROW PROCESSING
         function uploadCSV(event) {
             const file = event.target.files[0]; if (!file) return;
             const cls = document.getElementById('filter-class').value; 
@@ -996,9 +999,8 @@
 
                 // Validate Header Columns strictly
                 const headerCols = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim().toUpperCase());
-                const uploadedSubs = headerCols.slice(3); // Subjects start at 4th column onwards
+                const uploadedSubs = headerCols.slice(3);
 
-                // Check mismatch
                 let isMatch = expectedSubs.length === uploadedSubs.length && expectedSubs.every((sub, i) => sub === uploadedSubs[i]);
                 if (!isMatch) {
                     alert(`❌ CSV Subject Mismatch Error!\n\nExpected Subjects for Class ${formatClass(cls)} - Sec ${sec}:\n${expectedSubs.join(', ')}\n\nUploaded CSV Subjects:\n${uploadedSubs.join(', ')}\n\nUpload Aborted! Please download the official CSV template for this section and try again.`);
@@ -1015,6 +1017,13 @@
                     const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                     if (cols.length >= 3) {
                         const newKey = db.ref(`students/${cls}/${sec}`).push().key;
+                        
+                        // Map each expected master slot; if student row has blank or missing cells, default to '-'
+                        let studentMappedSubs = expectedSubs.map((_, subIdx) => {
+                            let val = cols[3 + subIdx];
+                            return sanitizeText(val);
+                        });
+
                         updates[newKey] = {
                             id: newKey,
                             sno: parseInt(cols[0]) || (count + 1),
@@ -1022,7 +1031,7 @@
                             name: cols[2],
                             class: cls,
                             section: sec,
-                            subjects: cols.slice(3).map(sub => sanitizeText(sub))
+                            subjects: studentMappedSubs
                         };
                         count++;
                     }
