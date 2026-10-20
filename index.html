@@ -240,36 +240,75 @@
                 </div>
             </section>
 
-            <!-- MODULE 3: FACULTY MANAGER & CLASS TEACHER COORDINATION -->
+            <!-- MODULE 3: REDESIGNED FACULTY MANAGER & CLASS TEACHER COORDINATION -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center border-b pb-4">
-                        <div>
-                            <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager (Principal Control)</h2>
-                            <p class="text-xs text-slate-500">Manage faculty roster, teaching allotments, and duty roles.</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button" onclick="openFacultyRosterModal()" class="bg-slate-700 text-white text-xs font-medium px-3 py-2 rounded">👥 Manage Roster</button>
-                            <button type="button" onclick="openTeacherModal()" class="bg-indigo-600 text-white text-xs font-medium px-3 py-2 rounded">+ Add Assignment</button>
-                        </div>
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager (Principal Control)</h2>
+                        <p class="text-xs text-slate-500">Manage faculty roster, teaching allotments, and exam duties directly below.</p>
                     </div>
-                    <div class="overflow-x-auto border rounded-lg">
-                        <table class="w-full text-xs text-left text-slate-600">
-                            <thead class="bg-slate-50 uppercase font-semibold border-b">
-                                <tr>
-                                    <th class="px-4 py-3">Teacher Name & Desig</th>
-                                    <th class="px-4 py-3">Teaching Allotments</th>
-                                    <th class="px-4 py-3">QP Setter</th>
-                                    <th class="px-4 py-3">Evaluator</th>
-                                    <th class="px-4 py-3 text-center bg-indigo-50">Booklets</th>
-                                    <th class="px-4 py-3 text-center bg-emerald-50">Bundles</th>
-                                    <th class="px-4 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="teacher-table-body" class="divide-y bg-white"></tbody>
-                        </table>
+
+                    <!-- DIRECT ON-PAGE FACULTY ASSIGNMENT BOX -->
+                    <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
+                        <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+                            <span>➕</span> Add / Assign Faculty Roster & Duties
+                        </h3>
+                        <form onsubmit="saveTeacherDirect(event)" class="space-y-4">
+                            <input type="hidden" id="tch-edit-index" value="">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Select Faculty Member</label>
+                                    <select id="tch-name-sel" onchange="onFacultyNameSelected()" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required></select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Designation</label>
+                                    <input type="text" id="tch-desig" readonly class="w-full text-xs p-2.5 border rounded bg-slate-100 font-bold">
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-4 rounded-lg border space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <label class="block text-xs font-bold text-slate-800 uppercase">Teaching Allotments (Classes & Subjects)</label>
+                                    <button type="button" onclick="addTeachingRow()" class="text-[11px] bg-emerald-600 text-white font-semibold px-3 py-1 rounded">➕ Add Class</button>
+                                </div>
+                                <div id="teaching-allotments-container" class="space-y-2"></div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div><label class="block text-xs font-medium text-slate-700 mb-1">QP Setter Duty</label><select id="tch-qp-setter" class="w-full text-xs p-2.5 border rounded bg-white font-medium"></select></div>
+                                <div><label class="block text-xs font-medium text-slate-700 mb-1">Evaluator Duty</label><select id="tch-evaluator" class="w-full text-xs p-2.5 border rounded bg-white font-medium"></select></div>
+                            </div>
+
+                            <div class="flex justify-end gap-2 pt-2 border-t">
+                                <button type="button" onclick="resetTeacherForm()" class="px-4 py-2 text-xs bg-slate-200 rounded font-semibold">Cancel / Reset</button>
+                                <button type="submit" class="px-5 py-2 text-xs bg-indigo-600 text-white rounded font-semibold shadow">💾 Save Faculty Assignment</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- FACULTY DISPLAY MASTER TABLE -->
+                    <div class="space-y-3">
+                        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Faculty Roster & Workload Overview</h3>
+                        <div class="overflow-x-auto border rounded-lg shadow-sm">
+                            <table class="w-full text-xs text-left text-slate-600">
+                                <thead class="bg-indigo-900 text-white uppercase font-semibold border-b">
+                                    <tr>
+                                        <th class="px-4 py-3">Teacher Name & Desig</th>
+                                        <th class="px-4 py-3">Teaching Allotments</th>
+                                        <th class="px-4 py-3">QP Setter</th>
+                                        <th class="px-4 py-3">Evaluator</th>
+                                        <th class="px-4 py-3 text-center bg-indigo-950">Booklets</th>
+                                        <th class="px-4 py-3 text-center bg-emerald-950">Bundles</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teacher-table-body" class="divide-y bg-white"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
+
+                <!-- CLASS TEACHER COORDINATION ROSTER -->
                 <div class="border-t pt-6 space-y-4">
                     <div class="flex justify-between items-center">
                         <div>
@@ -455,30 +494,6 @@
         </div>
     </div>
 
-    <!-- FACULTY ROSTER MODAL -->
-    <div id="faculty-roster-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 no-print">
-        <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-base font-bold text-slate-800">👥 Central Faculty Roster Master</h3>
-                <button type="button" onclick="closeFacultyRosterModal()" class="text-slate-400 font-bold">✕</button>
-            </div>
-            <form onsubmit="addFacultyMaster(event)" class="flex gap-2 bg-slate-50 p-3 rounded-lg border">
-                <input type="text" id="master-fac-name" placeholder="Teacher Name (e.g. Dr. R.K. Singh)" required class="text-xs p-2 border rounded flex-grow bg-white">
-                <select id="master-fac-desig" class="text-xs p-2 border rounded bg-white font-medium">
-                    <option value="PGT">PGT</option><option value="TGT">TGT</option><option value="PRT">PRT</option><option value="PRINCIPAL">Principal</option>
-                </select>
-                <button type="submit" class="bg-emerald-600 text-white text-xs px-4 py-2 rounded font-semibold">Add</button>
-            </form>
-            <div class="max-h-60 overflow-y-auto border rounded-lg">
-                <table class="w-full text-xs text-left text-slate-700">
-                    <thead class="bg-slate-100 uppercase font-semibold border-b"><tr><th class="px-3 py-2">Name</th><th class="px-3 py-2">Designation</th><th class="px-3 py-2 text-right">Action</th></tr></thead>
-                    <tbody id="master-faculty-tbody" class="divide-y bg-white"></tbody>
-                </table>
-            </div>
-            <div class="flex justify-end pt-2 border-t"><button type="button" onclick="closeFacultyRosterModal()" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded">Done</button></div>
-        </div>
-    </div>
-
     <!-- STUDENT MODAL -->
     <div id="student-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 overflow-y-auto no-print">
         <div class="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 my-8">
@@ -499,41 +514,6 @@
                 </div>
                 <div class="flex justify-end gap-2 pt-3 border-t">
                     <button type="button" onclick="closeStudentModal()" class="px-4 py-2 text-xs bg-slate-200 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- TEACHER MODAL -->
-    <div id="teacher-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 overflow-y-auto no-print">
-        <div class="bg-white rounded-xl max-w-xl w-full p-6 space-y-4 my-8">
-            <h3 class="text-base font-bold text-slate-800">Add / Edit Teaching & Exam Duty Assignment</h3>
-            <form id="teacher-form" onsubmit="saveTeacher(event)" class="space-y-4">
-                <input type="hidden" id="tch-id">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">Faculty Member</label>
-                        <select id="tch-name-sel" onchange="onFacultyNameSelected()" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required></select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">Designation</label>
-                        <input type="text" id="tch-desig" readonly class="w-full text-xs p-2.5 border rounded bg-slate-100 font-bold">
-                    </div>
-                </div>
-                <div class="bg-slate-50 p-4 rounded-lg border space-y-3">
-                    <div class="flex justify-between items-center">
-                        <label class="block text-xs font-bold text-slate-800 uppercase">Teaching Allotments</label>
-                        <button type="button" onclick="addTeachingRow()" class="text-[11px] bg-emerald-600 text-white px-2.5 py-1 rounded">➕ Add Class</button>
-                    </div>
-                    <div id="teaching-allotments-container" class="space-y-2"></div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-medium text-slate-700 mb-1">QP Setter</label><select id="tch-qp-setter" class="w-full text-xs p-2 border rounded bg-white"></select></div>
-                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Evaluator</label><select id="tch-evaluator" class="w-full text-xs p-2 border rounded bg-white"></select></div>
-                </div>
-                <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" onclick="closeTeacherModal()" class="px-4 py-2 text-xs bg-slate-200 rounded">Cancel</button>
                     <button type="submit" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded">Save</button>
                 </div>
             </form>
@@ -572,11 +552,13 @@
             'pri-ic': 'Primary123'
         };
         function savePasswords() { localStorage.setItem('vems_passwords', JSON.stringify(appPasswords)); }
+        
         let facultyRoster = JSON.parse(localStorage.getItem('vems_faculty_roster')) || [
             { id: 1, name: 'Dr. R.K. Singh', desig: 'PGT' },
             { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT' }
         ];
         function saveFacultyRoster() { localStorage.setItem('vems_faculty_roster', JSON.stringify(facultyRoster)); }
+
         let defaultSectionConfigs = {};
         ['6', '7', '8'].forEach(cls => { ['A', 'B', 'C', 'D'].forEach(sec => { defaultSectionConfigs[`${cls}-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE']; }); });
         ['A', 'B', 'C', 'D'].forEach(sec => {
@@ -607,6 +589,7 @@
                     students = [{ id: 1, sno: 1, roll: 101, name: 'Aarav Sharma', class: '10', section: 'A', subjects: ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'] }];
                 }
                 filterStudents();
+                if(currentActiveTab === 'teachers') renderTeachers();
             });
             db.ref('sectionConfigs').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -663,7 +646,7 @@
                 closeLoginModal();
                 activateArea(role);
             } else {
-                document.getElementById('login-error-msg').classList.add('hidden');
+                document.getElementById('login-error-msg').classList.remove('hidden');
             }
         }
         function logoutSession() { 
@@ -717,7 +700,7 @@
             
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
-            if(tab === 'teachers') { renderTeachers(); renderClassTeacherCoordinationTable(); }
+            if(tab === 'teachers') { initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
             if(tab === 'settings') {
                 document.getElementById('pass-prin').value = appPasswords.principal;
                 document.getElementById('pass-sec').value = appPasswords['sec-ic'];
@@ -734,6 +717,7 @@
             appPasswords[roleKey] = val;
             savePasswords();
             alert(`Password for ${roleKey.toUpperCase()} updated successfully!`);
+            switchTab('settings');
         }
 
         // MODULE 1: SUBJECT SETUP & MASTER DIRECTORY
@@ -851,7 +835,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // MODULE 2: STUDENTS & STRICT HEADER / FLEXIBLE ROW CSV DOWNLOAD / UPLOAD
+        // MODULE 2: STUDENTS & CSV VALIDATION
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             classSel.innerHTML = '';
@@ -980,12 +964,12 @@
             const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Class_${formatClass(cls)}_Sec_${sec}_Students.csv`; a.click();
         }
 
-        // STRICT HEADER VALIDATION & FLEXIBLE SUBJECT ROW PROCESSING
+        // STRICT CSV UPLOAD VALIDATION & FLEXIBLE ROW PARSING
         function uploadCSV(event) {
             const file = event.target.files[0]; if (!file) return;
             const cls = document.getElementById('filter-class').value; 
             const sec = document.getElementById('filter-section').value;
-            const expectedSubs = (sectionConfigs[`${cls}-${sec}`] || []).map(s => s.toUpperCase());
+            const expectedSubs = sectionConfigs[`${cls}-${sec}`] || [];
             const reader = new FileReader();
             
             reader.onload = function(e) {
@@ -997,13 +981,15 @@
                     return;
                 }
 
-                // Validate Header Columns strictly
                 const headerCols = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim().toUpperCase());
                 const uploadedSubs = headerCols.slice(3);
 
-                let isMatch = expectedSubs.length === uploadedSubs.length && expectedSubs.every((sub, i) => sub === uploadedSubs[i]);
+                const expectedClean = expectedSubs.map(s => s.trim().toUpperCase());
+                const uploadedClean = uploadedSubs.map(s => s.trim().toUpperCase());
+
+                let isMatch = expectedClean.length === uploadedClean.length && expectedClean.every((sub, i) => sub === uploadedClean[i]);
                 if (!isMatch) {
-                    alert(`❌ CSV Subject Mismatch Error!\n\nExpected Subjects for Class ${formatClass(cls)} - Sec ${sec}:\n${expectedSubs.join(', ')}\n\nUploaded CSV Subjects:\n${uploadedSubs.join(', ')}\n\nUpload Aborted! Please download the official CSV template for this section and try again.`);
+                    alert(`❌ CSV Subject Mismatch Error!\n\nExpected Subjects for Class ${formatClass(cls)} - Sec ${sec}:\n${expectedClean.join(', ')}\n\nUploaded CSV Subjects:\n${uploadedClean.join(', ')}\n\nUpload Aborted! Please download the official CSV template for this section and try again.`);
                     event.target.value = '';
                     return;
                 }
@@ -1018,8 +1004,7 @@
                     if (cols.length >= 3) {
                         const newKey = db.ref(`students/${cls}/${sec}`).push().key;
                         
-                        // Map each expected master slot; if student row has blank or missing cells, default to '-'
-                        let studentMappedSubs = expectedSubs.map((_, subIdx) => {
+                        let studentMappedSubs = expectedClean.map((_, subIdx) => {
                             let val = cols[3 + subIdx];
                             return sanitizeText(val);
                         });
@@ -1112,33 +1097,130 @@
             }
         }
 
-        // MODULE 3: FACULTY MANAGER & CLASS TEACHER COORDINATION
-        function openFacultyRosterModal() { renderFacultyRosterTable(); document.getElementById('faculty-roster-modal').classList.remove('hidden'); }
-        function closeFacultyRosterModal() { document.getElementById('faculty-roster-modal').classList.add('hidden'); }
-        function addFacultyMaster(e) {
-            e.preventDefault();
-            const name = document.getElementById('master-fac-name').value.trim(); const desig = document.getElementById('master-fac-desig').value;
-            if(!name) return;
-            facultyRoster.push({ id: Date.now(), name, desig }); saveFacultyRoster();
-            document.getElementById('master-fac-name').value = ''; renderFacultyRosterTable();
-            renderTeachers(); renderClassTeacherCoordinationTable();
+        // MODULE 3: REDESIGNED FACULTY MANAGER & ON-PAGE ASSIGNMENT
+        function initTeacherFormSelectors() {
+            const nameSel = document.getElementById('tch-name-sel'); 
+            nameSel.innerHTML = '<option value="">-- Select Faculty from Roster --</option>';
+            facultyRoster.forEach(f => nameSel.innerHTML += `<option value="${f.name}">${f.name} (${f.desig})</option>`);
+            
+            const qpSel = document.getElementById('tch-qp-setter'); 
+            const evalSel = document.getElementById('tch-evaluator');
+            qpSel.innerHTML = evalSel.innerHTML = '<option value="">-- Same as Teacher --</option>';
+            facultyRoster.forEach(f => { 
+                qpSel.innerHTML += `<option value="${f.name}">${f.name}</option>`; 
+                evalSel.innerHTML += `<option value="${f.name}">${f.name}</option>`; 
+            });
+            if(document.getElementById('teaching-allotments-container').children.length === 0) {
+                addTeachingRow();
+            }
         }
-        function deleteFacultyMaster(id) {
-            facultyRoster = facultyRoster.filter(f => f.id !== id);
-            saveFacultyRoster();
-            renderFacultyRosterTable();
-            renderTeachers();
-            renderClassTeacherCoordinationTable();
+        function onFacultyNameSelected() {
+            const fac = facultyRoster.find(f => f.name === document.getElementById('tch-name-sel').value);
+            document.getElementById('tch-desig').value = fac ? fac.desig : '-';
         }
-        function renderFacultyRosterTable() {
-            const tbody = document.getElementById('master-faculty-tbody'); tbody.innerHTML = '';
-            facultyRoster.forEach(f => {
-                tbody.innerHTML += `<tr><td class="px-3 py-2 font-semibold">${f.name}</td><td class="px-3 py-2"><span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">${f.desig}</span></td><td class="px-3 py-2 text-right"><button type="button" onclick="deleteFacultyMaster(${f.id})" class="text-red-600 hover:underline">Delete</button></td></tr>`;
+        function addTeachingRow(selCls = '11', selSec = 'A', selSub = '') {
+            const container = document.getElementById('teaching-allotments-container');
+            const div = document.createElement('div'); div.className = "flex items-center gap-2 bg-slate-50 p-2 rounded border teaching-row";
+            div.innerHTML = `
+                <select class="text-xs p-1.5 border rounded cls-sel bg-white font-medium" onchange="updateRowSectionsAndSubjects(this)">
+                    <option value="6" ${selCls=='6'?'selected':''}>Class VI</option><option value="7" ${selCls=='7'?'selected':''}>Class VII</option><option value="8" ${selCls=='8'?'selected':''}>Class VIII</option><option value="9" ${selCls=='9'?'selected':''}>Class IX</option><option value="10" ${selCls=='10'?'selected':''}>Class X</option><option value="11" ${selCls=='11'?'selected':''}>Class XI</option><option value="12" ${selCls=='12'?'selected':''}>Class XII</option>
+                </select>
+                <select class="text-xs p-1.5 border rounded sec-sel bg-white font-medium" onchange="updateRowSubjects(this)"></select>
+                <select class="text-xs p-1.5 border rounded sub-sel bg-white font-medium flex-grow"></select>
+                <button type="button" onclick="this.closest('.teaching-row').remove()" class="text-red-600 font-bold px-2.5 py-1 bg-red-50 rounded border">✕</button>`;
+            container.appendChild(div);
+            updateRowSectionsAndSubjects(div.querySelector('.cls-sel'), selSec, selSub);
+        }
+        function updateRowSectionsAndSubjects(clsElem, preSec = null, preSub = null) {
+            const row = clsElem.closest('.teaching-row'); const cls = clsElem.value; const secSel = row.querySelector('.sec-sel'); secSel.innerHTML = '';
+            (cls === '11' || cls === '12' ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']).forEach(s => {
+                secSel.innerHTML += `<option value="${s}" ${preSec==s?'selected':''}>Sec ${s}</option>`;
+            });
+            updateRowSubjects(secSel, preSub);
+        }
+        function updateRowSubjects(secElem, preSub = null) {
+            const row = secElem.closest('.teaching-row'); const cls = row.querySelector('.cls-sel').value; const sec = secElem.value; const subSel = row.querySelector('.sub-sel'); subSel.innerHTML = '';
+            (sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE']).forEach(sub => {
+                subSel.innerHTML += `<option value="${sub}" ${preSub==sub?'selected':''}>${sub}</option>`;
             });
         }
+        function saveTeacherDirect(e) {
+            e.preventDefault();
+            const name = document.getElementById('tch-name-sel').value;
+            if(!name) { alert("Please select a faculty member."); return; }
+            const desig = document.getElementById('tch-desig').value;
+            const qpSetter = document.getElementById('tch-qp-setter').value || name;
+            const evaluator = document.getElementById('tch-evaluator').value || name;
+            const editIndex = document.getElementById('tch-edit-index').value;
+
+            let allotments = [];
+            document.querySelectorAll('.teaching-row').forEach(row => {
+                allotments.push({
+                    cls: row.querySelector('.cls-sel').value,
+                    sec: row.querySelector('.sec-sel').value,
+                    subject: row.querySelector('.sub-sel').value
+                });
+            });
+
+            const teacherData = { id: editIndex !== '' ? teachers[editIndex].id : Date.now(), name, desig, allotments, qpSetter, evaluator };
+
+            if(editIndex !== '') {
+                teachers[editIndex] = teacherData;
+            } else {
+                teachers.push(teacherData);
+            }
+
+            saveData();
+            resetTeacherForm();
+            renderTeachers();
+            alert("Faculty teaching assignment saved successfully!");
+            switchTab('teachers');
+        }
+        function resetTeacherForm() {
+            document.getElementById('tch-edit-index').value = '';
+            document.getElementById('tch-name-sel').value = '';
+            document.getElementById('tch-desig').value = '';
+            document.getElementById('tch-qp-setter').value = '';
+            document.getElementById('tch-evaluator').value = '';
+            document.getElementById('teaching-allotments-container').innerHTML = '';
+            addTeachingRow();
+        }
+        function editTeacher(id) {
+            const idx = teachers.findIndex(t => t.id === id);
+            if(idx === -1) return;
+            const t = teachers[idx];
+            document.getElementById('tch-edit-index').value = idx;
+            document.getElementById('tch-name-sel').value = t.name;
+            onFacultyNameSelected();
+            document.getElementById('tch-qp-setter').value = t.qpSetter || '';
+            document.getElementById('tch-evaluator').value = t.evaluator || '';
+            
+            const container = document.getElementById('teaching-allotments-container');
+            container.innerHTML = '';
+            if(t.allotments && t.allotments.length > 0) {
+                t.allotments.forEach(al => addTeachingRow(al.cls, al.sec, al.subject));
+            } else {
+                addTeachingRow();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        function deleteTeacher(id) {
+            if(confirm("Remove this teacher's assignment?")) {
+                teachers = teachers.filter(t => t.id !== id);
+                saveData();
+                renderTeachers();
+                switchTab('teachers');
+            }
+        }
         function renderTeachers() {
-            const tbody = document.getElementById('teacher-table-body'); tbody.innerHTML = '';
-            teachers.forEach(t => {
+            const tbody = document.getElementById('teacher-table-body'); 
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            if(teachers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400 italic">No faculty assignments added yet. Use the form above to add one.</td></tr>`;
+                return;
+            }
+            teachers.forEach((t) => {
                 let totalStudentsAllotted = 0; let allotmentsHtml = '';
                 if(t.allotments) {
                     t.allotments.forEach(al => {
@@ -1155,7 +1237,10 @@
                         <td class="px-4 py-3 font-semibold">${t.evaluator || t.name}</td>
                         <td class="px-4 py-3 text-center bg-indigo-50/50 font-bold text-indigo-900">${totalStudentsAllotted} Booklets</td>
                         <td class="px-4 py-3 text-center bg-emerald-50/50 font-bold text-emerald-900">${t.allotments ? t.allotments.length : 0} Bundle(s)</td>
-                        <td class="px-4 py-3 text-right space-x-2"><button type="button" onclick="editTeacher(${t.id})" class="text-indigo-600 hover:underline">Edit</button><button type="button" onclick="deleteTeacher(${t.id})" class="text-red-600 hover:underline">Delete</button></td>
+                        <td class="px-4 py-3 text-right space-x-2">
+                            <button type="button" onclick="editTeacher(${t.id})" class="text-indigo-600 hover:underline font-bold">Edit</button>
+                            <button type="button" onclick="deleteTeacher(${t.id})" class="text-red-600 hover:underline font-bold">Delete</button>
+                        </td>
                     </tr>`;
             });
         }
@@ -1176,21 +1261,9 @@
                     tbody.innerHTML += `
                         <tr class="border-b hover:bg-slate-50">
                             <td class="px-4 py-2 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td>
-                            <td class="px-4 py-2">
-                                <select id="ct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">
-                                    ${facOptions}
-                                </select>
-                            </td>
-                            <td class="px-4 py-2">
-                                <select id="coct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">
-                                    ${facOptions}
-                                </select>
-                            </td>
-                            <td class="px-4 py-2 bg-indigo-50/30">
-                                <select id="onduty-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">
-                                    ${facOptions}
-                                </select>
-                            </td>
+                            <td class="px-4 py-2"><select id="ct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
+                            <td class="px-4 py-2"><select id="coct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
+                            <td class="px-4 py-2 bg-indigo-50/30"><select id="onduty-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
                         </tr>
                     `;
                 });
@@ -1225,52 +1298,6 @@
             alert("Class Teacher & Coordination Assignments saved successfully!");
             switchTab('teachers');
         }
-        function openTeacherModal(id = null) {
-            const nameSel = document.getElementById('tch-name-sel'); nameSel.innerHTML = '<option value="">-- Select Faculty --</option>';
-            facultyRoster.forEach(f => nameSel.innerHTML += `<option value="${f.name}">${f.name} (${f.desig})</option>`);
-            const qpSel = document.getElementById('tch-qp-setter'); const evalSel = document.getElementById('tch-evaluator');
-            qpSel.innerHTML = evalSel.innerHTML = '<option value="">-- Same as Teacher --</option>';
-            facultyRoster.forEach(f => { qpSel.innerHTML += `<option value="${f.name}">${f.name}</option>`; evalSel.innerHTML += `<option value="${f.name}">${f.name}</option>`; });
-            document.getElementById('teaching-allotments-container').innerHTML = ''; document.getElementById('teacher-form').reset(); document.getElementById('tch-id').value = '';
-            if(id) {
-                const t = teachers.find(item => item.id === id);
-                document.getElementById('tch-id').value = t.id; document.getElementById('tch-name-sel').value = t.name; onFacultyNameSelected();
-                document.getElementById('tch-qp-setter').value = t.qpSetter || ''; document.getElementById('tch-evaluator').value = t.evaluator || '';
-                if(t.allotments) t.allotments.forEach(al => addTeachingRow(al.cls, al.sec, al.subject));
-            } else addTeachingRow();
-            document.getElementById('teacher-modal').classList.remove('hidden');
-        }
-        function onFacultyNameSelected() {
-            const fac = facultyRoster.find(f => f.name === document.getElementById('tch-name-sel').value);
-            document.getElementById('tch-desig').value = fac ? fac.desig : '-';
-        }
-        function addTeachingRow(selCls = '11', selSec = 'A', selSub = '') {
-            const container = document.getElementById('teaching-allotments-container');
-            const div = document.createElement('div'); div.className = "flex items-center gap-2 bg-white p-2 rounded border teaching-row";
-            div.innerHTML = `
-                <select class="text-xs p-1.5 border rounded cls-sel bg-white font-medium" onchange="updateRowSectionsAndSubjects(this)">
-                    <option value="6" ${selCls=='6'?'selected':''}>Class VI</option><option value="7" ${selCls=='7'?'selected':''}>Class VII</option><option value="8" ${selCls=='8'?'selected':''}>Class VIII</option><option value="9" ${selCls=='9'?'selected':''}>Class IX</option><option value="10" ${selCls=='10'?'selected':''}>Class X</option><option value="11" ${selCls=='11'?'selected':''}>Class XI</option><option value="12" ${selCls=='12'?'selected':''}>Class XII</option>
-                </select>
-                <select class="text-xs p-1.5 border rounded sec-sel bg-white font-medium" onchange="updateRowSubjects(this)"></select>
-                <select class="text-xs p-1.5 border rounded sub-sel bg-white font-medium flex-grow"></select>
-                <button type="button" onclick="this.closest('.teaching-row').remove()" class="text-red-600 font-bold px-2 py-1 bg-red-50 rounded">✕</button>`;
-            container.appendChild(div);
-            updateRowSectionsAndSubjects(div.querySelector('.cls-sel'), selSec, selSub);
-        }
-        function updateRowSectionsAndSubjects(clsElem, preSec = null, preSub = null) {
-            const row = clsElem.closest('.teaching-row'); const cls = clsElem.value; const secSel = row.querySelector('.sec-sel'); secSel.innerHTML = '';
-            (cls === '11' || cls === '12' ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']).forEach(s => {
-                secSel.innerHTML += `<option value="${s}" ${preSec==s?'selected':''}>Sec ${s}</option>`;
-            });
-            updateRowSubjects(secSel, preSub);
-        }
-        function updateRowSubjects(secElem, preSub = null) {
-            const row = secElem.closest('.teaching-row'); const cls = row.querySelector('.cls-sel').value; const sec = secElem.value; const subSel = row.querySelector('.sub-sel'); subSel.innerHTML = '';
-            (sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE']).forEach(sub => {
-                subSel.innerHTML += `<option value="${sub}" ${preSub==sub?'selected':''}>${sub}</option>`;
-            });
-        }
-        function closeTeacherModal() { document.getElementById('teacher-modal').classList.add('hidden'); }
     </script>
 </body>
 </html>
