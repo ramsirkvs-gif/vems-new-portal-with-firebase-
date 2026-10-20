@@ -564,6 +564,7 @@
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || cls; }
         
         let currentActiveRole = localStorage.getItem('vems_active_role') || 'public';
+        let currentActiveTab = localStorage.getItem('vems_active_tab') || 'config';
 
         let appPasswords = JSON.parse(localStorage.getItem('vems_passwords')) || {
             principal: 'master777',
@@ -619,6 +620,9 @@
         
         window.addEventListener('DOMContentLoaded', () => {
             activateArea(currentActiveRole);
+            if(currentActiveRole === 'principal') {
+                switchTab(currentActiveTab);
+            }
         });
 
         function saveData() {
@@ -665,6 +669,7 @@
         function logoutSession() { 
             currentActiveRole = 'public'; 
             localStorage.removeItem('vems_active_role');
+            localStorage.removeItem('vems_active_tab');
             activateArea('public'); 
         }
         function activateArea(area) {
@@ -681,7 +686,7 @@
             } else if (area === 'principal') {
                 badge.textContent = "👔 Principal (Master Access)";
                 badge.className = "bg-indigo-600 text-white px-3 py-1 rounded-full font-medium";
-                switchTab('config');
+                switchTab(currentActiveTab);
             } else if (area === 'sec-ic') {
                 badge.textContent = "🎓 Secondary IC Active";
                 badge.className = "bg-indigo-700 text-white px-3 py-1 rounded-full font-medium";
@@ -695,6 +700,9 @@
             document.getElementById('btn-icon-pri').className = area === 'pri-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
         }
         function switchTab(tab) {
+            currentActiveTab = tab;
+            localStorage.setItem('vems_active_tab', tab);
+
             document.getElementById('sec-config').classList.toggle('hidden', tab !== 'config');
             document.getElementById('sec-students').classList.toggle('hidden', tab !== 'students');
             document.getElementById('sec-teachers').classList.toggle('hidden', tab !== 'teachers');
@@ -783,6 +791,7 @@
             sectionConfigs[`${cls}-${sec}`] = subs;
             saveData();
             alert(`Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
+            switchTab('config');
         }
 
         // RENDER MASTER CONSOLIDATED SUBJECT DIRECTORY & SEARCH
@@ -834,6 +843,7 @@
         }
 
         function jumpToEditConfig(cls, sec) {
+            switchTab('config');
             document.getElementById('cfg-class').value = cls;
             updateCfgSections();
             document.getElementById('cfg-section').value = sec;
@@ -841,7 +851,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // MODULE 2: STUDENTS & CSV
+        // MODULE 2: STUDENTS & STRICT SUBJECT CSV DOWNLOAD / UPLOAD
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             classSel.innerHTML = '';
@@ -945,14 +955,16 @@
             setTimeout(() => { filterStudents(); }, 1000);
         }
         function downloadCSVTemplate() {
-            const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value;
+            const cls = document.getElementById('filter-class').value; 
+            const sec = document.getElementById('filter-section').value;
             const subs = sectionConfigs[`${cls}-${sec}`] || [];
             let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n1,101,Sample Student,` + subs.map(() => '-').join(',') + `\n`;
             const blob = new Blob([csv], { type: 'text/csv' });
             const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `VEMS_Template_Class_${formatClass(cls)}_${sec}.csv`; a.click();
         }
         function downloadClassCSV() {
-            const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value;
+            const cls = document.getElementById('filter-class').value; 
+            const sec = document.getElementById('filter-section').value;
             const subs = sectionConfigs[`${cls}-${sec}`] || [];
             const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
             let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n`;
@@ -964,18 +976,38 @@
             const blob = new Blob([csv], { type: 'text/csv' });
             const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Class_${formatClass(cls)}_Sec_${sec}_Students.csv`; a.click();
         }
+
+        // STRICT CSV UPLOAD VALIDATION & MISMATCH BLOCK
         function uploadCSV(event) {
             const file = event.target.files[0]; if (!file) return;
             const cls = document.getElementById('filter-class').value; 
             const sec = document.getElementById('filter-section').value;
+            const expectedSubs = (sectionConfigs[`${cls}-${sec}`] || []).map(s => s.toUpperCase());
             const reader = new FileReader();
             
             reader.onload = function(e) {
                 const text = e.target.result.replace(/\r/g, '');
                 const lines = text.split('\n');
+                if (lines.length === 0 || !lines[0].trim()) {
+                    alert("❌ Upload Aborted: The uploaded CSV file is empty.");
+                    event.target.value = '';
+                    return;
+                }
+
+                // Validate Header Columns strictly
+                const headerCols = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim().toUpperCase());
+                const uploadedSubs = headerCols.slice(3); // Subjects start at 4th column onwards
+
+                // Check mismatch
+                let isMatch = expectedSubs.length === uploadedSubs.length && expectedSubs.every((sub, i) => sub === uploadedSubs[i]);
+                if (!isMatch) {
+                    alert(`❌ CSV Subject Mismatch Error!\n\nExpected Subjects for Class ${formatClass(cls)} - Sec ${sec}:\n${expectedSubs.join(', ')}\n\nUploaded CSV Subjects:\n${uploadedSubs.join(', ')}\n\nUpload Aborted! Please download the official CSV template for this section and try again.`);
+                    event.target.value = '';
+                    return;
+                }
+
                 let count = 0;
                 let updates = {};
-                
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if(!line) continue;
@@ -997,13 +1029,14 @@
                 }
                 
                 if (count === 0) {
-                    alert("⚠️ No valid student rows detected. Please ensure your CSV matches the class template format.");
+                    alert("⚠️ No valid student rows detected in the CSV file.");
                     event.target.value = '';
                     return;
                 }
                 db.ref(`students/${cls}/${sec}`).set(updates).then(() => {
                     alert(`✅ CSV Uploaded & Synced to Firebase Cloud Successfully! ${count} students loaded.`);
                     event.target.value = '';
+                    switchTab('students');
                 }).catch((error) => {
                     alert("❌ Firebase Sync Failed: " + error.message);
                     event.target.value = '';
@@ -1017,6 +1050,7 @@
             
             reader.readAsText(file);
         }
+
         function openStudentModal(id = null) {
             const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value;
             document.getElementById('modal-class-sec-badge').textContent = `Target: Class ${formatClass(cls)}-${sec}`;
@@ -1056,13 +1090,16 @@
             };
             studentRef.set(stuData).then(() => {
                 closeStudentModal();
+                switchTab('students');
             });
         }
         function editStudent(id) { openStudentModal(id); }
         function deleteStudent(id) {
             const s = students.find(item => String(item.id) === String(id));
             if(s && confirm(`Delete student ${s.name}?`)) {
-                db.ref(`students/${s.class}/${s.section}/${id}`).remove();
+                db.ref(`students/${s.class}/${s.section}/${id}`).remove().then(() => {
+                    switchTab('students');
+                });
             }
         }
 
@@ -1123,8 +1160,6 @@
                 let sections = (cls === '11' || cls === '12') ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
                 sections.forEach(sec => {
                     let key = `${cls}-${sec}`;
-                    let currentData = classTeacherAssignments[key] || { ct: '', coCt: '', assignedOnDuty: '' };
-                    
                     let facOptions = '<option value="">-- Select --</option>';
                     facultyRoster.forEach(f => {
                         facOptions += `<option value="${f.name}">${f.name} (${f.desig})</option>`;
@@ -1179,6 +1214,7 @@
             });
             saveData();
             alert("Class Teacher & Coordination Assignments saved successfully!");
+            switchTab('teachers');
         }
         function openTeacherModal(id = null) {
             const nameSel = document.getElementById('tch-name-sel'); nameSel.innerHTML = '<option value="">-- Select Faculty --</option>';
