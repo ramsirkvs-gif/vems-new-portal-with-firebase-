@@ -240,15 +240,15 @@
                 </div>
             </section>
 
-            <!-- MODULE 3: REDESIGNED FACULTY MANAGER & CLASS TEACHER COORDINATION -->
+            <!-- MODULE 3: ENHANCED FACULTY MANAGER & WORKLOAD ASSIGNMENT -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
                 <div class="space-y-6">
                     <div class="border-b pb-4">
-                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager (Principal Control)</h2>
-                        <p class="text-xs text-slate-500">Manage faculty roster, teaching allotments, and exam duties directly below.</p>
+                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager & Exam Duty Assignment</h2>
+                        <p class="text-xs text-slate-500">Assign teaching classes, QP setter duties, and evaluators, complete with live workload tracking.</p>
                     </div>
 
-                    <!-- DIRECT ON-PAGE FACULTY ASSIGNMENT BOX -->
+                    <!-- ON-PAGE TEACHER ASSIGNMENT CARD -->
                     <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
                         <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
                             <span>➕</span> Add / Assign Faculty Roster & Duties
@@ -286,9 +286,14 @@
                         </form>
                     </div>
 
-                    <!-- FACULTY DISPLAY MASTER TABLE -->
+                    <!-- FACULTY SEARCH & DISPLAY TABLE -->
                     <div class="space-y-3">
-                        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Faculty Roster & Workload Overview</h3>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Faculty Roster & Workload Overview</h3>
+                            <div class="w-full sm:w-72">
+                                <input type="text" id="faculty-search-input" oninput="renderTeachers()" placeholder="🔍 Search Teacher or Subject..." class="w-full text-xs p-2 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white shadow-sm">
+                            </div>
+                        </div>
                         <div class="overflow-x-auto border rounded-lg shadow-sm">
                             <table class="w-full text-xs text-left text-slate-600">
                                 <thead class="bg-indigo-900 text-white uppercase font-semibold border-b">
@@ -555,7 +560,8 @@
         
         let facultyRoster = JSON.parse(localStorage.getItem('vems_faculty_roster')) || [
             { id: 1, name: 'Dr. R.K. Singh', desig: 'PGT' },
-            { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT' }
+            { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT' },
+            { id: 3, name: 'Shri Rajesh Kumar', desig: 'PGT' }
         ];
         function saveFacultyRoster() { localStorage.setItem('vems_faculty_roster', JSON.stringify(facultyRoster)); }
 
@@ -995,7 +1001,7 @@
                     return;
                 }
 
-                // 2. Strict Row Cell Validation (Ensuring exact master subject name or blank/'-')
+                // 2. Strict Row Cell Validation
                 let parsedRows = [];
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
@@ -1114,7 +1120,7 @@
             }
         }
 
-        // MODULE 3: REDESIGNED FACULTY MANAGER & ON-PAGE ASSIGNMENT
+        // MODULE 3: ENHANCED FACULTY MANAGER & WORKLOAD ASSIGNMENT
         function initTeacherFormSelectors() {
             const nameSel = document.getElementById('tch-name-sel'); 
             nameSel.innerHTML = '<option value="">-- Select Faculty from Roster --</option>';
@@ -1233,11 +1239,21 @@
             const tbody = document.getElementById('teacher-table-body'); 
             if(!tbody) return;
             tbody.innerHTML = '';
-            if(teachers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400 italic">No faculty assignments added yet. Use the form above to add one.</td></tr>`;
+            
+            const searchTerm = (document.getElementById('faculty-search-input')?.value || '').trim().toLowerCase();
+            const filteredTeachers = teachers.filter(t => {
+                if(!searchTerm) return true;
+                let matchName = t.name.toLowerCase().includes(searchTerm);
+                let matchDesig = t.desig.toLowerCase().includes(searchTerm);
+                let matchAllotments = t.allotments && t.allotments.some(al => al.subject.toLowerCase().includes(searchTerm) || formatClass(al.cls).toLowerCase().includes(searchTerm));
+                return matchName || matchDesig || matchAllotments;
+            });
+
+            if(filteredTeachers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400 italic">No matching faculty assignments found. Use the form above to add one.</td></tr>`;
                 return;
             }
-            teachers.forEach((t) => {
+            filteredTeachers.forEach((t) => {
                 let totalStudentsAllotted = 0; let allotmentsHtml = '';
                 if(t.allotments) {
                     t.allotments.forEach(al => {
