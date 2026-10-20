@@ -517,7 +517,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT ENGINE (FIREBASE CLOUD INTEGRATION) -->
+    <!-- SCRIPT ENGINE (FIREBASE CLOUD INTEGRATION & ROBUST CSV PARSER) -->
     <script>
         // Initialize Firebase Realtime Database
         const firebaseConfig = {
@@ -755,7 +755,7 @@
             alert(`Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
         }
 
-        // MODULE 2: STUDENTS & CSV (Firebase Cloud Synced)
+        // MODULE 2: STUDENTS & CSV (Firebase Cloud Synced & Upgraded Parser)
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             classSel.innerHTML = '';
@@ -892,23 +892,31 @@
             const blob = new Blob([csv], { type: 'text/csv' });
             const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Class_${formatClass(cls)}_Sec_${sec}_Students.csv`; a.click();
         }
+        
+        // Upgraded CSV Upload with automatic line-ending cleanup and error handling
         function uploadCSV(event) {
             const file = event.target.files[0]; if (!file) return;
-            const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value;
+            const cls = document.getElementById('filter-class').value; 
+            const sec = document.getElementById('filter-section').value;
             const reader = new FileReader();
+            
             reader.onload = function(e) {
-                const lines = e.target.result.split('\n');
+                const text = e.target.result.replace(/\r/g, '');
+                const lines = text.split('\n');
                 let count = 0;
                 let updates = {};
+                
                 for (let i = 1; i < lines.length; i++) {
-                    if(!lines[i].trim()) continue;
-                    const cols = lines[i].split(',').map(c => c.replace(/"/g, '').trim());
+                    const line = lines[i].trim();
+                    if(!line) continue;
+                    
+                    const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                     if (cols.length >= 3) {
                         const newKey = db.ref(`students/${cls}/${sec}`).push().key;
                         updates[newKey] = {
                             id: newKey,
                             sno: parseInt(cols[0]) || (count + 1),
-                            roll: parseInt(cols[1]),
+                            roll: parseInt(cols[1]) || 0,
                             name: cols[2],
                             class: cls,
                             section: sec,
@@ -917,12 +925,27 @@
                         count++;
                     }
                 }
-                // Overwrite section data in Firebase Cloud
+                
+                if (count === 0) {
+                    alert("⚠️ No valid student rows detected. Please ensure your CSV matches the class template format.");
+                    event.target.value = '';
+                    return;
+                }
+
                 db.ref(`students/${cls}/${sec}`).set(updates).then(() => {
-                    alert(`CSV Uploaded & Synced to Firebase Cloud Successfully! ${count} students loaded.`);
+                    alert(`✅ CSV Uploaded & Synced to Firebase Cloud Successfully! ${count} students loaded.`);
+                    event.target.value = '';
+                }).catch((error) => {
+                    alert("❌ Firebase Sync Failed: " + error.message);
                     event.target.value = '';
                 });
             };
+            
+            reader.onerror = function() {
+                alert("❌ Error reading the uploaded file.");
+                event.target.value = '';
+            };
+            
             reader.readAsText(file);
         }
 
@@ -1063,7 +1086,6 @@
                 });
             });
 
-            // Set selected values
             classesList.forEach(cls => {
                 let sections = (cls === '11' || cls === '12') ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
                 sections.forEach(sec => {
