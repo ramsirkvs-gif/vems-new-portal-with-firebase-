@@ -240,29 +240,35 @@
                 </div>
             </section>
 
-            <!-- MODULE 3: ENHANCED FACULTY MANAGER & WORKLOAD ASSIGNMENT -->
+            <!-- MODULE 3: STREAMLINED FACULTY MANAGER -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
                 <div class="space-y-6">
                     <div class="border-b pb-4">
-                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager & Exam Duty Assignment</h2>
-                        <p class="text-xs text-slate-500">Assign teaching classes, QP setter duties, and evaluators, complete with live workload tracking.</p>
+                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager & Exam Duty Allotments</h2>
+                        <p class="text-xs text-slate-500">Manage faculty profiles, teaching workloads, and exam responsibilities in one place.</p>
                     </div>
 
-                    <!-- ON-PAGE TEACHER ASSIGNMENT CARD -->
+                    <!-- SINGLE COMPACT FACULTY ENTRY & ASSIGNMENT CARD -->
                     <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
                         <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                            <span>➕</span> Add / Assign Faculty Roster & Duties
+                            <span>➕</span> Add / Edit Faculty Member & Duty Allotments
                         </h3>
                         <form onsubmit="saveTeacherDirect(event)" class="space-y-4">
                             <input type="hidden" id="tch-edit-index" value="">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Select Faculty Member</label>
-                                    <select id="tch-name-sel" onchange="onFacultyNameSelected()" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required></select>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Teacher Full Name</label>
+                                    <input type="text" id="tch-name-input" placeholder="e.g. Dr. Ramkumar Singh" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Designation</label>
-                                    <input type="text" id="tch-desig" readonly class="w-full text-xs p-2.5 border rounded bg-slate-100 font-bold">
+                                    <select id="tch-desig-sel" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required>
+                                        <option value="PGT">PGT</option>
+                                        <option value="TGT">TGT</option>
+                                        <option value="PRT">PRT</option>
+                                        <option value="Principal">Principal</option>
+                                        <option value="Vice Principal">Vice Principal</option>
+                                    </select>
                                 </div>
                             </div>
                             
@@ -281,12 +287,12 @@
 
                             <div class="flex justify-end gap-2 pt-2 border-t">
                                 <button type="button" onclick="resetTeacherForm()" class="px-4 py-2 text-xs bg-slate-200 rounded font-semibold">Cancel / Reset</button>
-                                <button type="submit" class="px-5 py-2 text-xs bg-indigo-600 text-white rounded font-semibold shadow">💾 Save Faculty Assignment</button>
+                                <button type="submit" class="px-5 py-2 text-xs bg-indigo-600 text-white rounded font-semibold shadow">💾 Save Faculty</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- FACULTY SEARCH & DISPLAY TABLE -->
+                    <!-- FACULTY DISPLAY MASTER TABLE -->
                     <div class="space-y-3">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Faculty Roster & Workload Overview</h3>
@@ -557,13 +563,6 @@
             'pri-ic': 'Primary123'
         };
         function savePasswords() { localStorage.setItem('vems_passwords', JSON.stringify(appPasswords)); }
-        
-        let facultyRoster = JSON.parse(localStorage.getItem('vems_faculty_roster')) || [
-            { id: 1, name: 'Dr. R.K. Singh', desig: 'PGT' },
-            { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT' },
-            { id: 3, name: 'Shri Rajesh Kumar', desig: 'PGT' }
-        ];
-        function saveFacultyRoster() { localStorage.setItem('vems_faculty_roster', JSON.stringify(facultyRoster)); }
 
         let defaultSectionConfigs = {};
         ['6', '7', '8'].forEach(cls => { ['A', 'B', 'C', 'D'].forEach(sec => { defaultSectionConfigs[`${cls}-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE']; }); });
@@ -576,7 +575,10 @@
         ['11-D', '11-E', '12-D', '12-E'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI']; });
         let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || defaultSectionConfigs;
         let students = [];
-        let teachers = JSON.parse(localStorage.getItem('vems_teachers')) || [];
+        let teachers = JSON.parse(localStorage.getItem('vems_teachers')) || [
+            { id: 1, name: 'Dr. Ramkumar Singh', desig: 'PGT', allotments: [{ cls: '11', sec: 'A', subject: 'PHYSICS' }, { cls: '12', sec: 'A', subject: 'PHYSICS' }], qpSetter: 'Self', evaluator: 'Self' },
+            { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT', allotments: [{ cls: '10', sec: 'A', subject: 'SCIENCE' }, { cls: '9', sec: 'A', subject: 'SCIENCE' }], qpSetter: 'Self', evaluator: 'Self' }
+        ];
         let classTeacherAssignments = JSON.parse(localStorage.getItem('vems_ct_assignments')) || {};
 
         function initFirebaseListeners() {
@@ -1120,26 +1122,23 @@
             }
         }
 
-        // MODULE 3: ENHANCED FACULTY MANAGER & WORKLOAD ASSIGNMENT
+        // MODULE 3: STREAMLINED FACULTY MANAGER
         function initTeacherFormSelectors() {
-            const nameSel = document.getElementById('tch-name-sel'); 
-            nameSel.innerHTML = '<option value="">-- Select Faculty from Roster --</option>';
-            facultyRoster.forEach(f => nameSel.innerHTML += `<option value="${f.name}">${f.name} (${f.desig})</option>`);
-            
-            const qpSel = document.getElementById('tch-qp-setter'); 
-            const evalSel = document.getElementById('tch-evaluator');
-            qpSel.innerHTML = evalSel.innerHTML = '<option value="">-- Same as Teacher --</option>';
-            facultyRoster.forEach(f => { 
-                qpSel.innerHTML += `<option value="${f.name}">${f.name}</option>`; 
-                evalSel.innerHTML += `<option value="${f.name}">${f.name}</option>`; 
-            });
+            updateDutyDropdowns();
             if(document.getElementById('teaching-allotments-container').children.length === 0) {
                 addTeachingRow();
             }
         }
-        function onFacultyNameSelected() {
-            const fac = facultyRoster.find(f => f.name === document.getElementById('tch-name-sel').value);
-            document.getElementById('tch-desig').value = fac ? fac.desig : '-';
+        function updateDutyDropdowns() {
+            const qpSel = document.getElementById('tch-qp-setter'); 
+            const evalSel = document.getElementById('tch-evaluator');
+            if(!qpSel || !evalSel) return;
+            
+            qpSel.innerHTML = evalSel.innerHTML = '<option value="Self">Self (Same as Teacher)</option>';
+            teachers.forEach(t => { 
+                qpSel.innerHTML += `<option value="${t.name}">${t.name} (${t.desig})</option>`; 
+                evalSel.innerHTML += `<option value="${t.name}">${t.name} (${t.desig})</option>`; 
+            });
         }
         function addTeachingRow(selCls = '11', selSec = 'A', selSub = '') {
             const container = document.getElementById('teaching-allotments-container');
@@ -1169,11 +1168,11 @@
         }
         function saveTeacherDirect(e) {
             e.preventDefault();
-            const name = document.getElementById('tch-name-sel').value;
-            if(!name) { alert("Please select a faculty member."); return; }
-            const desig = document.getElementById('tch-desig').value;
-            const qpSetter = document.getElementById('tch-qp-setter').value || name;
-            const evaluator = document.getElementById('tch-evaluator').value || name;
+            const name = document.getElementById('tch-name-input').value.trim();
+            if(!name) { alert("Please enter the teacher's full name."); return; }
+            const desig = document.getElementById('tch-desig-sel').value;
+            const qpSetter = document.getElementById('tch-qp-setter').value || 'Self';
+            const evaluator = document.getElementById('tch-evaluator').value || 'Self';
             const editIndex = document.getElementById('tch-edit-index').value;
 
             let allotments = [];
@@ -1196,27 +1195,31 @@
             saveData();
             resetTeacherForm();
             renderTeachers();
-            alert("Faculty teaching assignment saved successfully!");
+            renderClassTeacherCoordinationTable();
+            alert("Faculty assignment saved successfully!");
             switchTab('teachers');
         }
         function resetTeacherForm() {
             document.getElementById('tch-edit-index').value = '';
-            document.getElementById('tch-name-sel').value = '';
-            document.getElementById('tch-desig').value = '';
-            document.getElementById('tch-qp-setter').value = '';
-            document.getElementById('tch-evaluator').value = '';
+            document.getElementById('tch-name-input').value = '';
+            document.getElementById('tch-desig-sel').value = 'PGT';
+            document.getElementById('tch-qp-setter').value = 'Self';
+            document.getElementById('tch-evaluator').value = 'Self';
             document.getElementById('teaching-allotments-container').innerHTML = '';
             addTeachingRow();
+            updateDutyDropdowns();
         }
         function editTeacher(id) {
             const idx = teachers.findIndex(t => t.id === id);
             if(idx === -1) return;
             const t = teachers[idx];
             document.getElementById('tch-edit-index').value = idx;
-            document.getElementById('tch-name-sel').value = t.name;
-            onFacultyNameSelected();
-            document.getElementById('tch-qp-setter').value = t.qpSetter || '';
-            document.getElementById('tch-evaluator').value = t.evaluator || '';
+            document.getElementById('tch-name-input').value = t.name;
+            document.getElementById('tch-desig-sel').value = t.desig;
+            
+            updateDutyDropdowns();
+            document.getElementById('tch-qp-setter').value = t.qpSetter || 'Self';
+            document.getElementById('tch-evaluator').value = t.evaluator || 'Self';
             
             const container = document.getElementById('teaching-allotments-container');
             container.innerHTML = '';
@@ -1232,6 +1235,7 @@
                 teachers = teachers.filter(t => t.id !== id);
                 saveData();
                 renderTeachers();
+                renderClassTeacherCoordinationTable();
                 switchTab('teachers');
             }
         }
@@ -1266,8 +1270,8 @@
                     <tr class="hover:bg-slate-50 border-b">
                         <td class="px-4 py-3 font-semibold">${t.name}<br><span class="px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${t.desig}</span></td>
                         <td class="px-4 py-3">${allotmentsHtml || '<i>No allotments</i>'}</td>
-                        <td class="px-4 py-3 font-semibold">${t.qpSetter || t.name}</td>
-                        <td class="px-4 py-3 font-semibold">${t.evaluator || t.name}</td>
+                        <td class="px-4 py-3 font-semibold">${t.qpSetter || 'Self'}</td>
+                        <td class="px-4 py-3 font-semibold">${t.evaluator || 'Self'}</td>
                         <td class="px-4 py-3 text-center bg-indigo-50/50 font-bold text-indigo-900">${totalStudentsAllotted} Booklets</td>
                         <td class="px-4 py-3 text-center bg-emerald-50/50 font-bold text-emerald-900">${t.allotments ? t.allotments.length : 0} Bundle(s)</td>
                         <td class="px-4 py-3 text-right space-x-2">
@@ -1276,6 +1280,7 @@
                         </td>
                     </tr>`;
             });
+            updateDutyDropdowns();
         }
         function renderClassTeacherCoordinationTable() {
             const tbody = document.getElementById('ct-coordination-tbody');
@@ -1288,7 +1293,7 @@
                 sections.forEach(sec => {
                     let key = `${cls}-${sec}`;
                     let facOptions = '<option value="">-- Select --</option>';
-                    facultyRoster.forEach(f => {
+                    teachers.forEach(f => {
                         facOptions += `<option value="${f.name}">${f.name} (${f.desig})</option>`;
                     });
                     tbody.innerHTML += `
