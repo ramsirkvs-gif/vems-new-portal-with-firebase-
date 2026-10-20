@@ -9,7 +9,6 @@
     <!-- Firebase App & Realtime Database CDN SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-
     <style>
         @media print {
             header, nav, .no-print, button, label, select, input {
@@ -78,7 +77,6 @@
             </div>
         </div>
     </header>
-
     <!-- Printable Header (Hidden in Web View, Visible in Print/PDF) -->
     <div id="print-header" class="hidden print:block p-3 space-y-2 border-b-2 border-slate-800">
         <div class="text-center space-y-0.5">
@@ -96,7 +94,6 @@
             </div>
         </div>
     </div>
-
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
         <!-- AREA 1: PUBLIC DISPLAY BOARD -->
@@ -126,7 +123,6 @@
                 </div>
             </div>
         </div>
-
         <!-- AREA 2: PRINCIPAL WORKSPACE (Tabs 1, 2, 3, 4 + Settings) -->
         <div id="area-principal" class="hidden space-y-6">
             <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
@@ -169,7 +165,6 @@
                     </div>
                 </div>
             </section>
-
             <!-- MODULE 2: STUDENT MASTER DATA & CSV -->
             <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden print:p-0 print:border-none">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4 no-print">
@@ -199,7 +194,6 @@
                         <tbody id="student-table-body" class="divide-y bg-white"></tbody>
                     </table>
                 </div>
-
                 <!-- Printable Note & Signature Block (Print Only) -->
                 <div class="hidden print:block space-y-4 pt-3 border-t mt-3">
                     <p class="text-[10px] text-slate-800 italic border-l-4 border-slate-800 pl-2">
@@ -212,7 +206,6 @@
                     </div>
                 </div>
             </section>
-
             <!-- MODULE 3: FACULTY MANAGER & CLASS TEACHER COORDINATION -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
                 <div class="space-y-4">
@@ -243,7 +236,6 @@
                         </table>
                     </div>
                 </div>
-
                 <!-- PART B: CLASS TEACHER & DATA COORDINATION SECTION -->
                 <div class="border-t pt-6 space-y-4">
                     <div class="flex justify-between items-center">
@@ -272,7 +264,6 @@
                     </div>
                 </div>
             </section>
-
             <!-- MODULE 4 IN PRINCIPAL VIEW: EXAM CREATOR SUPERVISORY VIEW -->
             <section id="sec-exam-creator-prin" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
                 <div class="border-b pb-4 flex justify-between items-center">
@@ -316,7 +307,6 @@
                     </div>
                 </div>
             </section>
-
             <!-- SETTINGS: PASSWORD & ACCESS MANAGER -->
             <section id="sec-settings" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
                 <div class="border-b pb-4">
@@ -348,7 +338,6 @@
                 </div>
             </section>
         </div>
-
         <!-- AREA 3: SECONDARY EXAM IC WORKSPACE -->
         <div id="area-sec-ic" class="hidden space-y-6">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
@@ -393,7 +382,6 @@
                 </div>
             </div>
         </div>
-
         <!-- AREA 4: PRIMARY EXAM IC WORKSPACE -->
         <div id="area-pri-ic" class="hidden space-y-6">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 space-y-6">
@@ -408,7 +396,6 @@
             </div>
         </div>
     </main>
-
     <!-- LOGIN MODAL -->
     <div id="login-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 no-print">
         <div class="bg-white rounded-xl max-w-sm w-full p-6 space-y-4 shadow-xl">
@@ -431,7 +418,6 @@
             </form>
         </div>
     </div>
-
     <!-- FACULTY ROSTER MODAL -->
     <div id="faculty-roster-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 no-print">
         <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
@@ -455,7 +441,6 @@
             <div class="flex justify-end pt-2 border-t"><button type="button" onclick="closeFacultyRosterModal()" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded">Done</button></div>
         </div>
     </div>
-
     <!-- STUDENT MODAL -->
     <div id="student-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 overflow-y-auto no-print">
         <div class="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 my-8">
@@ -481,7 +466,6 @@
             </form>
         </div>
     </div>
-
     <!-- TEACHER MODAL -->
     <div id="teacher-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 overflow-y-auto no-print">
         <div class="bg-white rounded-xl max-w-xl w-full p-6 space-y-4 my-8">
@@ -516,7 +500,6 @@
             </form>
         </div>
     </div>
-
     <!-- SCRIPT ENGINE (FIREBASE CLOUD INTEGRATION & ROBUST CSV PARSER) -->
     <script>
         // Initialize Firebase Realtime Database
@@ -531,7 +514,6 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
         function sanitizeText(val) {
             if (!val || typeof val !== 'string') return '-';
             let cleaned = val.replace(/\uFFFD/g, '').trim();
@@ -540,22 +522,21 @@
         }
         const ROMAN_MAP = { '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || cls; }
-
-        let currentActiveRole = 'public';
         
+        // --- AUTH SESSION PERSISTENCE FIX ---
+        let currentActiveRole = localStorage.getItem('vems_active_role') || 'public';
+
         let appPasswords = JSON.parse(localStorage.getItem('vems_passwords')) || {
             principal: 'master777',
             'sec-ic': 'Exam123',
             'pri-ic': 'Primary123'
         };
         function savePasswords() { localStorage.setItem('vems_passwords', JSON.stringify(appPasswords)); }
-
         let facultyRoster = JSON.parse(localStorage.getItem('vems_faculty_roster')) || [
             { id: 1, name: 'Dr. R.K. Singh', desig: 'PGT' },
             { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT' }
         ];
         function saveFacultyRoster() { localStorage.setItem('vems_faculty_roster', JSON.stringify(facultyRoster)); }
-
         let defaultSectionConfigs = {};
         ['6', '7', '8'].forEach(cls => { ['A', 'B', 'C', 'D'].forEach(sec => { defaultSectionConfigs[`${cls}-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE']; }); });
         ['A', 'B', 'C', 'D'].forEach(sec => {
@@ -565,12 +546,10 @@
         ['11-A', '11-B', '12-A', '12-B'].forEach(key => { defaultSectionConfigs[key] = ['PHYSICS', 'CHEMISTRY', 'ENGLISH', 'MATHS', 'BIOLOGY', 'C.S', 'HINDI CORE', 'AI']; });
         ['11-C', '12-C'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI']; });
         ['11-D', '11-E', '12-D', '12-E'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI']; });
-
         let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || defaultSectionConfigs;
         let students = [];
         let teachers = JSON.parse(localStorage.getItem('vems_teachers')) || [];
         let classTeacherAssignments = JSON.parse(localStorage.getItem('vems_ct_assignments')) || {};
-
         // Setup real-time Firebase Sync listeners
         function initFirebaseListeners() {
             db.ref('students').on('value', (snapshot) => {
@@ -589,14 +568,17 @@
                 }
                 filterStudents();
             });
-
             db.ref('sectionConfigs').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) sectionConfigs = data;
             });
         }
-
         initFirebaseListeners();
+        
+        // Restore active user session layout automatically on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            activateArea(currentActiveRole);
+        });
 
         function saveData() {
             localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
@@ -604,7 +586,6 @@
             localStorage.setItem('vems_ct_assignments', JSON.stringify(classTeacherAssignments));
             db.ref('sectionConfigs').set(sectionConfigs);
         }
-
         function switchPortalArea(area) {
             if (area === 'public') activateArea('public');
             else {
@@ -631,14 +612,18 @@
             let correctPass = appPasswords[role];
             if (pass === correctPass || pass === 'master777' || pass === 'Exam123' || pass === 'Primary123') {
                 currentActiveRole = role;
+                localStorage.setItem('vems_active_role', role);
                 closeLoginModal();
                 activateArea(role);
             } else {
                 document.getElementById('login-error-msg').classList.remove('hidden');
             }
         }
-        function logoutSession() { currentActiveRole = 'public'; activateArea('public'); }
-
+        function logoutSession() { 
+            currentActiveRole = 'public'; 
+            localStorage.removeItem('vems_active_role');
+            activateArea('public'); 
+        }
         function activateArea(area) {
             document.getElementById('area-public-display').classList.toggle('hidden', area !== 'public');
             document.getElementById('area-principal').classList.toggle('hidden', area !== 'principal');
@@ -666,7 +651,6 @@
             document.getElementById('btn-icon-sec').className = area === 'sec-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
             document.getElementById('btn-icon-pri').className = area === 'pri-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
         }
-
         function switchTab(tab) {
             document.getElementById('sec-config').classList.toggle('hidden', tab !== 'config');
             document.getElementById('sec-students').classList.toggle('hidden', tab !== 'students');
@@ -689,7 +673,6 @@
                 document.getElementById('pass-pri').value = appPasswords['pri-ic'];
             }
         }
-
         function updatePassword(e, roleKey) {
             e.preventDefault();
             let val = '';
@@ -701,7 +684,6 @@
             savePasswords();
             alert(`Password for ${roleKey.toUpperCase()} updated successfully!`);
         }
-
         // MODULE 1: SUBJECT SETUP
         function initCfgSections() { updateCfgSections(); loadSectionConfigDetails(); }
         function updateCfgSections() {
@@ -754,7 +736,6 @@
             saveData();
             alert(`Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
         }
-
         // MODULE 2: STUDENTS & CSV (Firebase Cloud Synced & Upgraded Parser)
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
@@ -799,7 +780,6 @@
                 tbody.appendChild(tr);
             });
         }
-
         function generateStudentPDFReport() {
             const cls = document.getElementById('filter-class').value;
             const sec = document.getElementById('filter-section').value;
@@ -807,22 +787,17 @@
             const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
             const subs = sectionConfigs[key] || [];
             let ctData = classTeacherAssignments[key] || { ct: '-', coCt: '-', assignedOnDuty: '-' };
-
             document.getElementById('print-class-sec').textContent = `Class ${formatClass(cls)} - Section ${sec}`;
             document.getElementById('print-strength').textContent = `${filtered.length} Students`;
             document.getElementById('print-ct-name').textContent = ctData.ct || '-';
             document.getElementById('print-co-ct-name').textContent = ctData.coCt || '-';
             document.getElementById('print-onduty-name').textContent = ctData.assignedOnDuty || '-';
-
             const subBox = document.getElementById('print-header-subjects-box');
             const subSpan = document.getElementById('print-header-subjects');
-
             const isHigher = (cls === '11' || cls === '12');
-
             if (!isHigher) {
                 subBox.classList.remove('hidden');
                 subSpan.textContent = subs.join(', ');
-
                 document.getElementById('student-table-header-row').innerHTML = `
                     <th class="px-2 py-1 text-center border">S.No</th>
                     <th class="px-2 py-1 border">Roll</th>
@@ -831,26 +806,20 @@
                     <th class="px-2 py-1 border bg-slate-200/50">Roll</th>
                     <th class="px-3 py-1 border bg-slate-200/50">Student Name</th>
                 `;
-
                 const half = Math.ceil(filtered.length / 2);
                 const col1 = filtered.slice(0, half);
                 const col2 = filtered.slice(half);
-
                 const tbody = document.getElementById('student-table-body');
                 tbody.innerHTML = '';
-
                 for (let i = 0; i < half; i++) {
                     let s1 = col1[i];
                     let s2 = col2[i];
-
                     let s1No = s1 ? (s1.sno || (i + 1)) : '';
                     let s1Roll = s1 ? s1.roll : '';
                     let s1Name = s1 ? s1.name : '';
-
                     let s2No = s2 ? (s2.sno || (half + i + 1)) : '';
                     let s2Roll = s2 ? s2.roll : '';
                     let s2Name = s2 ? s2.name : '';
-
                     let tr = document.createElement('tr');
                     tr.className = "border-b";
                     tr.innerHTML = `
@@ -867,11 +836,9 @@
                 subBox.classList.add('hidden');
                 filterStudents();
             }
-
             window.print();
             setTimeout(() => { filterStudents(); }, 1000);
         }
-
         function downloadCSVTemplate() {
             const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value;
             const subs = sectionConfigs[`${cls}-${sec}`] || [];
@@ -931,7 +898,6 @@
                     event.target.value = '';
                     return;
                 }
-
                 db.ref(`students/${cls}/${sec}`).set(updates).then(() => {
                     alert(`✅ CSV Uploaded & Synced to Firebase Cloud Successfully! ${count} students loaded.`);
                     event.target.value = '';
@@ -948,7 +914,6 @@
             
             reader.readAsText(file);
         }
-
         function openStudentModal(id = null) {
             const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value;
             document.getElementById('modal-class-sec-badge').textContent = `Target: Class ${formatClass(cls)}-${sec}`;
@@ -986,7 +951,6 @@
                 section: sec, 
                 subjects: studentSubjects 
             };
-
             studentRef.set(stuData).then(() => {
                 closeStudentModal();
             });
@@ -998,7 +962,6 @@
                 db.ref(`students/${s.class}/${s.section}/${id}`).remove();
             }
         }
-
         // MODULE 3: FACULTY MANAGER & CLASS TEACHER COORDINATION
         function openFacultyRosterModal() { renderFacultyRosterTable(); document.getElementById('faculty-roster-modal').classList.remove('hidden'); }
         function closeFacultyRosterModal() { document.getElementById('faculty-roster-modal').classList.add('hidden'); }
@@ -1062,7 +1025,6 @@
                     facultyRoster.forEach(f => {
                         facOptions += `<option value="${f.name}">${f.name} (${f.desig})</option>`;
                     });
-
                     tbody.innerHTML += `
                         <tr class="border-b hover:bg-slate-50">
                             <td class="px-4 py-2 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td>
@@ -1085,7 +1047,6 @@
                     `;
                 });
             });
-
             classesList.forEach(cls => {
                 let sections = (cls === '11' || cls === '12') ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
                 sections.forEach(sec => {
@@ -1099,7 +1060,6 @@
                 });
             });
         }
-
         function saveClassTeacherAssignments() {
             let classesList = ['6', '7', '8', '9', '10', '11', '12'];
             classesList.forEach(cls => {
@@ -1116,7 +1076,6 @@
             saveData();
             alert("Class Teacher & Coordination Assignments saved successfully!");
         }
-
         function openTeacherModal(id = null) {
             const nameSel = document.getElementById('tch-name-sel'); nameSel.innerHTML = '<option value="">-- Select Faculty --</option>';
             facultyRoster.forEach(f => nameSel.innerHTML += `<option value="${f.name}">${f.name} (${f.desig})</option>`);
