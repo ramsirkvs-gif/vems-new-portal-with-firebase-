@@ -831,7 +831,6 @@
                 dayIndicator.textContent = startDate.getTime() === endDate.getTime() ? startDay : `${startDay} to ${endDay}`;
             }
 
-            // Update mainHeaderConfig dates immediately
             mainHeaderConfig.fromDate = fromDateVal;
             mainHeaderConfig.toDate = toDateVal || fromDateVal;
 
@@ -876,7 +875,29 @@
             const htmlContent = `
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                     
-                    <!-- 🔝 1. UPSIDE CREATED & SAVED EXAMS LIST VAULT -->
+                    <!-- HEADER & CLEAN MANDATORY PRE-FLIGHT NOTICE BANNER -->
+                    <div class="border-b pb-4 space-y-3">
+                        <div class="flex justify-between items-center flex-wrap gap-2">
+                            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                <span>📌</span> Create Exam & End-to-End Lifecycle Operations Hub
+                            </h2>
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
+                        </div>
+
+                        <!-- CLEAN MANDATORY NOTICE (TEXT ONLY, NO HYPERLINKS) -->
+                        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg space-y-1.5 shadow-xs">
+                            <div class="flex items-center gap-2 font-bold text-amber-900 text-xs uppercase tracking-wide">
+                                <span>⚠️</span> Mandatory Pre-Flight Verification Notice for Exam IC
+                            </div>
+                            <p class="text-xs text-amber-800 leading-relaxed">
+                                <strong>Welcome Exam IC!</strong> Before creating an examination schedule, please check and verify the 
+                                <strong>Subject Mapping</strong>, <strong>Student Master Data</strong>, and <strong>Faculty Duty Data</strong>. 
+                                Ensure alignment with the <strong>SAMAGAM portal</strong> and verify directly with Class Teachers (CTs).
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 🔝 2. FRESH AREA: CREATE NEW EXAM VAULT & SAVED EXAMS LIST -->
                     <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md">
                         <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
                             <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-400">
@@ -924,33 +945,11 @@
                         `}
                     </div>
 
-                    <!-- HEADER & CLEAN MANDATORY PRE-FLIGHT NOTICE BANNER -->
-                    <div class="border-b pb-4 space-y-3">
-                        <div class="flex justify-between items-center flex-wrap gap-2">
-                            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                <span>📌</span> Create Exam & End-to-End Lifecycle Operations Hub
-                            </h2>
-                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
-                        </div>
-
-                        <!-- CLEAN MANDATORY NOTICE (TEXT ONLY, NO HYPERLINKS) -->
-                        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg space-y-1.5 shadow-xs">
-                            <div class="flex items-center gap-2 font-bold text-amber-900 text-xs uppercase tracking-wide">
-                                <span>⚠️</span> Mandatory Pre-Flight Verification Notice for Exam IC
-                            </div>
-                            <p class="text-xs text-amber-800 leading-relaxed">
-                                <strong>Welcome Exam IC!</strong> Before creating an examination schedule, please check and verify the 
-                                <strong>Subject Mapping</strong>, <strong>Student Master Data</strong>, and <strong>Faculty Duty Data</strong>. 
-                                Ensure alignment with the <strong>SAMAGAM portal</strong> and verify directly with Class Teachers (CTs).
-                            </p>
-                        </div>
-
-                        <!-- WORKSPACE TOGGLE CONTROL BUTTON -->
-                        <div class="flex items-center justify-between pt-1 flex-wrap gap-2">
-                            <button type="button" onclick="toggleExamCreationPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
-                                <span>🚀</span> ${isExamConfigOpen ? 'Close / Hide Active Workspace' : 'Open Active Exam Workspace'}
-                            </button>
-                        </div>
+                    <!-- WORKSPACE TOGGLE CONTROL BUTTON -->
+                    <div class="flex items-center justify-between pt-1 flex-wrap gap-2">
+                        <button type="button" onclick="toggleExamCreationPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
+                            <span>🚀</span> ${isExamConfigOpen ? 'Close / Hide Active Workspace' : 'Open Active Exam Workspace'}
+                        </button>
                     </div>
 
                     <!-- MAIN EXAM CONFIGURATION PANEL WITH FULLY UNLOCKED FLEXIBLE INPUTS -->
