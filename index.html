@@ -408,6 +408,31 @@
             renderExamCreatorModule();
         }
 
+        // Auto-register or update active exam draft in the vault immediately upon initiation/saving
+        function syncActiveExamDraftToVault() {
+            const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
+            const existingDraftIndex = archivedExams.findIndex(ex => ex.isDraft === true);
+            
+            const draftRecord = {
+                id: existingDraftIndex !== -1 ? archivedExams[existingDraftIndex].id : Date.now(),
+                title: examTitle,
+                fromDate: mainHeaderConfig.fromDate,
+                toDate: mainHeaderConfig.toDate,
+                totalDays: datesheetDays.length,
+                status: 'DRAFT / IN-PROGRESS',
+                isDraft: true,
+                archivedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays))
+            };
+
+            if (existingDraftIndex !== -1) {
+                archivedExams[existingDraftIndex] = draftRecord;
+            } else {
+                archivedExams.unshift(draftRecord);
+            }
+            saveData();
+        }
+
         function switchPortalArea(area) {
             if (area === 'public') activateArea('public');
             else {
@@ -648,6 +673,7 @@
                 if (datesheetDays.length === 0) {
                     datesheetDays = [{ id: 1, dateStr: '2026-11-10', isCollapsed: false, saved: false }];
                 }
+                syncActiveExamDraftToVault();
                 renderExamCreatorModule();
             }
         }
@@ -664,10 +690,11 @@
         function confirmSafetyClose(action) {
             closeSafetyModal();
             if (action === 'save') {
-                saveData();
-                alert("💾 Exam Draft Saved Safely! You can resume editing anytime.");
+                syncActiveExamDraftToVault();
+                alert("💾 Exam Draft Saved Safely! Visible in Vault above.");
             } else if (action === 'discard') {
                 datesheetDays = [];
+                archivedExams = archivedExams.filter(ex => !ex.isDraft);
                 localStorage.removeItem('vems_datesheet_draft');
             }
             isExamConfigOpen = false;
@@ -688,8 +715,8 @@
             mainHeaderConfig.overTime = document.getElementById('exam-over-time')?.value || '11:30';
 
             mainHeaderSaved = true;
-            saveData();
-            alert("✅ LEVEL 1: Main Examination Header Parameters Saved & Updated Successfully!");
+            syncActiveExamDraftToVault();
+            alert("✅ LEVEL 1: Main Examination Header Saved & Registered in Vault!");
             renderExamCreatorModule();
         }
 
@@ -713,7 +740,7 @@
 
             mainHeaderConfig.name = val;
             mainHeaderConfig.customName = '';
-            saveData();
+            syncActiveExamDraftToVault();
             alert(`✅ Added "${val}" into the Exam List Dropdown permanently!`);
             renderExamCreatorModule();
         }
@@ -724,8 +751,8 @@
             if (dayObj) {
                 dayObj.saved = true;
                 dayObj.isCollapsed = true;
-                saveData();
-                alert(`✅ LEVEL 2: Scope for DAY ${dayId} Saved & Locked Successfully!`);
+                syncActiveExamDraftToVault();
+                alert(`✅ LEVEL 2: Scope for DAY ${dayId} Saved & Locked!`);
                 renderDatesheetDaysContainer();
             }
         }
@@ -770,6 +797,9 @@
                 return;
             }
 
+            // Remove draft flag and mark as completed archive
+            archivedExams = archivedExams.filter(ex => !ex.isDraft);
+
             const examRecord = {
                 id: Date.now(),
                 title: examTitle,
@@ -786,11 +816,14 @@
             alert(`🎉 EXAM FULLY BOUND UP & SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
         }
 
-        function getExamStatusBadge(fromDate, toDate) {
+        function getExamStatusBadge(ex) {
+            if (ex.isDraft) {
+                return `<span class="bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📝 DRAFT / IN-PROGRESS</span>`;
+            }
             const today = new Date().toISOString().split('T')[0];
-            if (today >= fromDate && today <= toDate) {
+            if (today >= ex.fromDate && today <= ex.toDate) {
                 return `<span class="bg-emerald-900 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full animate-pulse">🟢 LIVE NOW</span>`;
-            } else if (today < fromDate) {
+            } else if (today < ex.fromDate) {
                 return `<span class="bg-indigo-950 text-indigo-300 border border-indigo-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">⏳ UPCOMING</span>`;
             } else {
                 return `<span class="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📦 COMPLETED</span>`;
@@ -837,7 +870,7 @@
                 curr.setDate(curr.getDate() + 1);
                 dayIdx++;
             }
-            saveData();
+            syncActiveExamDraftToVault();
             renderDatesheetDaysContainer();
         }
 
@@ -859,7 +892,7 @@
             
             datesheetDays.forEach(d => d.isCollapsed = true);
             datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false, saved: false });
-            saveData();
+            syncActiveExamDraftToVault();
             renderDatesheetDaysContainer();
         }
 
@@ -871,13 +904,13 @@
                     <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md">
                         <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
                             <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-400">
-                                📚 Created Examinations Vault List (${archivedExams.length} Saved Records)
+                                📚 Created Examinations Vault List (${archivedExams.length} Records)
                             </h3>
-                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded border border-slate-700">Past, Active & Future Exam Repository</span>
+                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded border border-slate-700">Instant Tracking for Drafts & Archives</span>
                         </div>
 
                         ${archivedExams.length === 0 ? `
-                            <p class="text-xs text-slate-400 italic py-2">No created exam schedules saved yet. Click 'Create Exam Schedule' below to start!</p>
+                            <p class="text-xs text-slate-400 italic py-2">No exam schedules or drafts created yet. Click 'Create Exam Schedule' below to start!</p>
                         ` : `
                             <div class="overflow-x-auto">
                                 <table class="w-full text-xs text-left text-slate-200">
@@ -893,7 +926,7 @@
                                     <tbody class="divide-y divide-slate-800 bg-slate-900">
                                         ${archivedExams.map(ex => `
                                             <tr class="hover:bg-slate-800/60">
-                                                <td class="px-3 py-2.5">${getExamStatusBadge(ex.fromDate, ex.toDate)}</td>
+                                                <td class="px-3 py-2.5">${getExamStatusBadge(ex)}</td>
                                                 <td class="px-3 py-2.5 font-bold text-amber-300">${ex.title}</td>
                                                 <td class="px-3 py-2.5 font-medium text-slate-300">${ex.fromDate} to ${ex.toDate}</td>
                                                 <td class="px-3 py-2.5 text-center text-slate-300 font-bold">${ex.totalDays} Days</td>
@@ -1202,7 +1235,7 @@
                             <span id="day-${dayObj.id}-quick-summary" class="text-[11px] font-semibold text-slate-600 hidden sm:inline-block bg-white px-2.5 py-1 rounded border border-slate-200">
                                 📊 Calculating Scope...
                             </span>
-                            <input type="date" value="${dayObj.dateStr}" ${dayObj.saved ? 'disabled' : ''} onchange="dayObj.dateStr=this.value; saveData(); renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
+                            <input type="date" value="${dayObj.dateStr}" ${dayObj.saved ? 'disabled' : ''} onchange="dayObj.dateStr=this.value; syncActiveExamDraftToVault(); renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
                             
                             <!-- LEVEL-2 INDIVIDUAL DAY SAVE BUTTON -->
                             ${dayObj.saved ? `
@@ -1229,7 +1262,7 @@
                                     <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (Scope for Day ${dayObj.id})</label>
                                     <div class="space-x-1.5">
                                         <button type="button" onclick="setDaySelections(${dayObj.id}, true)" class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
-                                        <button type="button" onclick="setDaySelections(${dayObj.id}, false)" class="text-[10px] bg-white text-slate-700 font-bold px-2 py-1 rounded border border-indigo-200">Deselect All</button>
+                                        <button type="button" onclick="setDaySelections(${dayObj.id}, false)" class="text-[10px] bg-white text-slate-700 font-bold px-2 py-1 rounded border border-slate-200">Deselect All</button>
                                     </div>
                                 </div>
 
