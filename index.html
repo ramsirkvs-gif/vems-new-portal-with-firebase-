@@ -11,7 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
         @media print {
-            header, nav, .no-print, button, label, select, input {
+            header, nav, .no-print, button, label, select, input, .modal-backdrop {
                 display: none !important;
             }
             body {
@@ -25,14 +25,21 @@
                 padding: 0 !important;
                 margin: 0 !important;
             }
+            .printable-area {
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+            }
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
-                font-size: 10px !important;
+                font-size: 11px !important;
             }
             th, td {
                 border: 1px solid #333 !important;
-                padding: 3px 5px !important;
+                padding: 4px 6px !important;
             }
             th {
                 background-color: #f1f5f9 !important;
@@ -325,6 +332,7 @@
         };
         let datesheetDays = JSON.parse(localStorage.getItem('vems_datesheet_draft')) || [];
         let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
+        let editableQpDemands = [];
 
         function initFirebaseListeners() {
             // Live Student Sync
@@ -356,7 +364,7 @@
                 }
             });
 
-            // FIXED: Live Archived Exams Sync with Immediate UI Re-render
+            // Live Archived Exams Sync
             db.ref('archivedExams').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -371,8 +379,6 @@
                     archivedExams = [];
                 }
                 localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
-                
-                // Force immediate UI refresh across all open screens/tabs
                 renderExamCreatorModule();
             });
         }
@@ -958,6 +964,235 @@
             runDayAnalysisSearch(dayId);
         }
 
+        // =========================================================================
+        // 🖨️ EDITABLE PRE-EXAM MODULE 1: QP PRINTING DEMAND WORKSPACE
+        // =========================================================================
+        function openEditableQpDemandWorkspace() {
+            editableQpDemands = [];
+            
+            datesheetDays.forEach(day => {
+                if (day.paperSlots && day.paperSlots.length > 0) {
+                    day.paperSlots.forEach(slot => {
+                        let secList = slot.selectedSections || [];
+                        if (secList.length > 0) {
+                            let totalStudents = 0;
+                            secList.forEach(sec => {
+                                totalStudents += students.filter(s => String(s.class) === String(slot.cls) && String(s.section) === String(sec)).length;
+                            });
+                            let calcBuffer = Math.ceil(totalStudents * 0.05);
+                            let calcFinal = totalStudents + calcBuffer;
+                            
+                            editableQpDemands.push({
+                                id: `${day.id}-${slot.slotId}`,
+                                dayId: day.id,
+                                dateStr: day.dateStr,
+                                cls: slot.cls,
+                                sections: secList.join(', '),
+                                subject: slot.subject,
+                                enrolled: totalStudents,
+                                bufferQty: calcBuffer,
+                                finalDemand: calcFinal,
+                                remarks: 'Standard Exam Copy'
+                            });
+                        }
+                    });
+                }
+            });
+            
+            renderQpDemandModalTable();
+            document.getElementById('qp-demand-modal').classList.remove('hidden');
+        }
+
+        function closeQpDemandModal() {
+            document.getElementById('qp-demand-modal').classList.add('hidden');
+        }
+
+        function updateQpDemandRow(id, field, val) {
+            let item = editableQpDemands.find(q => q.id === id);
+            if (!item) return;
+            
+            if (field === 'enrolled') {
+                item.enrolled = parseInt(val) || 0;
+                item.finalDemand = item.enrolled + item.bufferQty;
+            } else if (field === 'bufferQty') {
+                item.bufferQty = parseInt(val) || 0;
+                item.finalDemand = item.enrolled + item.bufferQty;
+            } else if (field === 'finalDemand') {
+                item.finalDemand = parseInt(val) || 0;
+            } else if (field === 'remarks') {
+                item.remarks = val;
+            }
+            renderQpDemandModalTable();
+        }
+
+        function addManualQpDemandRow() {
+            let classesList = getAllUniqueClasses();
+            let defaultCls = classesList[0] || '10';
+            editableQpDemands.push({
+                id: `manual-${Date.now()}`,
+                dayId: '-',
+                dateStr: new Date().toISOString().split('T')[0],
+                cls: defaultCls,
+                sections: 'ALL',
+                subject: 'ADDITIONAL SUBJECT',
+                enrolled: 30,
+                bufferQty: 2,
+                finalDemand: 32,
+                remarks: 'Manual Entry'
+            });
+            renderQpDemandModalTable();
+        }
+
+        function removeQpDemandRow(id) {
+            editableQpDemands = editableQpDemands.filter(q => q.id !== id);
+            renderQpDemandModalTable();
+        }
+
+        function renderQpDemandModalTable() {
+            const tbody = document.getElementById('qp-modal-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            
+            let totalEnrolled = 0;
+            let totalBuffer = 0;
+            let totalFinal = 0;
+
+            if (editableQpDemands.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">No scheduled papers found in current exam. Add slots in datesheet or add manual rows!</td></tr>`;
+            } else {
+                editableQpDemands.forEach(item => {
+                    totalEnrolled += item.enrolled;
+                    totalBuffer += item.bufferQty;
+                    totalFinal += item.finalDemand;
+
+                    let tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 border-b";
+                    tr.innerHTML = `
+                        <td class="p-2 font-bold text-indigo-900">
+                            Class ${formatClass(item.cls)} (Sec ${item.sections})
+                        </td>
+                        <td class="p-2 font-bold text-slate-800">
+                            <input type="text" value="${item.subject}" onchange="updateQpDemandRow('${item.id}', 'subject', this.value)" class="w-full text-xs p-1 border rounded font-semibold uppercase bg-slate-50">
+                        </td>
+                        <td class="p-2 text-center">
+                            <input type="number" value="${item.enrolled}" onchange="updateQpDemandRow('${item.id}', 'enrolled', this.value)" class="w-16 text-center text-xs p-1 border rounded bg-white font-bold text-slate-800">
+                        </td>
+                        <td class="p-2 text-center">
+                            <input type="number" value="${item.bufferQty}" onchange="updateQpDemandRow('${item.id}', 'bufferQty', this.value)" class="w-16 text-center text-xs p-1 border rounded bg-amber-50 font-bold text-amber-900 border-amber-300">
+                        </td>
+                        <td class="p-2 text-center">
+                            <input type="number" value="${item.finalDemand}" onchange="updateQpDemandRow('${item.id}', 'finalDemand', this.value)" class="w-20 text-center text-xs p-1 border rounded bg-emerald-50 font-extrabold text-emerald-900 border-emerald-300">
+                        </td>
+                        <td class="p-2">
+                            <input type="text" value="${item.remarks}" onchange="updateQpDemandRow('${item.id}', 'remarks', this.value)" class="w-full text-xs p-1 border rounded bg-white">
+                        </td>
+                        <td class="p-2 text-center">
+                            <button type="button" onclick="removeQpDemandRow('${item.id}')" class="text-red-600 hover:bg-red-50 p-1 rounded">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            document.getElementById('qp-total-enrolled').textContent = totalEnrolled;
+            document.getElementById('qp-total-buffer').textContent = totalBuffer;
+            document.getElementById('qp-total-final').textContent = totalFinal;
+        }
+
+        function triggerQpDemandPrintReport() {
+            const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
+            const printWin = window.open('', '_blank', 'width=900,height=700');
+            
+            let tableRowsHtml = editableQpDemands.map((q, idx) => `
+                <tr>
+                    <td style="text-align: center;">${idx + 1}</td>
+                    <td><b>Class ${formatClass(q.cls)}</b> (Sec ${q.sections})</td>
+                    <td><b>${q.subject}</b></td>
+                    <td style="text-align: center;">${q.enrolled}</td>
+                    <td style="text-align: center;">+${q.bufferQty}</td>
+                    <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${q.finalDemand}</td>
+                    <td>${q.remarks}</td>
+                </tr>
+            `).join('');
+
+            let totEnrolled = editableQpDemands.reduce((sum, q) => sum + q.enrolled, 0);
+            let totBuffer = editableQpDemands.reduce((sum, q) => sum + q.bufferQty, 0);
+            let totFinal = editableQpDemands.reduce((sum, q) => sum + q.finalDemand, 0);
+
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>QP Printing Indent - ${examTitle}</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 25px; color: #1e293b; }
+                        .header { text-align: center; border-bottom: 2px solid #1e293b; padding-bottom: 12px; margin-bottom: 20px; }
+                        .header h2 { margin: 0; font-size: 20px; text-transform: uppercase; }
+                        .header p { margin: 4px 0 0 0; font-size: 12px; color: #475569; }
+                        .meta { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 15px; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+                        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 25px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+                        th { background-color: #0f172a; color: white; text-transform: uppercase; font-size: 11px; }
+                        .footer-signatures { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 20px; border-top: 1px solid #cbd5e1; }
+                        .sig-box { text-align: center; width: 220px; }
+                        .sig-line { border-top: 1px dashed #0f172a; margin-top: 40px; padding-top: 5px; font-weight: bold; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>KENDRIYA VIDYALAYA EXAMINATION CELL</h2>
+                        <p>CONFIDENTIAL QUESTION PAPER PRINTING DEMAND INDENT SHEET</p>
+                    </div>
+                    <div class="meta">
+                        <div><b>Examination Name:</b> ${examTitle}</div>
+                        <div><b>Duration:</b> ${mainHeaderConfig.fromDate} to ${mainHeaderConfig.toDate}</div>
+                        <div><b>Date Generated:</b> ${new Date().toLocaleDateString('en-IN')}</div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;">S.N</th>
+                                <th>Class & Section</th>
+                                <th>Subject</th>
+                                <th style="text-align: center;">Enrolled</th>
+                                <th style="text-align: center;">Buffer (+5%)</th>
+                                <th style="text-align: center;">Final Print Order</th>
+                                <th>Special Notes / Instructions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; background-color: #f1f5f9;">
+                                <td colspan="3" style="text-align: right;">GRAND TOTAL PRINT ORDER:</td>
+                                <td style="text-align: center;">${totEnrolled}</td>
+                                <td style="text-align: center;">+${totBuffer}</td>
+                                <td style="text-align: center; font-size: 13px;">${totFinal} Copies</td>
+                                <td>Confidential Delivery</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div class="footer-signatures">
+                        <div class="sig-box">
+                            <div class="sig-line">Exam In-Charge (IC)</div>
+                        </div>
+                        <div class="sig-box">
+                            <div class="sig-line">Printing Cell Supervisor</div>
+                        </div>
+                        <div class="sig-box">
+                            <div class="sig-line">Principal (Sign & Stamp)</div>
+                        </div>
+                    </div>
+                    <script>
+                        window.onload = function() { window.print(); }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+        }
+
         // MODULE RENDER ENGINE WITH PRE-EXAM NEEDS HUB
         function renderExamCreatorModule() {
             const htmlContent = `
@@ -1175,6 +1410,7 @@
                         </div>
                     </div>
                 </div>
+
                 <!-- PRE-EXAM READINESS & LOGISTICS CENTER MODAL -->
                 <div id="pre-exam-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 no-print">
                     <div class="bg-white rounded-xl max-w-4xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -1188,38 +1424,42 @@
                             <button type="button" onclick="closePreExamModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-3 py-1.5 rounded">✕ Close</button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- CARD 1: EDITABLE QP DEMAND SHEET -->
                             <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
                                 <h4 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1.5">
                                     <span>🖨️</span> 1. Question Paper Printing Demand (+5%)
                                 </h4>
-                                <p class="text-[11px] text-slate-600">Calculates exact examinee strength per subject and adds a safe 5% buffer rounded up for secure printing.</p>
-                                <button type="button" onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
-                                    📄 Print QP Order Sheet
+                                <p class="text-[11px] text-slate-600">Calculates examinee strength, allows full editing of buffers, custom copies, and generates print indents.</p>
+                                <button type="button" onclick="closePreExamModal(); openEditableQpDemandWorkspace();" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
+                                    📄 Open QP Demand Workstation
                                 </button>
                             </div>
+                            <!-- CARD 2: SEATING PLAN -->
                             <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-3">
                                 <h4 class="text-xs font-bold text-amber-900 uppercase flex items-center gap-1.5">
                                     <span>🪑</span> 2. Smart Seating Plan & Desk Roll Slips
                                 </h4>
                                 <p class="text-[11px] text-slate-600">Mixes classes/sections across rooms and generates printable desk roll number stickers and door charts.</p>
                                 <div class="flex gap-2">
-                                    <button type="button" onclick="window.print()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
+                                    <button type="button" onclick="alert('Seating Studio opening soon...')" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
                                         📄 Door Chart
                                     </button>
-                                    <button type="button" onclick="window.print()" class="bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
+                                    <button type="button" onclick="alert('Desk Slips Studio opening soon...')" class="bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
                                         ✂️ Desk Slips
                                     </button>
                                 </div>
                             </div>
+                            <!-- CARD 3: DUTY ROSTER -->
                             <div class="bg-purple-50/60 p-4 rounded-xl border border-purple-200 space-y-3">
                                 <h4 class="text-xs font-bold text-purple-900 uppercase flex items-center gap-1.5">
                                     <span>👩‍🏫</span> 3. Invigilation Duty Roster Generator
                                 </h4>
                                 <p class="text-[11px] text-slate-600">Auto-assigns teachers based on workload while strictly preventing subject-teacher conflict in exam rooms.</p>
-                                <button type="button" onclick="window.print()" class="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
-                                    📋 Generate Duty Register
+                                <button type="button" onclick="alert('Duty Roster Workstation opening soon...')" class="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
+                                    📋 Open Duty Matrix
                                 </button>
                             </div>
+                            <!-- CARD 4: AUDIT -->
                             <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 space-y-3">
                                 <h4 class="text-xs font-bold text-emerald-900 uppercase flex items-center gap-1.5">
                                     <span>🌐</span> 4. SAMAGAM Pre-Flight Master Audit
@@ -1229,6 +1469,61 @@
                                     🔍 Run Re-Verification Audit
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🖨️ WORKSTATION MODAL 1: QP PRINTING DEMAND SHEET -->
+                <div id="qp-demand-modal" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center p-4 z-50 no-print">
+                    <div class="bg-white rounded-xl max-w-5xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <div class="flex justify-between items-center border-b pb-3">
+                            <div>
+                                <h3 class="text-base font-bold text-indigo-900 flex items-center gap-2">
+                                    <span>🖨️</span> Interactive QP Printing Demand Workstation
+                                </h3>
+                                <p class="text-xs text-slate-500">Edit print demands, adjust extra buffer copies, add subject remarks, and export formal print order.</p>
+                            </div>
+                            <button type="button" onclick="closeQpDemandModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-3 py-1.5 rounded">✕ Close</button>
+                        </div>
+                        
+                        <div class="flex justify-between items-center bg-indigo-50 p-3 rounded-lg border border-indigo-200 flex-wrap gap-2">
+                            <span class="text-xs text-indigo-900 font-semibold">
+                                💡 Tip: Click inside any numbers or remarks to edit values before printing!
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="addManualQpDemandRow()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded shadow-xs">
+                                    ➕ Add Custom Subject Row
+                                </button>
+                                <button type="button" onclick="triggerQpDemandPrintReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs flex items-center gap-1">
+                                    <span>🖨️</span> Print Official Indent Sheet
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto border rounded-lg shadow-xs">
+                            <table class="w-full text-xs text-left text-slate-700">
+                                <thead class="bg-indigo-900 text-white uppercase font-semibold">
+                                    <tr>
+                                        <th class="p-2.5">Class & Section</th>
+                                        <th class="p-2.5">Subject</th>
+                                        <th class="p-2.5 text-center">Enrolled</th>
+                                        <th class="p-2.5 text-center">Buffer (+5%)</th>
+                                        <th class="p-2.5 text-center">Final Print Order</th>
+                                        <th class="p-2.5">Remarks / Special Needs</th>
+                                        <th class="p-2.5 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="qp-modal-tbody" class="divide-y bg-white"></tbody>
+                                <tfoot class="bg-slate-100 font-bold border-t-2 border-indigo-900">
+                                    <tr>
+                                        <td colspan="2" class="p-2.5 text-right uppercase">Total Print Demand:</td>
+                                        <td id="qp-total-enrolled" class="p-2.5 text-center font-extrabold text-slate-800">0</td>
+                                        <td id="qp-total-buffer" class="p-2.5 text-center font-extrabold text-amber-900">+0</td>
+                                        <td id="qp-total-final" class="p-2.5 text-center font-extrabold text-emerald-900 text-sm">0 Copies</td>
+                                        <td colspan="2" class="p-2.5 text-slate-500 italic font-normal">Ready for printing cell delivery.</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
                     </div>
                 </div>
