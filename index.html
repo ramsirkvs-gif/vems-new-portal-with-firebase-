@@ -129,10 +129,10 @@
         <!-- AREA 2: PRINCIPAL WORKSPACE (Tabs 1, 2, 3, 4 + Settings) -->
         <div id="area-principal" class="hidden space-y-6">
             <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
-                <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Section-Wise Subject Master Setup</button>
-                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV</button>
-                <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager</button>
-                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Exam Creator (Secondary & Primary Review)</button>
+                <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping (Secondary)</button>
+                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV (Secondary)</button>
+                <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager (Secondary)</button>
+                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Exam Creator (Secondary)</button>
                 <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System & Password Settings</button>
             </div>
             
@@ -142,8 +142,8 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                     <div class="flex justify-between items-center border-b pb-4">
                         <div>
-                            <h2 class="text-xl font-bold text-slate-900">⚙️ 1. Section-Wise Subject Master Setup (Principal Control)</h2>
-                            <p class="text-xs text-slate-500">Configure subjects class-wise and section-wise (Synced to Firebase).</p>
+                            <h2 class="text-xl font-bold text-slate-900">⚙️ 1. Classwise Subject Mapping (Secondary)</h2>
+                            <p class="text-xs text-slate-500">Configure subjects class-wise and section-wise for Secondary Wing (Synced to Firebase).</p>
                         </div>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
@@ -174,9 +174,9 @@
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b pb-3">
                         <div>
                             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                                📚 Consolidated Master Subject Directory (All Classes & Sections)
+                                📚 Consolidated Secondary Subject Directory (All Classes & Sections)
                             </h3>
-                            <p class="text-xs text-slate-500">Live view and search of all configured subject schemes across the school.</p>
+                            <p class="text-xs text-slate-500">Live view and search of all configured subject schemes across the secondary wing.</p>
                         </div>
                         <div class="w-full md:w-80">
                             <input type="text" id="master-subject-search" oninput="renderMasterSubjectDirectory()" placeholder="🔍 Search Class or Subject (e.g., XI, Physics)..." class="w-full text-xs p-2.5 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm">
@@ -203,7 +203,7 @@
             <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden print:p-0 print:border-none">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4 no-print">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV (Cloud Synced)</h2>
+                        <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV (Secondary)</h2>
                         <p class="text-xs text-slate-500">Manage student enrollments and upload verified CSV sheets directly to Firebase.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
@@ -240,18 +240,18 @@
                 </div>
             </section>
 
-            <!-- MODULE 3: STREAMLINED FACULTY MANAGER -->
+            <!-- MODULE 3: FACULTY MANAGER (SECONDARY) -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
                 <div class="space-y-6">
                     <div class="border-b pb-4">
-                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager & Exam Duty Allotments</h2>
-                        <p class="text-xs text-slate-500">Manage faculty profiles, teaching workloads, and exam responsibilities in one place.</p>
+                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager (Secondary)</h2>
+                        <p class="text-xs text-slate-500">Manage faculty profiles, teaching workloads, and class-wise exam duties in one place.</p>
                     </div>
 
                     <!-- SINGLE COMPACT FACULTY ENTRY & ASSIGNMENT CARD -->
                     <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
                         <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                            <span>➕</span> Add / Edit Faculty Member & Duty Allotments
+                            <span>➕</span> Add / Edit Secondary Faculty Member & Duty Allotments
                         </h3>
                         <form onsubmit="saveTeacherDirect(event)" class="space-y-4">
                             <input type="hidden" id="tch-edit-index" value="">
@@ -284,7 +284,7 @@
                     <!-- FACULTY DISPLAY MASTER TABLE -->
                     <div class="space-y-3">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Faculty Roster & Workload Overview</h3>
+                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Secondary Faculty Roster & Workload Overview</h3>
                             <div class="w-full sm:w-72">
                                 <input type="text" id="faculty-search-input" oninput="renderTeachers()" placeholder="🔍 Search Teacher or Subject..." class="w-full text-xs p-2 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white shadow-sm">
                             </div>
@@ -312,7 +312,7 @@
                     <div class="flex justify-between items-center">
                         <div>
                             <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <span>🏫</span> Class Teacher & Data Coordination Roster (Exam Purpose)
+                                <span>🏫</span> Secondary Class Teacher & Data Coordination Roster
                             </h3>
                             <p class="text-xs text-slate-500">Assign Class Teachers, Co-Class Teachers, and backup On-Duty Coordinators section-by-section.</p>
                         </div>
@@ -340,14 +340,14 @@
             <section id="sec-exam-creator-prin" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
                 <div class="border-b pb-4 flex justify-between items-center">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">📊 4. Exam Creator Master Supervisory Dashboard</h2>
-                        <p class="text-xs text-slate-500">Full inspection and override control over both Secondary and Primary Exam In-Charge workflows.</p>
+                        <h2 class="text-xl font-bold text-slate-900">📊 4. Exam Creator (Secondary)</h2>
+                        <p class="text-xs text-slate-500">Full inspection and override control over Secondary Exam In-Charge workflows.</p>
                     </div>
                     <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">Principal Override Mode</span>
                 </div>
                 <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
                     <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                        <span>🔍</span> Universal Headcount & QP Print Demand Query (Principal Master View)
+                        <span>🔍</span> Universal Headcount & QP Print Demand Query (Secondary View)
                     </h3>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                         <div>
