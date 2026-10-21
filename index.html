@@ -332,6 +332,19 @@
         // Active Exam, Saved Exams & Lifecycle State
         let isExamConfigOpen = false;
         let mainHeaderSaved = false;
+        let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
+            { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
+            { id: 'Half Yearly', label: 'Half Yearly Examination' },
+            { id: 'PT-2', label: 'Periodic Test 2 (PT-2)' },
+            { id: 'PT-3', label: 'Periodic Test 3 (PT-3)' },
+            { id: 'Monthly Test', label: 'Monthly Test' },
+            { id: 'PB-1', label: 'Pre-Board 1 (PB-1)' },
+            { id: 'PB-2', label: 'Pre-Board 2 (PB-2)' },
+            { id: 'Annual Exam', label: 'Annual Examination' },
+            { id: 'Retest', label: 'Retest Examination' },
+            { id: 'Weekly Test', label: 'Weekly Test' },
+            { id: 'Slip Test', label: 'Slip Test' }
+        ];
         let mainHeaderConfig = JSON.parse(localStorage.getItem('vems_header_config')) || {
             name: 'Half Yearly',
             customName: '',
@@ -389,6 +402,7 @@
             localStorage.setItem('vems_header_config', JSON.stringify(mainHeaderConfig));
             localStorage.setItem('vems_datesheet_draft', JSON.stringify(datesheetDays));
             localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
+            localStorage.setItem('vems_exam_options', JSON.stringify(examOptionsList));
             db.ref('sectionConfigs').set(sectionConfigs);
             renderMasterSubjectDirectory();
             renderExamCreatorModule();
@@ -623,7 +637,7 @@
         }
 
         // =========================================================================
-        // 🚀 LEVEL-WISE SAVE CONTROLS & CLICKABLE PRE-FLIGHT VERIFICATION
+        // 🚀 MASTER EXAM VAULT, DYNAMIC EXAM NAME FEEDER & LEVEL-WISE SAVE CONTROLS
         // =========================================================================
 
         function toggleExamCreationPanel() {
@@ -681,6 +695,26 @@
 
         function editMainHeaderConfig() {
             mainHeaderSaved = false;
+            renderExamCreatorModule();
+        }
+
+        // DYNAMIC EXAM NAME SAVER & DROPDOWN UPDATER
+        function saveCustomExamNameOption() {
+            const val = document.getElementById('exam-name-custom')?.value?.trim();
+            if (!val) {
+                alert("⚠️ Please enter a custom exam name first!");
+                return;
+            }
+
+            const exists = examOptionsList.some(opt => opt.id.toLowerCase() === val.toLowerCase() || opt.label.toLowerCase() === val.toLowerCase());
+            if (!exists) {
+                examOptionsList.push({ id: val, label: val });
+            }
+
+            mainHeaderConfig.name = val;
+            mainHeaderConfig.customName = '';
+            saveData();
+            alert(`✅ Added "${val}" into the Exam List Dropdown permanently!`);
             renderExamCreatorModule();
         }
 
@@ -742,6 +776,7 @@
                 fromDate: mainHeaderConfig.fromDate,
                 toDate: mainHeaderConfig.toDate,
                 totalDays: datesheetDays.length,
+                status: 'COMPLETED',
                 archivedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays))
             };
@@ -749,6 +784,17 @@
             archivedExams.unshift(examRecord);
             saveData();
             alert(`🎉 EXAM FULLY BOUND UP & SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
+        }
+
+        function getExamStatusBadge(fromDate, toDate) {
+            const today = new Date().toISOString().split('T')[0];
+            if (today >= fromDate && today <= toDate) {
+                return `<span class="bg-emerald-900 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full animate-pulse">🟢 LIVE NOW</span>`;
+            } else if (today < fromDate) {
+                return `<span class="bg-indigo-950 text-indigo-300 border border-indigo-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">⏳ UPCOMING</span>`;
+            } else {
+                return `<span class="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📦 COMPLETED</span>`;
+            }
         }
 
         function toggleDayAccordion(dayId) {
@@ -827,7 +873,7 @@
                             <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-400">
                                 📚 Created Examinations Vault List (${archivedExams.length} Saved Records)
                             </h3>
-                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded border border-slate-700">Quick Jump & Reload Panel</span>
+                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded border border-slate-700">Past, Active & Future Exam Repository</span>
                         </div>
 
                         ${archivedExams.length === 0 ? `
@@ -835,22 +881,24 @@
                         ` : `
                             <div class="overflow-x-auto">
                                 <table class="w-full text-xs text-left text-slate-200">
-                                    <thead class="bg-slate-800 uppercase font-semibold text-slate-300">
+                                    <thead class="bg-slate-800 uppercase font-semibold text-slate-300 border-b border-slate-700">
                                         <tr>
-                                            <th class="px-3 py-2">Exam Title</th>
-                                            <th class="px-3 py-2">Date Schedule</th>
-                                            <th class="px-3 py-2 text-center">Duration</th>
-                                            <th class="px-3 py-2 text-right">Actions</th>
+                                            <th class="px-3 py-2.5">Status</th>
+                                            <th class="px-3 py-2.5">Exam Title</th>
+                                            <th class="px-3 py-2.5">Schedule Duration</th>
+                                            <th class="px-3 py-2.5 text-center">Days</th>
+                                            <th class="px-3 py-2.5 text-right">Actions & Management</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-800 bg-slate-900">
                                         ${archivedExams.map(ex => `
                                             <tr class="hover:bg-slate-800/60">
+                                                <td class="px-3 py-2.5">${getExamStatusBadge(ex.fromDate, ex.toDate)}</td>
                                                 <td class="px-3 py-2.5 font-bold text-amber-300">${ex.title}</td>
-                                                <td class="px-3 py-2.5 font-medium text-slate-300">${ex.fromDate} to ${ex.toDate} (${ex.totalDays} Days)</td>
-                                                <td class="px-3 py-2.5 text-center text-slate-300">${ex.totalDays} Session Days</td>
+                                                <td class="px-3 py-2.5 font-medium text-slate-300">${ex.fromDate} to ${ex.toDate}</td>
+                                                <td class="px-3 py-2.5 text-center text-slate-300 font-bold">${ex.totalDays} Days</td>
                                                 <td class="px-3 py-2.5 text-right space-x-1.5">
-                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1 rounded">✏️ Load/Edit</button>
+                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">✏️ Edit / Load</button>
                                                     <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2 py-1 rounded">🗑️</button>
                                                 </td>
                                             </tr>
@@ -861,7 +909,7 @@
                         `}
                     </div>
 
-                    <!-- HEADER & MANDATORY ATTENTION BANNER WITH CLICKABLE LINKS -->
+                    <!-- HEADER & CLEAN MANDATORY PRE-FLIGHT NOTICE BANNER -->
                     <div class="border-b pb-4 space-y-3">
                         <div class="flex justify-between items-center flex-wrap gap-2">
                             <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -870,21 +918,19 @@
                             <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
                         </div>
 
-                        <!-- MANDATORY VERIFICATION NOTICE WITH DIRECT CLICKABLE LINKS -->
+                        <!-- CLEAN MANDATORY NOTICE (TEXT ONLY, NO HYPERLINKS) -->
                         <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg space-y-1.5 shadow-xs">
                             <div class="flex items-center gap-2 font-bold text-amber-900 text-xs uppercase tracking-wide">
                                 <span>⚠️</span> Mandatory Pre-Flight Verification Notice for Exam IC
                             </div>
                             <p class="text-xs text-amber-800 leading-relaxed">
                                 <strong>Welcome Exam IC!</strong> Before creating an examination schedule, please check and verify the 
-                                <button type="button" onclick="switchTab('config')" class="font-bold underline text-indigo-900 hover:text-indigo-700 cursor-pointer">Subject Mapping</button>, 
-                                <button type="button" onclick="switchTab('students')" class="font-bold underline text-indigo-900 hover:text-indigo-700 cursor-pointer">Student Master Data</button>, and 
-                                <button type="button" onclick="switchTab('teachers')" class="font-bold underline text-indigo-900 hover:text-indigo-700 cursor-pointer">Faculty Duty Data</button>. 
+                                <strong>Subject Mapping</strong>, <strong>Student Master Data</strong>, and <strong>Faculty Duty Data</strong>. 
                                 Ensure alignment with the <strong>SAMAGAM portal</strong> and verify directly with Class Teachers (CTs).
                             </p>
                         </div>
 
-                        <!-- CREATE EXAM SAFETY CONTROL BUTTON (NO SAMAGAM PENDING BADGE) -->
+                        <!-- CREATE EXAM CONTROL BUTTON -->
                         <div class="flex items-center justify-between pt-1 flex-wrap gap-2">
                             <button type="button" onclick="toggleExamCreationPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
                                 <span>🚀</span> ${isExamConfigOpen ? 'Close / Hide Exam Configuration (Safety Protected)' : 'Create Exam Schedule'}
@@ -892,7 +938,7 @@
                         </div>
                     </div>
 
-                    <!-- MAIN EXAM CONFIGURATION PANEL WITH LEVEL-1 SAVE/EDIT -->
+                    <!-- MAIN EXAM CONFIGURATION PANEL WITH DYNAMIC DROPDOWN FEEDER -->
                     ${isExamConfigOpen ? `
                         <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
                             <div class="flex justify-between items-center border-b border-indigo-200 pb-2 flex-wrap gap-2">
@@ -917,21 +963,16 @@
                                     <div class="col-span-1 sm:col-span-2">
                                         <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Name of the Exam</label>
                                         <select id="exam-name-select" onchange="handleExamNameSelect(this)" class="w-full text-xs p-2.5 border rounded bg-white font-semibold">
-                                            <option value="PT-1" ${mainHeaderConfig.name === 'PT-1' ? 'selected' : ''}>Periodic Test 1 (PT-1)</option>
-                                            <option value="Half Yearly" ${mainHeaderConfig.name === 'Half Yearly' ? 'selected' : ''}>Half Yearly Examination</option>
-                                            <option value="PT-2" ${mainHeaderConfig.name === 'PT-2' ? 'selected' : ''}>Periodic Test 2 (PT-2)</option>
-                                            <option value="PT-3" ${mainHeaderConfig.name === 'PT-3' ? 'selected' : ''}>Periodic Test 3 (PT-3)</option>
-                                            <option value="Monthly Test" ${mainHeaderConfig.name === 'Monthly Test' ? 'selected' : ''}>Monthly Test</option>
-                                            <option value="PB-1" ${mainHeaderConfig.name === 'PB-1' ? 'selected' : ''}>Pre-Board 1 (PB-1)</option>
-                                            <option value="PB-2" ${mainHeaderConfig.name === 'PB-2' ? 'selected' : ''}>Pre-Board 2 (PB-2)</option>
-                                            <option value="Annual Exam" ${mainHeaderConfig.name === 'Annual Exam' ? 'selected' : ''}>Annual Examination</option>
-                                            <option value="Retest" ${mainHeaderConfig.name === 'Retest' ? 'selected' : ''}>Retest Examination</option>
-                                            <option value="Weekly Test" ${mainHeaderConfig.name === 'Weekly Test' ? 'selected' : ''}>Weekly Test</option>
-                                            <option value="Slip Test" ${mainHeaderConfig.name === 'Slip Test' ? 'selected' : ''}>Slip Test</option>
+                                            ${examOptionsList.map(opt => `<option value="${opt.id}" ${mainHeaderConfig.name === opt.id ? 'selected' : ''}>${opt.label}</option>`).join('')}
                                             <option value="Other" ${mainHeaderConfig.name === 'Other' ? 'selected' : ''}>Other (Update Manually)</option>
                                         </select>
-                                        <div id="exam-name-custom-container" class="mt-2 ${mainHeaderConfig.name === 'Other' ? '' : 'hidden'}">
-                                            <input type="text" id="exam-name-custom" value="${mainHeaderConfig.customName}" placeholder="Enter custom exam title..." class="w-full text-xs p-2 border rounded bg-white">
+                                        
+                                        <!-- DYNAMIC CUSTOM EXAM FEEDER -->
+                                        <div id="exam-name-custom-container" class="mt-2.5 flex items-center gap-2 ${mainHeaderConfig.name === 'Other' ? '' : 'hidden'}">
+                                            <input type="text" id="exam-name-custom" value="${mainHeaderConfig.customName}" placeholder="Enter new exam title..." class="flex-grow text-xs p-2 border rounded bg-white font-medium">
+                                            <button type="button" onclick="saveCustomExamNameOption()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs whitespace-nowrap">
+                                                ➕ Save & Add to Dropdown List
+                                            </button>
                                         </div>
                                     </div>
 
