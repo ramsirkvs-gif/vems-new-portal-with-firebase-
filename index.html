@@ -956,3 +956,365 @@
             let secMount = document.getElementById('exam-creator-mount-sec');
             if (prinMount) prinMount.innerHTML = htmlContent;
             if (secMount) secMount.innerHTML = htmlContent;
+            if (isExamConfigOpen) renderDatesheetDaysContainer();
+        }
+
+        function renderFullPagePreExamWorkstation() {
+            const currentExamList = archivedExams.length > 0 ? archivedExams : [{ id: 1, title: 'Periodic Test 1 (PT-1)', fromDate: '2026-10-21', toDate: '2026-10-21', totalDays: 1 }];
+            const selectedExam = currentExamList.find(ex => ex.id === selectedPreExamVaultId) || currentExamList[0];
+            const subjectsList = getExamSubjectsListForVault(selectedExam.id);
+
+            let totalSubjects = subjectsList.length;
+            let totalSubmittedCount = 0;
+            subjectsList.forEach(sub => {
+                let rec = qpSubmissionsTracker[sub.key];
+                if (rec && rec.qpReceived && rec.answerKeyReceived) totalSubmittedCount++;
+            });
+
+            let isAllOk = totalSubjects > 0 && totalSubmittedCount === totalSubjects;
+
+            return `
+                <div class="space-y-6">
+                    <div class="bg-indigo-950 text-white p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-black">🚀 Pre-Exam Operations & Confidential Logistics Center</h2>
+                            <p class="text-xs text-indigo-200 mt-1">Manage office orders, QP setters tracker, tick receiving records, and printing progress.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <select onchange="handlePreExamVaultSelection(this.value)" class="bg-white text-slate-900 text-xs font-bold p-2 rounded">
+                                ${currentExamList.map(ex => `<option value="${ex.id}" ${ex.id === selectedExam.id ? 'selected' : ''}>${ex.title}</option>`).join('')}
+                            </select>
+                            <button type="button" onclick="closePreExamFullPageWorkspace()" class="bg-red-600 text-white text-xs font-bold px-4 py-2.5 rounded">🔙 Exit</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-xs border p-2 flex gap-2">
+                        <button type="button" onclick="switchPreExamSubTab('qp-setters')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs ${activePreExamSubTab === 'qp-setters' ? 'bg-indigo-900 text-white' : 'text-slate-600 hover:bg-slate-100'}">📝 QP Setters & Tick Matrix</button>
+                        <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white' : 'text-slate-600 hover:bg-slate-100'}">📜 Datesheet Office Orders</button>
+                        <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white' : 'text-slate-600 hover:bg-slate-100'}">🖨️ QP Printing Progress</button>
+                    </div>
+
+                    ${activePreExamSubTab === 'qp-setters' ? `
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="bg-white p-5 rounded-xl border shadow-xs flex justify-between items-center">
+                                    <div><p class="text-xs font-bold text-slate-500 uppercase">Submissions Progress</p><p class="text-2xl font-black text-indigo-900 mt-1">${totalSubmittedCount} / ${totalSubjects} Received</p></div>
+                                    <div class="text-3xl">📥</div>
+                                </div>
+                                <div class="bg-white p-5 rounded-xl border shadow-xs flex justify-between items-center">
+                                    <div><p class="text-xs font-bold text-slate-500 uppercase">Submission Deadline</p><input type="date" value="${qpSubmissionDeadline}" onchange="qpSubmissionDeadline=this.value; renderExamCreatorModule();" class="text-xs font-bold p-1 border rounded bg-amber-50 text-amber-900 mt-1"></div>
+                                    <div class="text-3xl">⏰</div>
+                                </div>
+                                <div class="${isAllOk ? 'bg-emerald-900 text-white' : 'bg-amber-900 text-white'} p-5 rounded-xl shadow-xs flex justify-between items-center">
+                                    <div><p class="text-xs font-bold uppercase ${isAllOk ? 'text-emerald-200' : 'text-amber-200'}">Vault Clearance</p><p class="text-lg font-black mt-1">${isAllOk ? '🟢 OK REPORT READY' : '⏳ PENDING'}</p></div>
+                                    ${isAllOk ? `<button type="button" onclick="generateOkReportPrint()" class="bg-emerald-500 text-slate-950 font-bold text-xs px-3 py-2 rounded">📄 Print OK Report</button>` : ''}
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+                                <div class="flex justify-between items-center border-b pb-4">
+                                    <h3 class="text-base font-bold text-indigo-950">📋 Question Paper Receiving & Vault Submission Tracker</h3>
+                                    <button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded">🖨️ Print Setters Office Order</button>
+                                </div>
+                                <div class="overflow-x-auto border rounded-xl">
+                                    <table class="w-full text-xs text-left text-slate-700">
+                                        <thead class="bg-indigo-950 text-white uppercase">
+                                            <tr>
+                                                <th class="p-3">Class & Subject</th>
+                                                <th class="p-3">Setter</th>
+                                                <th class="p-3 text-center">QP Received?</th>
+                                                <th class="p-3 text-center">Answer Key?</th>
+                                                <th class="p-3 text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y bg-white">
+                                            ${subjectsList.map(sub => {
+                                                let rec = qpSubmissionsTracker[sub.key] || { qpReceived: false, answerKeyReceived: false, receivedDate: '' };
+                                                let isComplete = rec.qpReceived && rec.answerKeyReceived;
+                                                return `
+                                                    <tr class="hover:bg-slate-50 border-b">
+                                                        <td class="p-3 font-bold">Class ${formatClass(sub.cls)} - ${sub.subject}</td>
+                                                        <td class="p-3 font-bold">${sub.setterName}</td>
+                                                        <td class="p-3 text-center"><input type="checkbox" ${rec.qpReceived ? 'checked' : ''} onchange="toggleQpSubmissionTick('${sub.key}', 'qpReceived')" class="w-4 h-4 text-emerald-600 rounded"></td>
+                                                        <td class="p-3 text-center"><input type="checkbox" ${rec.answerKeyReceived ? 'checked' : ''} onchange="toggleQpSubmissionTick('${sub.key}', 'answerKeyReceived')" class="w-4 h-4 text-emerald-600 rounded"></td>
+                                                        <td class="p-3 text-center">${isComplete ? '<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">READY</span>' : '<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">PENDING</span>'}</td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${activePreExamSubTab === 'datesheet-orders' ? `
+                        <div class="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+                            <h3 class="text-base font-bold text-indigo-950 border-b pb-3">📜 Official Office Orders & Circulars</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-50 border rounded-xl p-5 space-y-4">
+                                    <h4 class="text-xs font-bold uppercase text-indigo-900">👩‍🏫 Teacher Staff Room Office Order</h4>
+                                    <p class="text-xs text-slate-600">Generates formal staff order for exam duties and confidential submissions.</p>
+                                    <button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="w-full bg-indigo-900 text-white text-xs font-bold py-2.5 rounded">🖨️ Print Teachers Order</button>
+                                </div>
+                                <div class="bg-indigo-50/60 border rounded-xl p-5 space-y-4">
+                                    <h4 class="text-xs font-bold uppercase text-indigo-900">👨‍🎓 Student Datesheet Circular</h4>
+                                    <p class="text-xs text-slate-600">Generates notice board circular for students and parents.</p>
+                                    <button type="button" onclick="alert('Printing Student Datesheet Circular...')" class="w-full bg-emerald-700 text-white text-xs font-bold py-2.5 rounded">🖨️ Print Student Circular</button>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${activePreExamSubTab === 'qp-printing' ? `
+                        <div class="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+                            <div class="flex justify-between items-center border-b pb-3">
+                                <h3 class="text-base font-bold text-indigo-950">🖨️ QP Printing Demand (+5%) & Progress Tracker</h3>
+                                <button type="button" onclick="triggerQpDemandPrintReport()" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded">🖨️ Print Indent Sheet</button>
+                            </div>
+                            <div class="overflow-x-auto border rounded-xl">
+                                <table class="w-full text-xs text-left text-slate-700">
+                                    <thead class="bg-indigo-950 text-white uppercase">
+                                        <tr>
+                                            <th class="p-3">Class & Subject</th>
+                                            <th class="p-3 text-center">Enrolled</th>
+                                            <th class="p-3 text-center">Buffer (+5%)</th>
+                                            <th class="p-3 text-center">Final Print Order</th>
+                                            <th class="p-3 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y bg-white">
+                                        ${subjectsList.map(sub => {
+                                            let count = 35, buffer = 2, final = 37;
+                                            let status = qpPrintingTracker[sub.key] || 'Pending';
+                                            return `
+                                                <tr class="hover:bg-slate-50 border-b">
+                                                    <td class="p-3 font-bold">Class ${formatClass(sub.cls)} - ${sub.subject}</td>
+                                                    <td class="p-3 text-center font-bold">${count}</td>
+                                                    <td class="p-3 text-center font-bold text-amber-800">+${buffer}</td>
+                                                    <td class="p-3 text-center font-extrabold text-emerald-900">${final} Copies</td>
+                                                    <td class="p-3 text-center">
+                                                        <select onchange="updateQpPrintingStatus('${sub.key}', this.value)" class="text-xs font-bold p-1 border rounded">
+                                                            <option value="Pending" ${status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                                            <option value="In-Printing" ${status === 'In-Printing' ? 'selected' : ''}>In-Printing</option>
+                                                            <option value="Completed" ${status === 'Completed' ? 'selected' : ''}>Sealed in Vault</option>
+                                                        </select>
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderMainLifecycleHub() {
+            return `
+                <div class="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+                    <div class="border-b pb-4 space-y-3">
+                        <h2 class="text-xl font-bold text-slate-900">📌 Create Exam & End-to-End Lifecycle Operations Hub</h2>
+                    </div>
+
+                    <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">📚 Created Examinations Vault List (${archivedExams.length} Records)</h3>
+                            <button type="button" onclick="startNewExamSetup()" class="bg-emerald-600 text-white text-[11px] font-bold px-3.5 py-1.5 rounded">➕ Create New Exam</button>
+                        </div>
+                        ${archivedExams.length === 0 ? '<p class="text-xs text-slate-400 italic py-2">No exam schedules created yet.</p>' : `
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left text-slate-200">
+                                    <thead class="bg-slate-800 uppercase">
+                                        <tr><th class="px-3 py-2">Title</th><th class="px-3 py-2">Duration</th><th class="px-3 py-2 text-right">Actions</th></tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-800">
+                                        ${archivedExams.map(ex => `
+                                            <tr>
+                                                <td class="px-3 py-2 font-bold text-amber-300">${ex.title}</td>
+                                                <td class="px-3 py-2">${ex.fromDate} to ${ex.toDate}</td>
+                                                <td class="px-3 py-2 text-right space-x-1">
+                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 text-white text-[11px] px-3 py-1 rounded">✏️ Edit</button>
+                                                    <button type="button" onclick="openPreExamFullPageWorkspace()" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded">🚀 Pre-Exam Hub</button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `}
+                    </div>
+
+                    ${isExamConfigOpen ? `
+                        <div class="bg-indigo-50 border rounded-xl p-5 space-y-5">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <h3 class="text-xs font-bold text-indigo-900 uppercase">📋 Main Exam Title & Dates</h3>
+                                <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded">💾 Save</button>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                                <div class="col-span-2">
+                                    <label class="block text-[11px] font-bold uppercase mb-1">Exam Name</label>
+                                    <select id="exam-name-select" class="w-full text-xs p-2 border rounded bg-white font-semibold">
+                                        ${examOptionsList.map(o => `<option value="${o.id}" ${mainHeaderConfig.name === o.id ? 'selected' : ''}>${o.label}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div><label class="block text-[11px] font-bold uppercase mb-1">From Date</label><input type="date" id="exam-from-date" value="${mainHeaderConfig.fromDate}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded"></div>
+                                <div><label class="block text-[11px] font-bold uppercase mb-1">To Date</label><input type="date" id="exam-to-date" value="${mainHeaderConfig.toDate}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded"></div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div id="datesheet-days-container" class="space-y-3"></div>
+                            <button type="button" onclick="addNextDatesheetDay()" class="bg-emerald-600 text-white font-bold text-xs px-5 py-3 rounded">➕ Add Next Day</button>
+                        </div>
+                        <div class="pt-4 border-t flex justify-between">
+                            <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-200 text-slate-800 font-bold text-xs px-5 py-2.5 rounded">📁 Minimize</button>
+                            <button type="button" onclick="bindupAndSaveExamRecord()" class="bg-purple-700 text-white font-bold text-xs px-6 py-3 rounded shadow">💾 Save Full Exam Record</button>
+                        </div>
+                    ` : ''}
+
+                    <div class="border-t pt-6">
+                        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3">📊 Operational Tasks & Lifecycle Management</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="bg-indigo-50 border p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                                <div>
+                                    <h4 class="text-xs font-bold text-indigo-900 uppercase">1️⃣ Pre-Exam Needs</h4>
+                                    <p class="text-[11px] text-slate-600 mt-1">Datesheet orders, QP Setters tick matrix, OK reports, and printing progress.</p>
+                                </div>
+                                <button type="button" onclick="openPreExamFullPageWorkspace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 rounded shadow">🚀 Open Full Pre-Exam Hub</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function startNewExamSetup() {
+            activeExamId = Date.now();
+            mainHeaderConfig = { name: 'Periodic Test 1 (PT-1)', customName: '', fromDate: new Date().toISOString().split('T')[0], toDate: new Date().toISOString().split('T')[0] };
+            datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false, paperSlots: [] }];
+            isExamConfigOpen = true;
+            syncActiveExamDraftToVault();
+            renderExamCreatorModule();
+        }
+
+        function saveMainHeaderConfig() {
+            mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
+            mainHeaderConfig.fromDate = document.getElementById('exam-from-date')?.value || '2026-11-10';
+            mainHeaderConfig.toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
+            syncActiveExamDraftToVault();
+            alert("✅ Main Exam Title & Dates Saved Successfully!");
+        }
+
+        function syncActiveExamDraftToVault() {
+            if (!activeExamId) activeExamId = Date.now();
+            const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
+            const examRecord = {
+                id: activeExamId,
+                title: mainHeaderConfig.name,
+                fromDate: mainHeaderConfig.fromDate,
+                toDate: mainHeaderConfig.toDate,
+                totalDays: datesheetDays.length,
+                status: 'DRAFT',
+                isDraft: true,
+                datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays)),
+                headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
+            };
+            if (existingIndex !== -1) archivedExams[existingIndex] = examRecord;
+            else archivedExams.push(examRecord);
+            saveData();
+        }
+
+        function bindupAndSaveExamRecord() {
+            isExamConfigOpen = false;
+            saveData();
+            alert("🎉 Exam fully saved and archived into the Vault!");
+        }
+
+        function loadArchivedExamToEdit(id) {
+            const target = archivedExams.find(ex => ex.id === id);
+            if(!target) return;
+            activeExamId = target.id;
+            mainHeaderConfig = target.headerSnapshot || { name: target.title, fromDate: target.fromDate, toDate: target.toDate };
+            datesheetDays = target.datesheetSnapshot || [];
+            isExamConfigOpen = true;
+            renderExamCreatorModule();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function minimizeActiveWorkspace() {
+            isExamConfigOpen = false;
+            renderExamCreatorModule();
+        }
+
+        function updateExamDates() {
+            const fromDateVal = document.getElementById('exam-from-date')?.value;
+            if(!fromDateVal) return;
+            mainHeaderConfig.fromDate = fromDateVal;
+            syncActiveExamDraftToVault();
+        }
+
+        function addNextDatesheetDay() {
+            let nextId = datesheetDays.length + 1;
+            datesheetDays.push({ id: nextId, dateStr: new Date().toISOString().split('T')[0], isCollapsed: false, saved: false, paperSlots: [] });
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function addPaperSlotToDay(dayId) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if(!dayObj) return;
+            if(!dayObj.paperSlots) dayObj.paperSlots = [];
+            dayObj.paperSlots.push({ slotId: Date.now(), cls: '10', subject: 'SCIENCE', selectedSections: ['A', 'B'], duration: '3 Hours', maxMarks: 80, startTime: '08:30', overTime: '11:30' });
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function removePaperSlotFromDay(dayId, slotId) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if(!dayObj) return;
+            dayObj.paperSlots = dayObj.paperSlots.filter(s => s.slotId !== slotId);
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function toggleDayAccordion(dayId) {
+            let day = datesheetDays.find(d => d.id === dayId);
+            if(day) { day.isCollapsed = !day.isCollapsed; renderDatesheetDaysContainer(); }
+        }
+
+        function saveOrUpdateDayConfig(dayId) {
+            let day = datesheetDays.find(d => d.id === dayId);
+            if(day) { day.saved = true; day.isCollapsed = true; syncActiveExamDraftToVault(); renderDatesheetDaysContainer(); }
+        }
+
+        function editDayConfig(dayId) {
+            let day = datesheetDays.find(d => d.id === dayId);
+            if(day) { day.saved = false; day.isCollapsed = false; renderDatesheetDaysContainer(); }
+        }
+
+        function renderDatesheetDaysContainer() {
+            const container = document.getElementById('datesheet-days-container');
+            if(!container) return;
+            container.innerHTML = datesheetDays.map(dayObj => `
+                <div class="border rounded-xl bg-slate-50 border-indigo-300 overflow-hidden">
+                    <div onclick="toggleDayAccordion(${dayObj.id})" class="p-3.5 flex justify-between items-center cursor-pointer bg-slate-100 hover:bg-indigo-50 border-b">
+                        <span class="font-bold text-indigo-900">DAY ${dayObj.id} (${dayObj.dateStr})</span>
+                        <button type="button" onclick="event.stopPropagation(); ${dayObj.saved ? `editDayConfig(${dayObj.id})` : `saveOrUpdateDayConfig(${dayObj.id})`}" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded">${dayObj.saved ? '✏️ Edit' : '💾 Save Day'}</button>
+                    </div>
+                    <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-3">
+                        <button type="button" onclick="addPaperSlotToDay(${dayObj.id})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded">➕ Add Paper Slot</button>
+                        ${(dayObj.paperSlots || []).map((slot, sIdx) => `
+                            <div class="bg-white p-3 rounded border flex justify-between items-center">
+                                <div><b>Slot ${sIdx+1}:</b> Class ${formatClass(slot.cls)} - ${slot.subject} (${slot.startTime} to ${slot.overTime})</div>
+                                <button type="button" onclick="removePaperSlotFromDay(${dayObj.id}, ${slot.slotId})" class="text-red-600 font-bold text-xs">🗑️ Remove</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
