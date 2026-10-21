@@ -78,7 +78,7 @@
         </div>
     </header>
 
-    <!-- Printable Header (Hidden in Web View, Visible in Print/PDF) -->
+    <!-- Printable Header -->
     <div id="print-header" class="hidden print:block p-3 space-y-2 border-b-2 border-slate-800">
         <div class="text-center space-y-0.5">
             <h1 class="text-base font-bold uppercase tracking-wide">🏫 VIDYALAYA EXAMINATION MANAGEMENT SYSTEM (VEMS)</h1>
@@ -109,19 +109,6 @@
                         <p class="text-xs text-slate-500">Public notice area for staff room display screens and teacher mobile view.</p>
                     </div>
                     <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full animate-pulse">● CLOUD SYNC ACTIVE</span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-indigo-50/60 border border-indigo-100 rounded-lg p-4 space-y-2">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider">📋 Today's Invigilation Duties</h3>
-                        <div class="p-3 bg-white rounded border border-indigo-100 text-xs text-slate-500 italic">No active invigilation roster published for today.</div>
-                    </div>
-                    <div class="bg-amber-50/60 border border-amber-100 rounded-lg p-4 space-y-2">
-                        <h3 class="text-xs font-bold text-amber-900 uppercase tracking-wider">📌 Important Instructions</h3>
-                        <ul class="text-xs text-slate-700 space-y-1 list-disc pl-4">
-                            <li>Collect answer-book bundles from Exam Control Room 15 mins prior.</li>
-                            <li>Verify student roll numbers against seating arrangement.</li>
-                        </ul>
-                    </div>
                 </div>
             </div>
         </div>
@@ -351,7 +338,7 @@
                     </div>
                 </div>
 
-                <!-- SECTION 1: STRICT READ-ONLY DATA ANALYSIS TILE AREA -->
+                <!-- SECTION 1: STRICT READ-ONLY DATA ANALYSIS & SEATING INTELLIGENCE TILE -->
                 <div id="exam-analysis-container-sec"></div>
 
                 <!-- SECTION 2: ACTIVE EXAM CREATION TOOLKIT (INTERACTIVE) -->
@@ -947,24 +934,37 @@
             });
         }
 
-        // SECTION 1: MULTI-PARAMETRIC COMBINED DATA ANALYSIS ENGINE (STRICTLY READ-ONLY)
+        // SECTION 1: GRANULAR CLASS-SPECIFIC SECTIONS & SEATING INTELLIGENCE ENGINE (READ-ONLY)
         function renderExamAnalysisTile() {
             const classesList = getAllUniqueClasses();
             const subjectsList = getAllUniqueSubjects();
 
-            const classCheckboxesHtml = classesList.map(c => `
-                <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer hover:bg-slate-50">
-                    <input type="checkbox" value="${c}" class="analysis-cls-cb font-medium text-indigo-600 rounded" onchange="runExamAnalysisSearch()" checked>
-                    Class ${formatClass(c)}
-                </label>
-            `).join('');
+            // Render Class Checkboxes with nested granular section checkboxes
+            let classSelectionHtml = '';
+            classesList.forEach(c => {
+                let secsForCls = getAllSectionsForClass(c);
+                let secCheckboxes = secsForCls.map(s => `
+                    <label class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer">
+                        <input type="checkbox" value="${c}-${s}" class="analysis-sec-item text-indigo-600 rounded" onchange="runExamAnalysisSearch()" checked>
+                        Sec ${s}
+                    </label>
+                `).join('');
 
-            const sectionCheckboxesHtml = ['A', 'B', 'C', 'D', 'E'].map(s => `
-                <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer hover:bg-slate-50">
-                    <input type="checkbox" value="${s}" class="analysis-sec-cb font-medium text-indigo-600 rounded" onchange="runExamAnalysisSearch()" checked>
-                    Sec ${s}
-                </label>
-            `).join('');
+                classSelectionHtml += `
+                    <div class="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1.5 shadow-xs">
+                        <div class="flex items-center justify-between border-b pb-1">
+                            <label class="font-bold text-xs text-indigo-900 inline-flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" value="${c}" class="analysis-cls-parent text-indigo-700 rounded" onchange="toggleClassSections('${c}', this)" checked>
+                                Class ${formatClass(c)}
+                            </label>
+                            <span class="text-[10px] text-slate-400 font-mono">${secsForCls.length} Secs</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1 pt-0.5" id="cls-secs-container-${c}">
+                            ${secCheckboxes}
+                        </div>
+                    </div>
+                `;
+            });
 
             const subjectOptionsHtml = `<option value="ALL">All Subjects (Combined)</option>` + subjectsList.map(s => `<option value="${s}">${s}</option>`).join('');
 
@@ -973,39 +973,35 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-indigo-200 pb-3">
                         <div>
                             <h3 class="text-sm font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                                🔒 1. Vidyalaya Multi-Parametric Examination Data Analysis Engine
+                                🔒 1. Vidyalaya Seating & Examination Intelligence Engine
                             </h3>
-                            <p class="text-[11px] text-slate-500">Read-only examination statistics, multi-class combined headcount analysis, and duty audit tool.</p>
+                            <p class="text-[11px] text-slate-500">Read-only seating intelligence, granular section selection, examinee headcounts, and duty audit tool.</p>
                         </div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300">🔒 READ-ONLY AUDIT MODE</span>
                     </div>
 
-                    <!-- COMBINED MULTI-PARAMETRIC FILTER PANEL -->
+                    <!-- GRANULAR CLASS-SPECIFIC SECTION SELECTION PANEL -->
                     <div class="bg-white p-4 rounded-lg border border-indigo-100 space-y-3">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">1️⃣ Combined Class Selection (Multi-Select)</label>
-                                <div class="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded border border-slate-200 max-h-24 overflow-y-auto">
-                                    ${classCheckboxesHtml}
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">2️⃣ Combined Section Selection (Multi-Select)</label>
-                                <div class="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded border border-slate-200">
-                                    ${sectionCheckboxesHtml}
-                                </div>
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Granular Class & Section Selection (For Seating & Room Planning)</label>
+                            <div class="space-x-2">
+                                <button type="button" onclick="setAllAnalysisSelections(true)" class="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
+                                <button type="button" onclick="setAllAnalysisSelections(false)" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-1 rounded border border-slate-200">Deselect All</button>
                             </div>
                         </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 max-h-56 overflow-y-auto p-1 bg-slate-50 rounded border">
+                            ${classSelectionHtml}
+                        </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">3️⃣ Specific Subject Filter</label>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">2️⃣ Specific Subject Filter</label>
                                 <select id="analysis-sub-select" onchange="runExamAnalysisSearch()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
                                     ${subjectOptionsHtml}
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">4️⃣ Faculty Duty Role Filter</label>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">3️⃣ Faculty Duty Role Filter</label>
                                 <select id="analysis-duty-select" onchange="runExamAnalysisSearch()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
                                     <option value="ALL">All Roles & Duties</option>
                                     <option value="QP">QP Setters Only</option>
@@ -1013,20 +1009,20 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">5️⃣ Universal Keyword Search</label>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">4️⃣ Universal Keyword Search</label>
                                 <input type="text" id="analysis-text-search" oninput="runExamAnalysisSearch()" placeholder="🔍 Search Class, Subject, Teacher, QP, or Eval..." class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
                             </div>
                         </div>
                     </div>
 
-                    <!-- READ-ONLY LIVE COMPUTED STATS -->
+                    <!-- SEATING & HEADCOUNT SUMMARY CARDS -->
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                         <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
                             <span class="text-[10px] font-bold text-slate-500 uppercase block">Selected Scope</span>
-                            <span id="stat-selected-scope" class="text-xs font-extrabold text-indigo-900 truncate block">All Combined</span>
+                            <span id="stat-selected-scope" class="text-xs font-extrabold text-indigo-900 truncate block">0 Sections</span>
                         </div>
                         <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Combined Examinees</span>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Examinees</span>
                             <span id="stat-calc-students" class="text-base font-extrabold text-emerald-700">0 Students</span>
                         </div>
                         <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
@@ -1039,7 +1035,7 @@
                         </div>
                     </div>
 
-                    <!-- READ-ONLY AUDIT & ANALYSIS TABLE -->
+                    <!-- READ-ONLY SEATING AUDIT & ANALYSIS TABLE -->
                     <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
                         <table class="w-full text-xs text-left text-slate-700">
                             <thead class="bg-indigo-900 text-white uppercase font-semibold">
@@ -1049,7 +1045,7 @@
                                     <th class="px-3 py-2.5">Assigned Teacher</th>
                                     <th class="px-3 py-2.5">QP Setter Duty</th>
                                     <th class="px-3 py-2.5">Evaluator Duty</th>
-                                    <th class="px-3 py-2.5 text-center">Section Examinees</th>
+                                    <th class="px-3 py-2.5 text-center">Section Examinees (Seating Count)</th>
                                 </tr>
                             </thead>
                             <tbody id="exam-analysis-tbody" class="divide-y bg-white"></tbody>
@@ -1066,15 +1062,27 @@
             runExamAnalysisSearch();
         }
 
+        function toggleClassSections(cls, parentCb) {
+            const container = document.getElementById(`cls-secs-container-${cls}`);
+            if(!container) return;
+            const checkboxes = container.querySelectorAll('.analysis-sec-item');
+            checkboxes.forEach(cb => cb.checked = parentCb.checked);
+            runExamAnalysisSearch();
+        }
+
+        function setAllAnalysisSelections(status) {
+            document.querySelectorAll('.analysis-cls-parent').forEach(cb => cb.checked = status);
+            document.querySelectorAll('.analysis-sec-item').forEach(cb => cb.checked = status);
+            runExamAnalysisSearch();
+        }
+
         function runExamAnalysisSearch() {
             const tbody = document.getElementById('exam-analysis-tbody');
             if(!tbody) return;
             tbody.innerHTML = '';
 
-            // Selected Classes
-            const selectedClasses = Array.from(document.querySelectorAll('.analysis-cls-cb:checked')).map(cb => cb.value);
-            // Selected Sections
-            const selectedSections = Array.from(document.querySelectorAll('.analysis-sec-cb:checked')).map(cb => cb.value);
+            // Get all checked granular sections (format: "cls-sec")
+            const selectedSectionKeys = Array.from(document.querySelectorAll('.analysis-sec-item:checked')).map(cb => cb.value);
             
             const subFilter = document.getElementById('analysis-sub-select')?.value || 'ALL';
             const dutyFilter = document.getElementById('analysis-duty-select')?.value || 'ALL';
@@ -1085,14 +1093,12 @@
             let classesList = getAllUniqueClasses();
 
             classesList.forEach(cls => {
-                if(!selectedClasses.includes(cls)) return;
-
                 let sections = getAllSectionsForClass(cls);
                 sections.forEach(sec => {
-                    if(!selectedSections.includes(sec)) return;
+                    let secKey = `${cls}-${sec}`;
+                    if(!selectedSectionKeys.includes(secKey)) return;
 
-                    let key = `${cls}-${sec}`;
-                    let subs = sectionConfigs[key] || [];
+                    let subs = sectionConfigs[secKey] || [];
                     let classStudents = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
 
                     subs.forEach(sub => {
@@ -1123,7 +1129,7 @@
                             <td class="px-3 py-2">${teacherName}</td>
                             <td class="px-3 py-2 text-indigo-700 font-medium">${qpSetter}</td>
                             <td class="px-3 py-2 text-emerald-700 font-medium">${evaluator}</td>
-                            <td class="px-3 py-2 text-center font-bold text-slate-800">${classStudents.length} Examinees</td>
+                            <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${classStudents.length} Examinees</td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -1136,13 +1142,13 @@
             const qpElem = document.getElementById('stat-calc-qp');
             const rowElem = document.getElementById('stat-calc-rows');
 
-            if(scopeElem) scopeElem.textContent = `${selectedClasses.length} Cls / ${selectedSections.length} Secs`;
-            if(stuElem) stuElem.textContent = `${totalCombinedExaminees} Examinees`;
+            if(scopeElem) scopeElem.textContent = `${selectedSectionKeys.length} Sections Selected`;
+            if(stuElem) stuElem.textContent = `${totalCombinedExaminees} Students`;
             if(qpElem) qpElem.textContent = `${Math.ceil(totalCombinedExaminees * 1.05)} Papers`;
             if(rowElem) rowElem.textContent = `${rowsFound} Mapping Rows`;
 
             if(rowsFound === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">No matching examination mapping records found for the combined filter query.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">No matching examination mapping records found for the selected granular sections.</td></tr>`;
             }
         }
 
