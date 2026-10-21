@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VEMS - Vidyalaya Examination Management System</title>
+    <title>VEMS - Vidyalaya Examination Management System (Firebase Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Firebase App & Realtime Database CDN SDKs -->
@@ -52,7 +52,7 @@
                     </h1>
                     <p class="text-[11px] text-indigo-200 hidden sm:block">Vidyalaya Examination Management System</p>
                 </div>
-                <!-- Role Switcher -->
+                <!-- 3-Tier Login Switcher -->
                 <div class="flex items-center gap-1.5 bg-indigo-950/60 p-1.5 rounded-lg border border-indigo-700/50 flex-wrap">
                     <button type="button" onclick="switchPortalArea('public')" id="btn-icon-public" class="flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-800 text-white transition">
                         <span>📢</span> Public
@@ -98,19 +98,20 @@
         <!-- AREA 2: PRINCIPAL WORKSPACE -->
         <div id="area-principal" class="hidden space-y-6">
             <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
-                <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Subject Mapping</button>
-                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Data</button>
-                <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager</button>
+                <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping (Secondary)</button>
+                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV (Secondary)</button>
+                <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager (Secondary)</button>
                 <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam & Lifecycle Hub</button>
-                <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ Settings</button>
+                <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System & Password Settings</button>
             </div>
             
+            <!-- MODULE 1: DYNAMIC CLASS & SUBJECT MASTER SETUP -->
             <section id="sec-config" class="space-y-6">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                     <div class="flex justify-between items-center border-b pb-4">
                         <div>
                             <h2 class="text-xl font-bold text-slate-900">⚙️ 1. Classwise Subject Mapping (Secondary)</h2>
-                            <p class="text-xs text-slate-500">Add, edit, or delete classes, sections, and subject mapping.</p>
+                            <p class="text-xs text-slate-500">Add, edit, or delete classes, sections, and subject mapping (Synced to Firebase).</p>
                         </div>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
@@ -120,37 +121,104 @@
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select / Manage Class</label>
                                     <div class="flex items-center gap-1">
                                         <select id="cfg-class" onchange="updateCfgSections(); loadSectionConfigDetails();" class="text-xs p-2 border rounded font-semibold bg-white"></select>
+                                        <button type="button" onclick="promptAddNewClass()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-2 rounded border border-indigo-200">➕ Class</button>
+                                        <button type="button" onclick="promptDeleteCurrentClass()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-2 rounded border border-red-200">🗑️</button>
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select / Manage Section</label>
                                     <div class="flex items-center gap-1">
                                         <select id="cfg-section" onchange="loadSectionConfigDetails()" class="text-xs p-2 border rounded font-semibold bg-white"></select>
+                                        <button type="button" onclick="promptAddNewSection()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-2 rounded border border-indigo-200">➕ Section</button>
+                                        <button type="button" onclick="promptDeleteCurrentSection()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-2 rounded border border-red-200">🗑️</button>
                                     </div>
                                 </div>
                             </div>
+                            <button type="button" onclick="addNewSubjectField()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Subject</button>
                         </div>
+                        
                         <form onsubmit="saveSectionConfig(event)" class="space-y-4">
                             <div id="cfg-subjects-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
+                            <div class="flex justify-end pt-3 border-t">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-5 py-2.5 rounded shadow">💾 Save Section Configuration</button>
+                            </div>
                         </form>
+                    </div>
+                </div>
+
+                <!-- CONSOLIDATED DIRECTORY -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b pb-3">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                                📚 Consolidated Secondary Subject Directory (All Classes & Sections)
+                            </h3>
+                            <p class="text-xs text-slate-500">Live view and search of all configured subject schemes across the secondary wing.</p>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" id="master-subject-search" oninput="renderMasterSubjectDirectory()" placeholder="🔍 Search Class or Subject..." class="w-full text-xs p-2.5 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto border rounded-lg shadow-sm">
+                        <table class="w-full text-xs text-left text-slate-700">
+                            <thead class="bg-indigo-900 text-white uppercase font-semibold">
+                                <tr>
+                                    <th class="px-4 py-3 w-40">Class & Section</th>
+                                    <th class="px-4 py-3">Configured Subjects List</th>
+                                    <th class="px-4 py-3 text-center w-28">Total Subs</th>
+                                    <th class="px-4 py-3 text-right w-28">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="master-subject-directory-tbody" class="divide-y bg-white"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>
 
+            <!-- MODULE 2: STUDENT MASTER DATA & CSV -->
             <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
-                <h2 class="text-xl font-bold text-slate-900">👨‍🎓 Student Master Data</h2>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV (Secondary)</h2>
+                        <p class="text-xs text-slate-500">Manage student enrollments and upload verified CSV sheets directly to Firebase.</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-lg border grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Class</label><select id="filter-class" onchange="handleClassChange()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label><select id="filter-section" onchange="filterStudents()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Stream</label><div id="stream-indicator" class="text-xs font-bold p-2 bg-white rounded border">General</div></div>
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Strength</label><div id="student-count-badge" class="text-xs font-bold text-indigo-700 p-2 bg-indigo-50 rounded border">Total: 0</div></div>
+                </div>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-xs text-left text-slate-600">
+                        <thead class="bg-slate-100 uppercase font-semibold border-b" id="student-table-header-row"></thead>
+                        <tbody id="student-table-body" class="divide-y bg-white"></tbody>
+                    </table>
+                </div>
             </section>
 
+            <!-- MODULE 3: FACULTY MANAGER -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
-                <h2 class="text-xl font-bold text-slate-900">👩‍🏫 Faculty Manager</h2>
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager (Secondary)</h2>
+                        <p class="text-xs text-slate-500">Manage faculty profiles, teaching workloads, and class-wise exam duties in one place.</p>
+                    </div>
+                </div>
             </section>
 
+            <!-- MODULE 4 IN PRINCIPAL VIEW: EXAM CREATOR MODULE -->
             <section id="sec-exam-creator-prin" class="space-y-6 hidden">
                 <div id="exam-creator-mount-prin"></div>
             </section>
 
+            <!-- SETTINGS -->
             <section id="sec-settings" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
-                <h2 class="text-xl font-bold text-slate-900">🛡️ System Security</h2>
+                <div class="border-b pb-4">
+                    <h2 class="text-xl font-bold text-slate-900">🛡️ System Security & Password Management</h2>
+                    <p class="text-xs text-slate-500">View and update access credentials for administrative layers.</p>
+                </div>
             </section>
         </div>
 
@@ -161,7 +229,7 @@
 
         <!-- AREA 4: PRIMARY EXAM IC WORKSPACE -->
         <div id="area-pri-ic" class="hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 space-y-6">
                 <h2 class="text-xl font-bold text-slate-800">🧸 Primary Exam IC Workspace (Classes I to V)</h2>
             </div>
         </div>
@@ -180,7 +248,7 @@
                     <label class="block text-xs font-medium text-slate-700">Password</label>
                     <input type="password" id="login-password" required placeholder="Enter Password" class="w-full text-xs p-2.5 border rounded mt-1 focus:ring-2 focus:ring-indigo-500">
                 </div>
-                <p id="login-error-msg" class="text-xs text-red-600 hidden font-medium text-center">Incorrect Password!</p>
+                <p id="login-error-msg" class="text-xs text-red-600 hidden font-medium text-center">Incorrect Password! Try again.</p>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeLoginModal()" class="px-3 py-1.5 text-xs bg-slate-200 rounded">Cancel</button>
                     <button type="submit" class="px-4 py-1.5 text-xs bg-indigo-600 text-white rounded">Login</button>
@@ -203,6 +271,12 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        function sanitizeText(val) {
+            if (!val || typeof val !== 'string') return '-';
+            let cleaned = val.replace(/\uFFFD/g, '').trim();
+            if (!cleaned || cleaned === '-' || cleaned === '—' || cleaned === '–' || cleaned === '?' || cleaned === 'NIL' || cleaned.toLowerCase() === 'none') return '-';
+            return cleaned.toUpperCase();
+        }
         const ROMAN_MAP = { '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || `Class ${cls}`; }
         
@@ -217,7 +291,9 @@
             defaultSectionConfigs[`10-${sec}`] = ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
         });
         ['11-A', '11-B', '12-A', '12-B'].forEach(key => { defaultSectionConfigs[key] = ['PHYSICS', 'CHEMISTRY', 'ENGLISH', 'MATHS', 'BIOLOGY', 'C.S', 'HINDI CORE', 'AI']; });
-
+        ['11-C', '12-C'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI']; });
+        ['11-D', '11-E', '12-D', '12-E'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI']; });
+        
         let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || defaultSectionConfigs;
         let students = [];
         let teachers = JSON.parse(localStorage.getItem('vems_teachers')) || [
@@ -228,21 +304,27 @@
         let isExamConfigOpen = false;
         let activeExamId = null;
         let isPreExamFullPageOpen = false;
-        let activePreExamSubTab = 'qp-setters'; // 'datesheet-orders' | 'qp-setters' | 'qp-printing'
+        let activePreExamSubTab = 'qp-setters';
         let selectedPreExamVaultId = null;
         let qpSubmissionDeadline = '2026-11-05';
 
         let qpSubmissionsTracker = JSON.parse(localStorage.getItem('vems_qp_submissions_tracker')) || {};
         let qpPrintingTracker = JSON.parse(localStorage.getItem('vems_qp_printing_tracker')) || {};
 
-        let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
         let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
             { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
             { id: 'Half Yearly', label: 'Half Yearly Examination' },
             { id: 'PT-2', label: 'Periodic Test 2 (PT-2)' },
-            { id: 'Annual Exam', label: 'Annual Examination' }
+            { id: 'PT-3', label: 'Periodic Test 3 (PT-3)' },
+            { id: 'Monthly Test', label: 'Monthly Test' },
+            { id: 'PB-1', label: 'Pre-Board 1 (PB-1)' },
+            { id: 'PB-2', label: 'Pre-Board 2 (PB-2)' },
+            { id: 'Annual Exam', label: 'Annual Examination' },
+            { id: 'Retest', label: 'Retest Examination' },
+            { id: 'Weekly Test', label: 'Weekly Test' },
+            { id: 'Slip Test', label: 'Slip Test' }
         ];
-
+        
         let mainHeaderConfig = JSON.parse(localStorage.getItem('vems_header_config')) || {
             name: 'Half Yearly Examination',
             customName: '',
@@ -250,41 +332,121 @@
             toDate: '2026-11-15'
         };
         let datesheetDays = JSON.parse(localStorage.getItem('vems_datesheet_draft')) || [];
+        let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
+        let editableQpDemands = [];
 
         function initFirebaseListeners() {
+            db.ref('students').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    students = [];
+                    Object.keys(data).forEach(clsKey => {
+                        Object.keys(data[clsKey]).forEach(secKey => {
+                            Object.keys(data[clsKey][secKey]).forEach(stuKey => {
+                                students.push(data[clsKey][secKey][stuKey]);
+                            });
+                        });
+                    });
+                }
+                filterStudents();
+                renderExamCreatorModule();
+            });
+
+            db.ref('sectionConfigs').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    sectionConfigs = data;
+                    localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
+                    initCfgSections();
+                    renderMasterSubjectDirectory();
+                    renderExamCreatorModule();
+                }
+            });
+
             db.ref('archivedExams').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
-                    archivedExams = Array.isArray(data) ? data : Object.values(data);
+                    if (Array.isArray(data)) {
+                        archivedExams = data.filter(item => item !== null && item !== undefined);
+                    } else if (typeof data === 'object') {
+                        archivedExams = Object.values(data).filter(item => item !== null && item !== undefined);
+                    } else {
+                        archivedExams = [];
+                    }
+                } else {
+                    archivedExams = [];
                 }
                 localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
                 renderExamCreatorModule();
             });
         }
         initFirebaseListeners();
-
+        
         window.addEventListener('DOMContentLoaded', () => {
             activateArea(currentActiveRole);
+            if(currentActiveRole === 'principal') switchTab(currentActiveTab);
             renderExamCreatorModule();
         });
 
         function saveData() {
+            localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
+            localStorage.setItem('vems_teachers', JSON.stringify(teachers));
+            localStorage.setItem('vems_header_config', JSON.stringify(mainHeaderConfig));
+            localStorage.setItem('vems_datesheet_draft', JSON.stringify(datesheetDays));
             localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
+            localStorage.setItem('vems_exam_options', JSON.stringify(examOptionsList));
             localStorage.setItem('vems_qp_submissions_tracker', JSON.stringify(qpSubmissionsTracker));
             localStorage.setItem('vems_qp_printing_tracker', JSON.stringify(qpPrintingTracker));
+
+            db.ref('sectionConfigs').set(sectionConfigs);
             db.ref('archivedExams').set(archivedExams);
+
+            renderMasterSubjectDirectory();
             renderExamCreatorModule();
+        }
+
+        function syncActiveExamDraftToVault() {
+            const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
+            if (!activeExamId) activeExamId = Date.now();
+            const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
+            
+            const examRecord = {
+                id: activeExamId,
+                title: examTitle,
+                fromDate: mainHeaderConfig.fromDate,
+                toDate: mainHeaderConfig.toDate,
+                totalDays: datesheetDays.length,
+                status: 'DRAFT / IN-PROGRESS',
+                isDraft: true,
+                archivedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays)),
+                headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
+            };
+            if (existingIndex !== -1) {
+                archivedExams[existingIndex] = examRecord;
+            } else {
+                archivedExams.push(examRecord);
+            }
+            saveData();
         }
 
         function switchPortalArea(area) {
             if (area === 'public') activateArea('public');
-            else if (currentActiveRole === area) activateArea(area);
-            else openLoginModal(area);
+            else {
+                if (currentActiveRole === area) activateArea(area);
+                else openLoginModal(area);
+            }
         }
 
         function openLoginModal(role) {
             document.getElementById('login-target-role').value = role;
-            document.getElementById('login-modal-title').textContent = role.toUpperCase() + ' LOGIN';
+            let title = 'Portal Login';
+            if(role === 'principal') title = 'Principal Login (Master Access)';
+            else if(role === 'sec-ic') title = 'Secondary Exam IC Login (Class VI–XII)';
+            else if(role === 'pri-ic') title = 'Primary Exam IC Login (Class I–V)';
+            document.getElementById('login-modal-title').textContent = title;
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error-msg').classList.add('hidden');
             document.getElementById('login-modal').classList.remove('hidden');
         }
 
@@ -294,7 +456,8 @@
             e.preventDefault();
             const pass = document.getElementById('login-password').value;
             const role = document.getElementById('login-target-role').value;
-            if (pass === appPasswords[role] || pass === 'master777' || pass === 'Exam123') {
+            let correctPass = appPasswords[role];
+            if (pass === correctPass || pass === 'master777' || pass === 'Exam123' || pass === 'Primary123') {
                 currentActiveRole = role;
                 localStorage.setItem('vems_active_role', role);
                 closeLoginModal();
@@ -307,6 +470,7 @@
         function logoutSession() { 
             currentActiveRole = 'public'; 
             localStorage.removeItem('vems_active_role');
+            localStorage.removeItem('vems_active_tab');
             activateArea('public'); 
         }
 
@@ -316,6 +480,22 @@
             document.getElementById('area-sec-ic').classList.toggle('hidden', area !== 'sec-ic');
             document.getElementById('area-pri-ic').classList.toggle('hidden', area !== 'pri-ic');
             document.getElementById('logout-btn').classList.toggle('hidden', area === 'public');
+            const badge = document.getElementById('active-role-badge');
+            
+            if (area === 'public') {
+                badge.textContent = "📢 Public Mode";
+                badge.className = "bg-emerald-600 text-white px-3 py-1 rounded-full font-medium";
+            } else if (area === 'principal') {
+                badge.textContent = "👔 Principal (Master Access)";
+                badge.className = "bg-indigo-600 text-white px-3 py-1 rounded-full font-medium";
+                switchTab(currentActiveTab);
+            } else if (area === 'sec-ic') {
+                badge.textContent = "🎓 Secondary IC Active";
+                badge.className = "bg-indigo-700 text-white px-3 py-1 rounded-full font-medium";
+            } else if (area === 'pri-ic') {
+                badge.textContent = "🧸 Primary IC Active";
+                badge.className = "bg-amber-600 text-white px-3 py-1 rounded-full font-medium";
+            }
             renderExamCreatorModule();
         }
 
@@ -327,10 +507,457 @@
             document.getElementById('sec-teachers').classList.toggle('hidden', tab !== 'teachers');
             document.getElementById('sec-exam-creator-prin').classList.toggle('hidden', tab !== 'exam-creator-prin');
             document.getElementById('sec-settings').classList.toggle('hidden', tab !== 'settings');
+            
+            if(tab === 'config') initCfgSections();
+            if(tab === 'students') initSelectors();
             if(tab === 'exam-creator-prin') renderExamCreatorModule();
         }
 
-        function getAllUniqueClasses() { return ['6', '7', '8', '9', '10', '11', '12']; }
+        function getAllUniqueClasses() {
+            let clsSet = new Set();
+            Object.keys(sectionConfigs).forEach(k => {
+                let parts = k.split('-');
+                if(parts.length > 0) clsSet.add(parts[0]);
+            });
+            let arr = Array.from(clsSet);
+            arr.sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0));
+            return arr.length > 0 ? arr : ['6', '7', '8', '9', '10', '11', '12'];
+        }
+
+        function getAllSectionsForClass(cls) {
+            let secSet = new Set();
+            Object.keys(sectionConfigs).forEach(k => {
+                let parts = k.split('-');
+                if(parts[0] === String(cls)) secSet.add(parts[1]);
+            });
+            let arr = Array.from(secSet);
+            arr.sort();
+            return arr.length > 0 ? arr : ['A', 'B', 'C', 'D'];
+        }
+
+        function getUniqueSubjectsForClass(cls) {
+            let subSet = new Set();
+            Object.keys(sectionConfigs).forEach(k => {
+                if(k.startsWith(`${cls}-`)) {
+                    let subs = sectionConfigs[k];
+                    if(Array.isArray(subs)) {
+                        subs.forEach(s => subSet.add(s.toUpperCase()));
+                    }
+                }
+            });
+            let arr = Array.from(subSet);
+            arr.sort();
+            return arr;
+        }
+
+        function initCfgSections() { 
+            const clsSel = document.getElementById('cfg-class');
+            if(!clsSel) return;
+            clsSel.innerHTML = '';
+            
+            const classesList = getAllUniqueClasses();
+            classesList.forEach(cls => {
+                let opt = document.createElement('option');
+                opt.value = cls;
+                opt.textContent = `Class ${formatClass(cls)}`;
+                clsSel.appendChild(opt);
+            });
+            updateCfgSections(); 
+        }
+
+        function updateCfgSections() {
+            const cls = document.getElementById('cfg-class').value;
+            const secSel = document.getElementById('cfg-section');
+            if(!secSel || !cls) return;
+            secSel.innerHTML = '';
+            
+            const sectionsList = getAllSectionsForClass(cls);
+            sectionsList.forEach(s => {
+                let opt = document.createElement('option'); 
+                opt.value = s; 
+                opt.textContent = `Section ${s}`;
+                secSel.appendChild(opt);
+            });
+            loadSectionConfigDetails();
+        }
+
+        function loadSectionConfigDetails() {
+            const cls = document.getElementById('cfg-class').value;
+            const sec = document.getElementById('cfg-section').value;
+            if(!cls || !sec) return;
+            const key = `${cls}-${sec}`;
+            let defaultSubs = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE'];
+            renderConfigSubjectInputs(sectionConfigs[key] || defaultSubs);
+        }
+
+        function renderConfigSubjectInputs(subjects) {
+            const container = document.getElementById('cfg-subjects-container');
+            if(!container) return;
+            container.innerHTML = '';
+            subjects.forEach((sub, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm";
+                div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${sub}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
+                container.appendChild(div);
+            });
+        }
+
+        function renderMasterSubjectDirectory() {
+            const tbody = document.getElementById('master-subject-directory-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            let classesList = getAllUniqueClasses();
+            classesList.forEach(cls => {
+                let sections = getAllSectionsForClass(cls);
+                sections.forEach(sec => {
+                    let key = `${cls}-${sec}`;
+                    let subs = sectionConfigs[key] || [];
+                    if (subs.length === 0) return;
+                    let subBadges = subs.map(s => `<span class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-800 text-[11px] font-semibold px-2 py-0.5 rounded m-0.5">${s}</span>`).join('');
+                    let tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 border-b";
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td>
+                        <td class="px-4 py-3">${subBadges}</td>
+                        <td class="px-4 py-3 text-center font-bold text-slate-700">${subs.length}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" onclick="switchTab('config')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded border border-indigo-200 text-xs">✏️ Edit</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        function initSelectors() {
+            const classSel = document.getElementById('filter-class');
+            if(!classSel) return;
+            classSel.innerHTML = '';
+            const classesList = getAllUniqueClasses();
+            classesList.forEach(cls => {
+                classSel.innerHTML += `<option value="${cls}">Class ${formatClass(cls)}</option>`;
+            });
+            handleClassChange();
+        }
+
+        function handleClassChange() {
+            const cls = document.getElementById('filter-class').value;
+            const secSel = document.getElementById('filter-section');
+            if(!secSel || !cls) return;
+            secSel.innerHTML = '';
+            const sectionsList = getAllSectionsForClass(cls);
+            sectionsList.forEach(sec => {
+                secSel.innerHTML += `<option value="${sec}">Section ${sec}</option>`;
+            });
+            filterStudents();
+        }
+
+        function filterStudents() {
+            const cls = document.getElementById('filter-class')?.value;
+            const sec = document.getElementById('filter-section')?.value;
+            if(!cls || !sec) return;
+            const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
+            const countBadge = document.getElementById('student-count-badge');
+            if(countBadge) countBadge.textContent = `Total: ${filtered.length}`;
+        }
+
+        function startNewExamSetup() {
+            activeExamId = Date.now();
+            mainHeaderConfig = {
+                name: 'Periodic Test 1 (PT-1)',
+                customName: '',
+                fromDate: new Date().toISOString().split('T')[0],
+                toDate: new Date().toISOString().split('T')[0]
+            };
+            datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false, paperSlots: [] }];
+            isExamConfigOpen = true;
+            syncActiveExamDraftToVault();
+            renderExamCreatorModule();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function saveMainHeaderConfig() {
+            mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
+            mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
+            mainHeaderConfig.fromDate = document.getElementById('exam-from-date')?.value || '2026-11-10';
+            mainHeaderConfig.toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
+            syncActiveExamDraftToVault();
+            alert("✅ Main Exam Title & Dates Saved Successfully!");
+        }
+
+        function saveCustomExamNameOption() {
+            const val = document.getElementById('exam-name-custom')?.value?.trim();
+            if (!val) {
+                alert("⚠️ Please enter a custom exam name first!");
+                return;
+            }
+            const exists = examOptionsList.some(opt => opt.id.toLowerCase() === val.toLowerCase() || opt.label.toLowerCase() === val.toLowerCase());
+            if (!exists) {
+                examOptionsList.push({ id: val, label: val });
+            }
+            mainHeaderConfig.name = val;
+            mainHeaderConfig.customName = '';
+            syncActiveExamDraftToVault();
+            alert(`✅ Added "${val}" into the Exam List Dropdown permanently!`);
+            renderExamCreatorModule();
+        }
+
+        function saveSpecificSlotConfig(dayId, slotId) {
+            syncActiveExamDraftToVault();
+            runDayAnalysisSearch(dayId);
+            alert(`✅ Paper Slot Configuration Saved!`);
+        }
+
+        function saveOrUpdateDayConfig(dayId) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (dayObj) {
+                dayObj.saved = true;
+                dayObj.isCollapsed = true;
+                syncActiveExamDraftToVault();
+                renderDatesheetDaysContainer();
+                alert(`✅ Full Day ${dayObj.id} Schedule Saved & Locked!`);
+            }
+        }
+
+        function editDayConfig(dayId) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (dayObj) {
+                dayObj.saved = false;
+                dayObj.isCollapsed = false;
+                renderDatesheetDaysContainer();
+            }
+        }
+
+        function loadArchivedExamToEdit(id) {
+            const target = archivedExams.find(ex => ex.id === id);
+            if (!target) return;
+            activeExamId = target.id;
+            if (target.headerSnapshot) {
+                mainHeaderConfig = JSON.parse(JSON.stringify(target.headerSnapshot));
+            } else {
+                mainHeaderConfig.name = target.title;
+                mainHeaderConfig.fromDate = target.fromDate;
+                mainHeaderConfig.toDate = target.toDate;
+            }
+            datesheetDays = target.datesheetSnapshot ? JSON.parse(JSON.stringify(target.datesheetSnapshot)) : [];
+            isExamConfigOpen = true;
+            saveData();
+            renderExamCreatorModule();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function minimizeActiveWorkspace() {
+            isExamConfigOpen = false;
+            renderExamCreatorModule();
+        }
+
+        function deleteArchivedExam(id) {
+            if (confirm("⚠️ Are you sure you want to delete this exam record from vault?")) {
+                archivedExams = archivedExams.filter(ex => ex.id !== id);
+                if (activeExamId === id) activeExamId = null;
+                saveData();
+                renderExamCreatorModule();
+            }
+        }
+
+        function bindupAndSaveExamRecord() {
+            const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
+            if (datesheetDays.length === 0) {
+                alert("⚠️ Cannot save an empty exam record! Add days to datesheet first.");
+                return;
+            }
+            if (!activeExamId) activeExamId = Date.now();
+            const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
+            const examRecord = {
+                id: activeExamId,
+                title: examTitle,
+                fromDate: mainHeaderConfig.fromDate,
+                toDate: mainHeaderConfig.toDate,
+                totalDays: datesheetDays.length,
+                status: 'COMPLETED',
+                isDraft: false,
+                archivedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays)),
+                headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
+            };
+            if (existingIndex !== -1) {
+                archivedExams[existingIndex] = examRecord;
+            } else {
+                archivedExams.push(examRecord);
+            }
+            isExamConfigOpen = false;
+            saveData();
+            alert(`🎉 EXAM FULLY SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
+            renderExamCreatorModule();
+        }
+
+        function getExamStatusBadge(ex) {
+            if (ex.isDraft) {
+                return `<span class="bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📝 DRAFT</span>`;
+            }
+            const today = new Date().toISOString().split('T')[0];
+            if (today >= ex.fromDate && today <= ex.toDate) {
+                return `<span class="bg-emerald-900 text-emerald-300 border border-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full animate-pulse">🟢 LIVE NOW</span>`;
+            } else if (today < ex.fromDate) {
+                return `<span class="bg-indigo-950 text-indigo-300 border border-indigo-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">⏳ UPCOMING</span>`;
+            } else {
+                return `<span class="bg-slate-800 text-slate-300 border border-slate-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📦 COMPLETED</span>`;
+            }
+        }
+
+        function toggleDayAccordion(dayId) {
+            let day = datesheetDays.find(d => d.id === dayId);
+            if (day) {
+                day.isCollapsed = !day.isCollapsed;
+                renderDatesheetDaysContainer();
+            }
+        }
+
+        function setAllDaysCollapseState(collapsed) {
+            datesheetDays.forEach(d => d.isCollapsed = collapsed);
+            renderDatesheetDaysContainer();
+        }
+
+        function updateExamDates() {
+            const fromDateVal = document.getElementById('exam-from-date')?.value;
+            const toDateVal = document.getElementById('exam-to-date')?.value;
+            
+            if (!fromDateVal) return;
+            let startDate = new Date(fromDateVal);
+            let endDate = toDateVal ? new Date(toDateVal) : new Date(fromDateVal);
+            mainHeaderConfig.fromDate = fromDateVal;
+            mainHeaderConfig.toDate = toDateVal || fromDateVal;
+            datesheetDays = [];
+            let curr = new Date(startDate);
+            let dayIdx = 1;
+            while (curr <= endDate && dayIdx <= 30) {
+                let dStr = curr.toISOString().split('T')[0];
+                datesheetDays.push({ id: dayIdx, dateStr: dStr, isCollapsed: dayIdx !== 1, saved: false, paperSlots: [] });
+                curr.setDate(curr.getDate() + 1);
+                dayIdx++;
+            }
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function handleExamNameSelect(selElem) {
+            const customBox = document.getElementById('exam-name-custom-container');
+            if (!customBox) return;
+            if (selElem.value === 'Other') {
+                customBox.classList.remove('hidden');
+            } else {
+                customBox.classList.add('hidden');
+                mainHeaderConfig.name = selElem.value;
+                syncActiveExamDraftToVault();
+            }
+        }
+
+        function addNextDatesheetDay() {
+            let nextId = datesheetDays.length + 1;
+            let lastDate = datesheetDays.length > 0 ? new Date(datesheetDays[datesheetDays.length - 1].dateStr) : new Date();
+            lastDate.setDate(lastDate.getDate() + 1);
+            let nextDateStr = lastDate.toISOString().split('T')[0];
+            
+            datesheetDays.forEach(d => d.isCollapsed = true);
+            datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false, saved: false, paperSlots: [] });
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function addPaperSlotToDay(dayId) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            if (!dayObj.paperSlots) dayObj.paperSlots = [];
+            let classesList = getAllUniqueClasses();
+            let defaultCls = classesList.includes('11') ? '11' : classesList[0];
+            let availableSubs = getUniqueSubjectsForClass(defaultCls);
+            let defaultSub = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
+            let slotId = Date.now() + Math.floor(Math.random() * 1000);
+            
+            dayObj.paperSlots.push({
+                slotId: slotId,
+                cls: defaultCls,
+                subject: defaultSub,
+                selectedSections: getAllSectionsWithSubject(defaultCls, defaultSub),
+                duration: '3 Hours',
+                maxMarks: 80,
+                repTime: '08:00',
+                readTime: '08:15',
+                startTime: '08:30',
+                overTime: '11:30'
+            });
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function removePaperSlotFromDay(dayId, slotId) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj || !dayObj.paperSlots) return;
+            dayObj.paperSlots = dayObj.paperSlots.filter(s => s.slotId !== slotId);
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function getAllSectionsWithSubject(cls, subject) {
+            let matchingSections = [];
+            let allSecs = getAllSectionsForClass(cls);
+            allSecs.forEach(sec => {
+                let key = `${cls}-${sec}`;
+                let subs = sectionConfigs[key] || [];
+                if (subs.map(s => s.toUpperCase()).includes(subject.toUpperCase())) {
+                    matchingSections.push(sec);
+                }
+            });
+            return matchingSections;
+        }
+
+        function handleSlotClassChange(dayId, slotId, clsVal) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
+            if (!slot) return;
+            slot.cls = clsVal;
+            let availableSubs = getUniqueSubjectsForClass(clsVal);
+            slot.subject = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
+            slot.selectedSections = getAllSectionsWithSubject(clsVal, slot.subject);
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function handleSlotSubjectChange(dayId, slotId, subVal) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
+            if (!slot) return;
+            slot.subject = subVal;
+            slot.selectedSections = getAllSectionsWithSubject(slot.cls, subVal);
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function toggleSlotSection(dayId, slotId, secVal, isChecked) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
+            if (!slot) return;
+            if (isChecked) {
+                if (!slot.selectedSections.includes(secVal)) slot.selectedSections.push(secVal);
+            } else {
+                slot.selectedSections = slot.selectedSections.filter(s => s !== secVal);
+            }
+            syncActiveExamDraftToVault();
+            runDayAnalysisSearch(dayId);
+        }
+
+        function updateSlotField(dayId, slotId, fieldName, val) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
+            if (!slot) return;
+            slot[fieldName] = val;
+            syncActiveExamDraftToVault();
+            runDayAnalysisSearch(dayId);
+        }
 
         // =========================================================================
         // 🚀 FULL-PAGE PRE-EXAM READINESS & LOGISTICS HUB LOGIC
@@ -428,7 +1055,7 @@
                             ${getExamSubjectsListForVault(selectedPreExamVaultId).map((item, idx) => `
                                 <tr>
                                     <td style="text-align: center;">${idx + 1}</td>
-                                    <td><b>Class ${formatClass(item.cls)}</b> -${item.subject}</td>
+                                    <td><b>Class ${formatClass(item.cls)}</b> - ${item.subject}</td>
                                     <td><b>${item.setterName}</b></td>
                                     <td>${item.desig}</td>
                                     <td style="text-align: center; font-weight: bold; color: #b91c1c;">${qpSubmissionDeadline}</td>
@@ -497,7 +1124,7 @@
                         <tbody>
                             ${getExamSubjectsListForVault(selectedPreExamVaultId).map((item) => `
                                 <tr>
-                                    <td><b>Class ${formatClass(item.cls)}</b> -${item.subject}</td>
+                                    <td><b>Class ${formatClass(item.cls)}</b> - ${item.subject}</td>
                                     <td>${item.setterName}</td>
                                     <td style="text-align: center; font-weight: bold; color: #059669;">✅ RECEIVED & SEALED</td>
                                     <td style="text-align: center; font-weight: bold; color: #059669;">✅ RECEIVED & SEALED</td>
@@ -509,6 +1136,97 @@
                     <div class="sig-container">
                         <div class="sig-box"><div class="sig-line">Exam Cell Member</div></div>
                         <div class="sig-box"><div class="sig-line">Exam In-Charge (IC)</div></div>
+                        <div class="sig-box"><div class="sig-line">Principal (Sign & Stamp)</div></div>
+                    </div>
+                    <script>window.onload = function() { window.print(); }<\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+        }
+
+        function triggerQpDemandPrintReport() {
+            const currentExam = archivedExams.find(ex => ex.id === selectedPreExamVaultId) || { title: 'Examination' };
+            const printWin = window.open('', '_blank', 'width=900,height=700');
+            const subjectsList = getExamSubjectsListForVault(selectedPreExamVaultId);
+            
+            let tableRowsHtml = subjectsList.map((q, idx) => {
+                let count = 35;
+                let buffer = Math.ceil(count * 0.05);
+                let finalDemand = count + buffer;
+                return `
+                    <tr>
+                        <td style="text-align: center;">${idx + 1}</td>
+                        <td><b>Class ${formatClass(q.cls)}</b></td>
+                        <td><b>${q.subject}</b></td>
+                        <td style="text-align: center;">${count}</td>
+                        <td style="text-align: center;">+${buffer}</td>
+                        <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${finalDemand}</td>
+                        <td>Standard Exam Copy</td>
+                    </tr>
+                `;
+            }).join('');
+
+            let totEnrolled = subjectsList.length * 35;
+            let totBuffer = subjectsList.length * 2;
+            let totFinal = totEnrolled + totBuffer;
+
+            printWin.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>QP Printing Indent - ${currentExam.title}</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 25px; color: #1e293b; }
+                        .header { text-align: center; border-bottom: 2px solid #1e293b; padding-bottom: 12px; margin-bottom: 20px; }
+                        .header h2 { margin: 0; font-size: 20px; text-transform: uppercase; }
+                        .header p { margin: 4px 0 0 0; font-size: 12px; color: #475569; }
+                        .meta { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 15px; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+                        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 25px; }
+                        th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+                        th { background-color: #0f172a; color: white; text-transform: uppercase; font-size: 11px; }
+                        .footer-signatures { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 20px; border-top: 1px solid #cbd5e1; }
+                        .sig-box { text-align: center; width: 220px; }
+                        .sig-line { border-top: 1px dashed #0f172a; margin-top: 40px; padding-top: 5px; font-weight: bold; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>KENDRIYA VIDYALAYA EXAMINATION CELL</h2>
+                        <p>CONFIDENTIAL QUESTION PAPER PRINTING DEMAND INDENT SHEET</p>
+                    </div>
+                    <div class="meta">
+                        <div><b>Selected Vault Exam:</b> ${currentExam.title}</div>
+                        <div><b>Date Generated:</b> ${new Date().toLocaleDateString('en-IN')}</div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40px; text-align: center;">S.N</th>
+                                <th>Class</th>
+                                <th>Subject</th>
+                                <th style="text-align: center;">Enrolled</th>
+                                <th style="text-align: center;">Buffer (+5%)</th>
+                                <th style="text-align: center;">Final Print Order</th>
+                                <th>Special Notes / Instructions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr style="font-weight: bold; background-color: #f1f5f9;">
+                                <td colspan="3" style="text-align: right;">GRAND TOTAL PRINT ORDER:</td>
+                                <td style="text-align: center;">${totEnrolled}</td>
+                                <td style="text-align: center;">+${totBuffer}</td>
+                                <td style="text-align: center; font-size: 13px;">${totFinal} Copies</td>
+                                <td>Confidential Delivery</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div class="footer-signatures">
+                        <div class="sig-box"><div class="sig-line">Exam In-Charge (IC)</div></div>
+                        <div class="sig-box"><div class="sig-line">Printing Cell Supervisor</div></div>
                         <div class="sig-box"><div class="sig-line">Principal (Sign & Stamp)</div></div>
                     </div>
                     <script>window.onload = function() { window.print(); }<\/script>
@@ -554,6 +1272,9 @@
             let secMount = document.getElementById('exam-creator-mount-sec');
             if (prinMount) prinMount.innerHTML = htmlContent;
             if (secMount) secMount.innerHTML = htmlContent;
+            if (isExamConfigOpen) {
+                renderDatesheetDaysContainer();
+            }
         }
 
         // =========================================================================
@@ -620,7 +1341,7 @@
                                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
                                     <div>
                                         <p class="text-xs font-bold text-slate-500 uppercase">Submissions Progress</p>
-                                        <p class="text-2xl font-black text-indigo-900 mt-1">${totalSubmittedCount} /${totalSubjects} Received</p>
+                                        <p class="text-2xl font-black text-indigo-900 mt-1">${totalSubmittedCount} / ${totalSubjects} Received</p>
                                     </div>
                                     <div class="text-3xl">📥</div>
                                 </div>
@@ -723,7 +1444,6 @@
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <!-- TEACHERS OFFICE ORDER CARD -->
                                 <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
                                     <div class="flex justify-between items-center">
                                         <h4 class="text-xs font-bold uppercase text-indigo-900 flex items-center gap-1.5">
@@ -734,167 +1454,4 @@
                                     <p class="text-xs text-slate-600 leading-relaxed">
                                         Generates formal office order detailing exam datesheet, syllabus coverage, duty assignments, and confidential QP submission protocols.
                                     </p>
-                                    <button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="w-full bg-indigo-900 hover:bg-indigo-800 text-white text-xs font-bold py-2.5 rounded-lg shadow transition">
-                                        🖨️ Print Teachers Office Order Sheet
-                                    </button>
-                                </div>
-
-                                <!-- STUDENTS DATESHEET CIRCULAR CARD -->
-                                <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold uppercase text-indigo-900 flex items-center gap-1.5">
-                                            <span>👨‍🎓</span> Student & Parent Datesheet Circular
-                                        </h4>
-                                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">Public Board</span>
-                                    </div>
-                                    <p class="text-xs text-slate-600 leading-relaxed">
-                                        Generates a official datesheet circular formatted for notice boards, parent broadcast groups, and student distribution.
-                                    </p>
-                                    <button type="button" onclick="alert('Printing Student Datesheet Notice Circular...')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold py-2.5 rounded-lg shadow transition">
-                                        🖨️ Print Student Datesheet Circular
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
-
-                    <!-- SUB-TAB 3: QP PRINTING DEMAND & PROGRESS TRACKER -->
-                    ${activePreExamSubTab === 'qp-printing' ? `
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                            <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
-                                <div>
-                                    <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
-                                        <span>🖨️</span> Confidential QP Printing Demand (+5%) & Progress Tracker
-                                    </h3>
-                                    <p class="text-xs text-slate-500">Calculates examinee counts with +5% safety margin and monitors printing lifecycle.</p>
-                                </div>
-                                <button type="button" onclick="triggerQpDemandPrintReport()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow transition flex items-center gap-1.5">
-                                    <span>🖨️</span> Print Official QP Printing Indent
-                                </button>
-                            </div>
-
-                            <div class="overflow-x-auto border rounded-xl shadow-2xs">
-                                <table class="w-full text-xs text-left text-slate-700">
-                                    <thead class="bg-indigo-950 text-white uppercase font-semibold">
-                                        <tr>
-                                            <th class="p-3">Class & Section</th>
-                                            <th class="p-3">Subject</th>
-                                            <th class="p-3 text-center">Enrolled Students</th>
-                                            <th class="p-3 text-center">Buffer (+5%)</th>
-                                            <th class="p-3 text-center">Final Print Order</th>
-                                            <th class="p-3 text-center">Printing Status Progress</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y bg-white">
-                                        ${subjectsList.map(sub => {
-                                            let count = 35; // Standard fallback count
-                                            let buffer = Math.ceil(count * 0.05);
-                                            let finalDemand = count + buffer;
-                                            let currentStatus = qpPrintingTracker[sub.key] || 'Pending';
-
-                                            return `
-                                                <tr class="hover:bg-slate-50 border-b">
-                                                    <td class="p-3 font-bold text-indigo-900">Class ${formatClass(sub.cls)}</td>
-                                                    <td class="p-3 font-bold text-slate-800">${sub.subject}</td>
-                                                    <td class="p-3 text-center font-bold text-slate-700">${count}</td>
-                                                    <td class="p-3 text-center font-bold text-amber-800 bg-amber-50/50">+${buffer}</td>
-                                                    <td class="p-3 text-center font-extrabold text-emerald-900 bg-emerald-50/50">${finalDemand} Copies</td>
-                                                    <td class="p-3 text-center">
-                                                        <select onchange="updateQpPrintingStatus('${sub.key}', this.value)" class="text-xs font-bold p-1.5 border rounded bg-white shadow-2xs ${currentStatus === 'Completed' ? 'text-emerald-700 border-emerald-300' : 'text-amber-800 border-amber-300'}">
-                                                            <option value="Pending" ${currentStatus === 'Pending' ? 'selected' : ''}>🔴 Pending Vault Release</option>
-                                                            <option value="In-Printing" ${currentStatus === 'In-Printing' ? 'selected' : ''}>🟡 In-Printing (Confidential)</option>
-                                                            <option value="Completed" ${currentStatus === 'Completed' ? 'selected' : ''}>🟢 Bundled & Sealed in Vault</option>
-                                                        </select>
-                                                    </td>
-                                                </tr>
-                                            `;
-                                        }).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        }
-
-        // =========================================================================
-        // 📋 MAIN LIFECYCLE HUB VIEW
-        // =========================================================================
-        function renderMainLifecycleHub() {
-            return `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                    <div class="border-b pb-4 space-y-3">
-                        <div class="flex justify-between items-center flex-wrap gap-2">
-                            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                <span>📌</span> Create Exam & End-to-End Lifecycle Operations Hub
-                            </h2>
-                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
-                        </div>
-                    </div>
-
-                    <!-- CREATED EXAMINATIONS VAULT LIST -->
-                    <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md">
-                        <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">
-                                📚 Created Examinations Vault List (${archivedExams.length} Records)
-                            </h3>
-                            <button type="button" onclick="startNewExamSetup()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3.5 py-1.5 rounded">
-                                ➕ Create New Exam
-                            </button>
-                        </div>
-                        ${archivedExams.length === 0 ? `
-                            <p class="text-xs text-slate-400 italic py-2">No exam schedules created yet.</p>
-                        ` : `
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-xs text-left text-slate-200">
-                                    <thead class="bg-slate-800 uppercase font-semibold text-slate-300">
-                                        <tr>
-                                            <th class="px-3 py-2.5">Exam Title</th>
-                                            <th class="px-3 py-2.5">Duration</th>
-                                            <th class="px-3 py-2.5 text-center">Days</th>
-                                            <th class="px-3 py-2.5 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-800">
-                                        ${archivedExams.map((ex) => `
-                                            <tr class="hover:bg-slate-800/60">
-                                                <td class="px-3 py-2.5 font-bold text-amber-300">${ex.title}</td>
-                                                <td class="px-3 py-2.5">${ex.fromDate} to ${ex.toDate}</td>
-                                                <td class="px-3 py-2.5 text-center font-bold">${ex.totalDays} Days</td>
-                                                <td class="px-3 py-2.5 text-right">
-                                                    <button type="button" onclick="openPreExamFullPageWorkspace()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-3 py-1 rounded">🚀 Open Pre-Exam Hub</button>
-                                                </td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        `}
-                    </div>
-
-                    <!-- LIFECYCLE HUBS -->
-                    <div class="border-t pt-6 space-y-4">
-                        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📊 Operational Tasks & Lifecycle Management</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <!-- PRE-EXAM READINESS CARD -->
-                            <div class="bg-indigo-50/80 border border-indigo-200 p-4 rounded-xl space-y-3 flex flex-col justify-between shadow-xs">
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold text-indigo-900 uppercase">1️⃣ Pre-Exam Needs</h4>
-                                        <span class="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Ready</span>
-                                    </div>
-                                    <p class="text-[11px] text-slate-600">Datesheet orders, QP Setters tick matrix, OK reports, and printing progress.</p>
-                                </div>
-                                <button type="button" onclick="openPreExamFullPageWorkspace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded shadow transition">
-                                    🚀 Open Full Pre-Exam Hub
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-    </script>
-</body>
-</html>
+                                    <button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="w-full bg-indigo-900 hover:bg-indigo-800 text-white text-xs font-bold py-2.
