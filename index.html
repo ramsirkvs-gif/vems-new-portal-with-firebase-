@@ -630,7 +630,7 @@
         }
 
         // =========================================================================
-        // 🚀 PARTIAL SAVE WORKFLOW ENGINE & INLINE SLOT CREATOR
+        // 🚀 PARTIAL SAVE WORKFLOW ENGINE & CLEAN SLOT ACTIONS
         // =========================================================================
 
         function startNewExamSetup() {
@@ -852,7 +852,7 @@
         }
 
         // =========================================================================
-        // 💡 DYNAMIC SUBJECT-FIRST SLOT ALLOCATOR HELPERS (WITH INLINE SLOT CREATION)
+        // 💡 DYNAMIC SUBJECT-FIRST SLOT ALLOCATOR HELPERS
         // =========================================================================
 
         function addPaperSlotToDay(dayId) {
@@ -1249,10 +1249,6 @@
                                 </div>
                                 
                                 <div class="flex items-center gap-2">
-                                    <!-- INLINE ADD SLOT BUTTON AFTER EACH SLOT -->
-                                    <button type="button" onclick="addPaperSlotToDay(${dayObj.id})" class="text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow-2xs flex items-center gap-1">
-                                        <span>➕</span> Add Paper Slot Below
-                                    </button>
                                     <button type="button" onclick="saveSpecificSlotConfig(${dayObj.id}, ${slot.slotId})" class="text-[11px] bg-indigo-700 hover:bg-indigo-800 text-white font-bold px-3 py-1 rounded shadow-2xs flex items-center gap-1">
                                         <span>💾</span> Save Slot
                                     </button>
