@@ -399,7 +399,7 @@
             if (existingDraftIndex !== -1) {
                 archivedExams[existingDraftIndex] = draftRecord;
             } else {
-                archivedExams.unshift(draftRecord);
+                archivedExams.push(draftRecord); // Appends as the next row in chronological order
             }
             saveData();
         }
@@ -434,7 +434,7 @@
                 closeLoginModal();
                 activateArea(role);
             } else {
-                document.getElementById('login-error-msg').classList.add('hidden');
+                document.getElementById('login-error-msg').classList.remove('hidden');
             }
         }
         function logoutSession() { 
@@ -776,7 +776,7 @@
                 headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
             };
 
-            archivedExams.unshift(examRecord);
+            archivedExams.push(examRecord); // Appends as the next row chronologically
             saveData();
             alert(`🎉 EXAM FULLY BOUND UP & SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
             renderExamCreatorModule();
