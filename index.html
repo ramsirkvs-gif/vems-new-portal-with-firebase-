@@ -356,7 +356,7 @@
                 }
             });
 
-            // FIXED: Live Archived Exams Sync (Robust Array & Object Parser for Mobile/Laptop Sync)
+            // FIXED: Live Archived Exams Sync with Immediate UI Re-render
             db.ref('archivedExams').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -371,6 +371,8 @@
                     archivedExams = [];
                 }
                 localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
+                
+                // Force immediate UI refresh across all open screens/tabs
                 renderExamCreatorModule();
             });
         }
