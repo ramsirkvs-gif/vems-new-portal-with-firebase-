@@ -674,18 +674,6 @@
             return arr;
         }
 
-        function getAllUniqueSubjects() {
-            let subSet = new Set();
-            Object.values(sectionConfigs).forEach(subs => {
-                if (Array.isArray(subs)) {
-                    subs.forEach(s => subSet.add(s.toUpperCase()));
-                }
-            });
-            let arr = Array.from(subSet);
-            arr.sort();
-            return arr;
-        }
-
         function initCfgSections() { 
             const clsSel = document.getElementById('cfg-class');
             if(!clsSel) return;
@@ -1000,7 +988,7 @@
                             <h3 class="text-sm font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
                                 🔒 1. Vidyalaya Multi-Class Subject & Seating Intelligence Engine
                             </h3>
-                            <p class="text-[11px] text-slate-500">Read-only examination analysis with class-specific section and subject mapping controls.</p>
+                            <p class="text-[11px] text-slate-500">Read-only examination summary and seating demand analysis for selected class/section/subject scope.</p>
                         </div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300">🔒 READ-ONLY AUDIT MODE</span>
                     </div>
@@ -1008,7 +996,7 @@
                     <!-- GRANULAR CLASS-SPECIFIC SECTION & SUBJECT CONTROL PANEL -->
                     <div class="bg-white p-4 rounded-lg border border-indigo-100 space-y-3">
                         <div class="flex justify-between items-center border-b pb-2">
-                            <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (For Combined Exam Planning)</label>
+                            <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (Select Scope For Exam Session)</label>
                             <div class="space-x-2">
                                 <button type="button" onclick="setAllAnalysisSelections(true)" class="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
                                 <button type="button" onclick="setAllAnalysisSelections(false)" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-1 rounded border border-slate-200">Deselect All</button>
@@ -1017,21 +1005,6 @@
                         
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-1.5 bg-slate-50 rounded border">
                             ${classSelectionHtml}
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">2️⃣ Faculty Duty Role Filter</label>
-                                <select id="analysis-duty-select" onchange="runExamAnalysisSearch()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
-                                    <option value="ALL">All Roles & Duties</option>
-                                    <option value="QP">QP Setters Only</option>
-                                    <option value="EVAL">Evaluators Only</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">3️⃣ Universal Keyword Search</label>
-                                <input type="text" id="analysis-text-search" oninput="runExamAnalysisSearch()" placeholder="🔍 Search Class, Subject, Teacher, QP, or Eval..." class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
-                            </div>
                         </div>
                     </div>
 
@@ -1055,21 +1028,28 @@
                         </div>
                     </div>
 
-                    <!-- READ-ONLY SEATING AUDIT & ANALYSIS TABLE -->
-                    <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
-                        <table class="w-full text-xs text-left text-slate-700">
-                            <thead class="bg-indigo-900 text-white uppercase font-semibold">
-                                <tr>
-                                    <th class="px-3 py-2.5">Class & Sec</th>
-                                    <th class="px-3 py-2.5">Subject</th>
-                                    <th class="px-3 py-2.5">Assigned Teacher</th>
-                                    <th class="px-3 py-2.5">QP Setter Duty</th>
-                                    <th class="px-3 py-2.5">Evaluator Duty</th>
-                                    <th class="px-3 py-2.5 text-center">Section Examinees (Seating Count)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="exam-analysis-tbody" class="divide-y bg-white"></tbody>
-                        </table>
+                    <!-- DETAILED EXAMINATION SUMMARY TABLE (FOR EXAM IC PLANNING & INFORMING QP SETTERS) -->
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wide flex items-center justify-between">
+                            <span>📋 Detailed Examination Summary of Selected Scope</span>
+                            <span class="text-[11px] text-slate-500 font-normal">Use this roster to direct Paper Setters & plan seating capacity</span>
+                        </h4>
+                        <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
+                            <table class="w-full text-xs text-left text-slate-700">
+                                <thead class="bg-indigo-900 text-white uppercase font-semibold">
+                                    <tr>
+                                        <th class="px-3 py-2.5">Class & Section</th>
+                                        <th class="px-3 py-2.5">Selected Subject</th>
+                                        <th class="px-3 py-2.5 text-center">Examinees Count</th>
+                                        <th class="px-3 py-2.5 text-center">QP Print Demand (+5%)</th>
+                                        <th class="px-3 py-2.5">QP Setter Name (To Inform)</th>
+                                        <th class="px-3 py-2.5">Evaluator Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="exam-analysis-tbody" class="divide-y bg-white"></tbody>
+                                <tfoot id="exam-analysis-tfoot" class="bg-slate-100 font-bold border-t-2 border-indigo-900"></tfoot>
+                            </table>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1098,17 +1078,17 @@
 
         function runExamAnalysisSearch() {
             const tbody = document.getElementById('exam-analysis-tbody');
+            const tfoot = document.getElementById('exam-analysis-tfoot');
             if(!tbody) return;
             tbody.innerHTML = '';
+            if(tfoot) tfoot.innerHTML = '';
 
             // Get all checked granular sections (format: "cls-sec")
             const selectedSectionKeys = Array.from(document.querySelectorAll('.analysis-sec-item:checked')).map(cb => cb.value);
-            
-            const dutyFilter = document.getElementById('analysis-duty-select')?.value || 'ALL';
-            const searchTerm = (document.getElementById('analysis-text-search')?.value || '').trim().toLowerCase();
 
             let rowsFound = 0;
             let totalCombinedExaminees = 0;
+            let totalQpRequired = 0;
             let classesList = getAllUniqueClasses();
 
             classesList.forEach(cls => {
@@ -1132,26 +1112,26 @@
                         let qpSetter = assignedTeacher ? (assignedTeacher.qpSetter || 'Self') : '-';
                         let evaluator = assignedTeacher ? (assignedTeacher.evaluator || 'Self') : '-';
 
-                        if(dutyFilter === 'QP' && (!qpSetter || qpSetter === '-')) return;
-                        if(dutyFilter === 'EVAL' && (!evaluator || evaluator === '-')) return;
+                        if(qpSetter === 'Self') qpSetter = teacherName;
+                        if(evaluator === 'Self') evaluator = teacherName;
 
                         let classSecTitle = `Class ${formatClass(cls)}-${sec}`;
-                        let searchableStr = `${classSecTitle} ${sub} ${teacherName} ${qpSetter} ${evaluator}`.toLowerCase();
-
-                        if(searchTerm && !searchableStr.includes(searchTerm)) return;
+                        let examineeCount = classStudents.length;
+                        let qpCount = Math.ceil(examineeCount * 1.05);
 
                         rowsFound++;
-                        totalCombinedExaminees += classStudents.length;
+                        totalCombinedExaminees += examineeCount;
+                        totalQpRequired += qpCount;
 
                         let tr = document.createElement('tr');
                         tr.className = "hover:bg-slate-50 border-b";
                         tr.innerHTML = `
                             <td class="px-3 py-2 font-bold text-indigo-900">${classSecTitle}</td>
                             <td class="px-3 py-2 font-bold text-slate-800"><span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-100">${sub}</span></td>
-                            <td class="px-3 py-2">${teacherName}</td>
-                            <td class="px-3 py-2 text-indigo-700 font-medium">${qpSetter}</td>
-                            <td class="px-3 py-2 text-emerald-700 font-medium">${evaluator}</td>
-                            <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${classStudents.length} Examinees</td>
+                            <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${examineeCount} Examinees</td>
+                            <td class="px-3 py-2 text-center font-bold text-amber-800 bg-amber-50/40">${qpCount} Papers</td>
+                            <td class="px-3 py-2 text-indigo-900 font-bold flex items-center gap-1">👤 ${qpSetter}</td>
+                            <td class="px-3 py-2 text-slate-700">${evaluator}</td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -1166,11 +1146,20 @@
 
             if(scopeElem) scopeElem.textContent = `${selectedSectionKeys.length} Sections Selected`;
             if(stuElem) stuElem.textContent = `${totalCombinedExaminees} Students`;
-            if(qpElem) qpElem.textContent = `${Math.ceil(totalCombinedExaminees * 1.05)} Papers`;
+            if(qpElem) qpElem.textContent = `${totalQpRequired} Papers`;
             if(rowElem) rowElem.textContent = `${rowsFound} Mapping Rows`;
 
             if(rowsFound === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">No matching examination mapping records found for the selected granular class-subject combinations.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">No matching examination mapping records found for the selected granular class-subject scope.</td></tr>`;
+            } else if(tfoot) {
+                tfoot.innerHTML = `
+                    <tr class="text-slate-900 text-xs">
+                        <td colspan="2" class="px-3 py-2.5 text-right font-extrabold uppercase tracking-wide">Grand Total Summary:</td>
+                        <td class="px-3 py-2.5 text-center text-emerald-900 font-extrabold bg-emerald-100/60">${totalCombinedExaminees} Examinees</td>
+                        <td class="px-3 py-2.5 text-center text-amber-900 font-extrabold bg-amber-100/60">${totalQpRequired} Papers</td>
+                        <td colspan="2" class="px-3 py-2.5 text-slate-600 font-normal italic">Scope verified for seating arrangement & paper allocation.</td>
+                    </tr>
+                `;
             }
         }
 
