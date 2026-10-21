@@ -630,7 +630,7 @@
         }
 
         // =========================================================================
-        // 🚀 SUBJECT-FIRST & STANDARD SCOPE ALLOCATION ENGINE
+        // 🚀 PARTIAL SAVE WORKFLOW ENGINE (MAIN HEADER, SLOT LEVEL, DAY LEVEL, FULL RECORD)
         // =========================================================================
 
         function startNewExamSetup() {
@@ -649,6 +649,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // 1️⃣ SAVE OPTION: AFTER MAIN HEADER
         function saveMainHeaderConfig() {
             mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
             mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
@@ -656,7 +657,7 @@
             mainHeaderConfig.toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
 
             syncActiveExamDraftToVault();
-            alert("✅ Main Exam Title & Dates Saved!");
+            alert("✅ Main Exam Title & Dates Saved Successfully!");
         }
 
         function saveCustomExamNameOption() {
@@ -678,6 +679,14 @@
             renderExamCreatorModule();
         }
 
+        // 2️⃣ SAVE OPTION: AFTER EACH SLOT
+        function saveSpecificSlotConfig(dayId, slotId) {
+            syncActiveExamDraftToVault();
+            runDayAnalysisSearch(dayId);
+            alert(`✅ Paper Slot Configuration Saved!`);
+        }
+
+        // 3️⃣ SAVE OPTION: JUST AFTER DAY-1 PAGE / EACH DAY WORK
         function saveOrUpdateDayConfig(dayId) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (dayObj) {
@@ -685,6 +694,7 @@
                 dayObj.isCollapsed = true;
                 syncActiveExamDraftToVault();
                 renderDatesheetDaysContainer();
+                alert(`✅ Full Day ${dayObj.id} Schedule Saved & Locked!`);
             }
         }
 
@@ -732,6 +742,7 @@
             }
         }
 
+        // 4️⃣ SAVE OPTION: FINAL FULL EXAM & VAULT RECORD
         function bindupAndSaveExamRecord() {
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
 
@@ -1033,7 +1044,7 @@
                         `}
                     </div>
 
-                    <!-- 📋 ACTIVE EXAM CONFIGURATION PANEL -->
+                    <!-- 📋 ACTIVE EXAM CONFIGURATION PANEL WITH 1️⃣ SAVE OPTION AFTER MAIN HEADER -->
                     ${isExamConfigOpen ? `
                         <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
                             <div class="flex justify-between items-center border-b border-indigo-200 pb-2 flex-wrap gap-2">
@@ -1041,8 +1052,9 @@
                                     📋 1. Main Examination Title & Schedule Metadata
                                 </h3>
                                 <div class="flex items-center gap-2">
-                                    <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
-                                        💾 Save Title & Dates
+                                    <!-- 1️⃣ SAVE OPTION: AFTER MAIN HEADER -->
+                                    <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs flex items-center gap-1">
+                                        <span>💾</span> Save Title & Dates
                                     </button>
                                     <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded shadow-xs">
                                         📁 Minimize
@@ -1079,7 +1091,7 @@
                             </div>
                         </div>
 
-                        <!-- DAYWISE DATESHEET BUILDER (SUBJECT-FIRST PARALLEL SLOTS MODEL) -->
+                        <!-- DAYWISE DATESHEET BUILDER -->
                         <div class="space-y-4 pt-2">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-2">
                                 <div>
@@ -1107,13 +1119,13 @@
                             </div>
                         </div>
 
-                        <!-- SAVE & MINIMIZE WORKSPACE BUTTON -->
+                        <!-- 4️⃣ SAVE OPTION: FULL EXAM & VAULT RECORD -->
                         <div class="pt-4 border-t flex justify-between items-center">
                             <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-5 py-2.5 rounded-lg transition flex items-center gap-1.5">
                                 <span>📁</span> Minimize Workspace
                             </button>
                             <button type="button" onclick="bindupAndSaveExamRecord()" class="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-md transition flex items-center gap-2">
-                                <span>💾</span> Save Exam & Minimize
+                                <span>💾</span> Save Full Exam & Vault Record
                             </button>
                         </div>
                     ` : ''}
@@ -1240,9 +1252,16 @@
                                     <span class="bg-indigo-900 text-white text-[10px] font-bold px-2 py-0.5 rounded">SLOT ${sIdx + 1}</span>
                                     <h5 class="text-xs font-bold text-indigo-950 uppercase">Scheduled Paper Slot Settings</h5>
                                 </div>
-                                <button type="button" onclick="removePaperSlotFromDay(${dayObj.id}, ${slot.slotId})" class="text-[11px] bg-red-50 hover:bg-red-100 text-red-600 font-bold px-2.5 py-1 rounded border border-red-200">
-                                    🗑️ Remove Slot
-                                </button>
+                                
+                                <div class="flex items-center gap-2">
+                                    <!-- 2️⃣ SAVE OPTION: AFTER EACH SLOT -->
+                                    <button type="button" onclick="saveSpecificSlotConfig(${dayObj.id}, ${slot.slotId})" class="text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow-2xs flex items-center gap-1">
+                                        <span>💾</span> Save Slot
+                                    </button>
+                                    <button type="button" onclick="removePaperSlotFromDay(${dayObj.id}, ${slot.slotId})" class="text-[11px] bg-red-50 hover:bg-red-100 text-red-600 font-bold px-2.5 py-1 rounded border border-red-200">
+                                        🗑️ Remove Slot
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- SUBJECT-FIRST ALLOCATION DROPDOWNS -->
@@ -1314,7 +1333,7 @@
                 let dayCard = document.createElement('div');
                 dayCard.className = `border rounded-xl overflow-hidden shadow-xs transition ${dayObj.saved ? 'bg-slate-100 border-slate-400' : 'bg-slate-50 border-indigo-300'}`;
                 dayCard.innerHTML = `
-                    <!-- DAY HEADER BAR -->
+                    <!-- DAY HEADER BAR WITH 3️⃣ SAVE OPTION JUST AFTER DAY-1 PAGE / DAY WORK -->
                     <div onclick="toggleDayAccordion(${dayObj.id})" class="p-3.5 flex items-center justify-between cursor-pointer border-b border-slate-200 select-none ${dayObj.saved ? 'bg-slate-200/80' : 'bg-slate-100 hover:bg-indigo-50'}">
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
@@ -1328,13 +1347,14 @@
                             </span>
                             <input type="date" value="${dayObj.dateStr}" ${dayObj.saved ? 'disabled' : ''} onchange="dayObj.dateStr=this.value; syncActiveExamDraftToVault(); renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
                             
+                            <!-- 3️⃣ SAVE OPTION: JUST AFTER DAY WORK -->
                             ${dayObj.saved ? `
                                 <button type="button" onclick="editDayConfig(${dayObj.id})" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1 rounded shadow-xs">
-                                    ✏️ Edit
+                                    ✏️ Edit Day ${dayObj.id}
                                 </button>
                             ` : `
-                                <button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow-xs">
-                                    💾 Save
+                                <button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow-xs flex items-center gap-1">
+                                    <span>💾</span> Save Day ${dayObj.id}
                                 </button>
                             `}
 
