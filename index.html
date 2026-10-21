@@ -303,6 +303,7 @@
 
         // Active Exam, Saved Exams & Lifecycle State
         let isExamConfigOpen = false;
+        let activeExamId = null; // Tracks current unique exam session ID
         let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
             { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
             { id: 'Half Yearly', label: 'Half Yearly Examination' },
@@ -381,10 +382,15 @@
 
         function syncActiveExamDraftToVault() {
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
-            const existingDraftIndex = archivedExams.findIndex(ex => ex.isDraft === true);
             
-            const draftRecord = {
-                id: existingDraftIndex !== -1 ? archivedExams[existingDraftIndex].id : Date.now(),
+            if (!activeExamId) {
+                activeExamId = Date.now();
+            }
+
+            const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
+            
+            const examRecord = {
+                id: activeExamId,
                 title: examTitle,
                 fromDate: mainHeaderConfig.fromDate,
                 toDate: mainHeaderConfig.toDate,
@@ -396,10 +402,10 @@
                 headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
             };
 
-            if (existingDraftIndex !== -1) {
-                archivedExams[existingDraftIndex] = draftRecord;
+            if (existingIndex !== -1) {
+                archivedExams[existingIndex] = examRecord;
             } else {
-                archivedExams.push(draftRecord); // Appends as the next row in chronological order
+                archivedExams.push(examRecord);
             }
             saveData();
         }
@@ -646,6 +652,7 @@
 
         // CREATES A CLEAN BRAND NEW EXAM FRESH IN ACTIVE WORKSPACE
         function startNewExamSetup() {
+            activeExamId = Date.now(); // Generates a brand new unique session ID
             mainHeaderConfig = {
                 name: 'Periodic Test 1 (PT-1)',
                 customName: '',
@@ -662,7 +669,7 @@
             isExamConfigOpen = true;
 
             syncActiveExamDraftToVault();
-            alert("✨ New Exam Initialized! Configure your header and datesheet below.");
+            alert("✨ New Exam Initialized as a separate record! Configure your header and datesheet below.");
             renderExamCreatorModule();
         }
 
@@ -730,6 +737,8 @@
             const target = archivedExams.find(ex => ex.id === id);
             if (!target) return;
 
+            activeExamId = target.id; // Switch active editing ID to this record
+
             if (target.headerSnapshot) {
                 mainHeaderConfig = JSON.parse(JSON.stringify(target.headerSnapshot));
             } else {
@@ -749,6 +758,7 @@
         function deleteArchivedExam(id) {
             if (confirm("⚠️ Are you sure you want to delete this exam record from vault?")) {
                 archivedExams = archivedExams.filter(ex => ex.id !== id);
+                if (activeExamId === id) activeExamId = null;
                 saveData();
                 renderExamCreatorModule();
             }
@@ -762,21 +772,31 @@
                 return;
             }
 
-            archivedExams = archivedExams.filter(ex => !ex.isDraft);
+            if (!activeExamId) {
+                activeExamId = Date.now();
+            }
+
+            const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
 
             const examRecord = {
-                id: Date.now(),
+                id: activeExamId,
                 title: examTitle,
                 fromDate: mainHeaderConfig.fromDate,
                 toDate: mainHeaderConfig.toDate,
                 totalDays: datesheetDays.length,
                 status: 'COMPLETED',
+                isDraft: false,
                 archivedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays)),
                 headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
             };
 
-            archivedExams.push(examRecord); // Appends as the next row chronologically
+            if (existingIndex !== -1) {
+                archivedExams[existingIndex] = examRecord;
+            } else {
+                archivedExams.push(examRecord);
+            }
+
             saveData();
             alert(`🎉 EXAM FULLY BOUND UP & SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
             renderExamCreatorModule();
@@ -1049,16 +1069,16 @@
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-800 bg-slate-900">
-                                        ${archivedExams.map(ex => `
+                                        ${archivedExams.map((ex, index) => `
                                             <tr class="hover:bg-slate-800/60 cursor-pointer" onclick="loadArchivedExamToEdit(${ex.id})">
                                                 <td class="px-3 py-2.5">${getExamStatusBadge(ex)}</td>
-                                                <td class="px-3 py-2.5 font-bold text-amber-300 underline">${ex.title}</td>
+                                                <td class="px-3 py-2.5 font-bold text-amber-300 underline">Exam-${index + 1}: ${ex.title}</td>
                                                 <td class="px-3 py-2.5 font-medium text-slate-300">${ex.fromDate} to ${ex.toDate}</td>
                                                 <td class="px-3 py-2.5 text-center text-slate-300 font-bold">${ex.totalDays} Days</td>
                                                 <td class="px-3 py-2.5 text-right space-x-1.5" onclick="event.stopPropagation()">
                                                     <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">✏️ Edit</button>
                                                     <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">🔄 Update</button>
-                                                    <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1 rounded">🗑️ Delete</button>
+                                                    <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2 py-1 rounded">🗑️ Delete</button>
                                                 </td>
                                             </tr>
                                         `).join('')}
