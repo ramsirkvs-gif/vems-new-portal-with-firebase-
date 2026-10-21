@@ -101,7 +101,7 @@
                 <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping (Secondary)</button>
                 <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV (Secondary)</button>
                 <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager (Secondary)</button>
-                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam (Secondary)</button>
+                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam & Lifecycle Hub</button>
                 <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System & Password Settings</button>
             </div>
             
@@ -235,6 +235,34 @@
         </div>
     </main>
 
+    <!-- SAFETY CLOSING CONFIRMATION MODAL -->
+    <div id="safety-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 no-print">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl border-t-4 border-amber-500">
+            <div class="flex items-center gap-3 text-amber-900">
+                <span class="text-3xl">🛡️</span>
+                <div>
+                    <h3 class="text-base font-bold">Safety Guard: Exam In-Progress</h3>
+                    <p class="text-xs text-slate-500">Choose how to handle your created exam configuration.</p>
+                </div>
+            </div>
+            <p class="text-xs text-slate-700 leading-relaxed bg-amber-50 p-3 rounded border border-amber-200">
+                You have created <strong><span id="safety-days-count">0</span> Examination Day(s)</strong> in this setup session.
+                Would you like to save this draft safely or discard?
+            </p>
+            <div class="flex flex-wrap justify-end gap-2 pt-2 border-t">
+                <button type="button" onclick="confirmSafetyClose('discard')" class="px-3.5 py-2 text-xs bg-red-50 text-red-700 hover:bg-red-100 font-bold rounded border border-red-200">
+                    🗑️ Discard & Close
+                </button>
+                <button type="button" onclick="closeSafetyModal()" class="px-3.5 py-2 text-xs bg-slate-200 text-slate-700 font-bold rounded hover:bg-slate-300">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmSafetyClose('save')" class="px-4 py-2 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded shadow-sm">
+                    💾 Save Draft & Hide
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- LOGIN MODAL -->
     <div id="login-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 no-print">
         <div class="bg-white rounded-xl max-w-sm w-full p-6 space-y-4 shadow-xl">
@@ -301,9 +329,11 @@
             { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT SCIENCE', allotments: [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }, { cls: '9', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }] }
         ];
 
-        // Active Exam State
+        // Active Exam & Lifecycle State
         let isExamConfigOpen = false;
-        let datesheetDays = [];
+        let datesheetDays = JSON.parse(localStorage.getItem('vems_datesheet_draft')) || [];
+        let samagamSyncStatus = localStorage.getItem('vems_samagam_status') || 'PENDING';
+        let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
 
         function initFirebaseListeners() {
             db.ref('students').on('value', (snapshot) => {
@@ -344,6 +374,9 @@
         function saveData() {
             localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
             localStorage.setItem('vems_teachers', JSON.stringify(teachers));
+            localStorage.setItem('vems_datesheet_draft', JSON.stringify(datesheetDays));
+            localStorage.setItem('vems_samagam_status', samagamSyncStatus);
+            localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
             db.ref('sectionConfigs').set(sectionConfigs);
             renderMasterSubjectDirectory();
             renderExamCreatorModule();
@@ -578,16 +611,74 @@
         }
 
         // =========================================================================
-        // 🚀 EXAM CREATOR ENGINE (COLLAPSIBLE / ACCORDION DAY CARDS)
+        // 🚀 EXAM CREATOR, SAFETY GUARD & LIFECYCLE TRACKER (PRE/DURING/POST/BIND-UP)
         // =========================================================================
 
         function toggleExamCreationPanel() {
-            isExamConfigOpen = !isExamConfigOpen;
-            if (isExamConfigOpen && datesheetDays.length === 0) {
-                // Initialize default Day 1 (Open by default)
-                datesheetDays = [{ id: 1, dateStr: '2026-11-10', isCollapsed: false }];
+            if (isExamConfigOpen) {
+                // Trigger safety confirmation before closing
+                openSafetyModal();
+            } else {
+                isExamConfigOpen = true;
+                if (datesheetDays.length === 0) {
+                    datesheetDays = [{ id: 1, dateStr: '2026-11-10', isCollapsed: false }];
+                }
+                renderExamCreatorModule();
             }
+        }
+
+        function openSafetyModal() {
+            document.getElementById('safety-days-count').textContent = datesheetDays.length;
+            document.getElementById('safety-modal').classList.remove('hidden');
+        }
+
+        function closeSafetyModal() {
+            document.getElementById('safety-modal').classList.add('hidden');
+        }
+
+        function confirmSafetyClose(action) {
+            closeSafetyModal();
+            if (action === 'save') {
+                saveData();
+                alert("💾 Exam Draft Saved Safely! You can resume editing anytime.");
+            } else if (action === 'discard') {
+                datesheetDays = [];
+                localStorage.removeItem('vems_datesheet_draft');
+            }
+            isExamConfigOpen = false;
             renderExamCreatorModule();
+        }
+
+        function toggleSamagamStatus() {
+            samagamSyncStatus = samagamSyncStatus === 'VERIFIED & UPLOADED' ? 'PENDING' : 'VERIFIED & UPLOADED';
+            saveData();
+            renderExamCreatorModule();
+        }
+
+        function bindupAndSaveExamRecord() {
+            const examTitle = document.getElementById('exam-name-select')?.value || 'Half Yearly';
+            const fromDate = document.getElementById('exam-from-date')?.value || '2026-11-10';
+            const toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
+
+            if (datesheetDays.length === 0) {
+                alert("⚠️ Cannot bind-up an empty exam record! Add days to datesheet first.");
+                return;
+            }
+
+            const examRecord = {
+                id: Date.now(),
+                title: examTitle,
+                fromDate,
+                toDate,
+                totalDays: datesheetDays.length,
+                samagamStatus: samagamSyncStatus,
+                archivedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+                datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays))
+            };
+
+            archivedExams.unshift(examRecord);
+            saveData();
+            alert(`🎉 EXAM FULLY BOUND UP & SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}\nSAMAGAM Status: ${samagamSyncStatus}`);
         }
 
         function toggleDayAccordion(dayId) {
@@ -621,7 +712,6 @@
                 dayIndicator.textContent = startDate.getTime() === endDate.getTime() ? startDay : `${startDay} to ${endDay}`;
             }
 
-            // Re-generate days list (keep first open, rest collapsed for easy jumps)
             datesheetDays = [];
             let curr = new Date(startDate);
             let dayIdx = 1;
@@ -631,6 +721,7 @@
                 curr.setDate(curr.getDate() + 1);
                 dayIdx++;
             }
+            saveData();
             renderDatesheetDaysContainer();
         }
 
@@ -650,25 +741,27 @@
             lastDate.setDate(lastDate.getDate() + 1);
             let nextDateStr = lastDate.toISOString().split('T')[0];
             
-            // Collapse others when adding next day so user focuses on new day
             datesheetDays.forEach(d => d.isCollapsed = true);
             datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false });
+            saveData();
             renderDatesheetDaysContainer();
         }
 
         function renderExamCreatorModule() {
+            const samagamBadgeClass = samagamSyncStatus === 'VERIFIED & UPLOADED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300';
+
             const htmlContent = `
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                    <!-- HEADER & ATTENTION BANNER -->
+                    <!-- HEADER & MANDATORY ATTENTION BANNER -->
                     <div class="border-b pb-4 space-y-3">
                         <div class="flex justify-between items-center flex-wrap gap-2">
                             <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                <span>📌</span> Create Exam & Multi-Day Datesheet Builder
+                                <span>📌</span> Create Exam & End-to-End Lifecycle Operations Hub
                             </h2>
                             <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
                         </div>
 
-                        <!-- ATTENTION / PRE-FLIGHT VERIFICATION NOTICE -->
+                        <!-- MANDATORY VERIFICATION NOTICE FOR EXAM IC -->
                         <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg space-y-1.5 shadow-xs">
                             <div class="flex items-center gap-2 font-bold text-amber-900 text-xs uppercase tracking-wide">
                                 <span>⚠️</span> Mandatory Pre-Flight Verification Notice for Exam IC
@@ -682,15 +775,22 @@
                             </p>
                         </div>
 
-                        <!-- CREATE EXAM TRIGGER BUTTON -->
-                        <div class="pt-2">
+                        <!-- CREATE EXAM SAFETY CONTROL BUTTON -->
+                        <div class="flex items-center justify-between pt-1 flex-wrap gap-2">
                             <button type="button" onclick="toggleExamCreationPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
-                                <span>🚀</span> ${isExamConfigOpen ? 'Close / Hide Exam Configuration' : 'Create Exam Schedule'}
+                                <span>🚀</span> ${isExamConfigOpen ? 'Close / Hide Exam Configuration (Safety Protected)' : 'Create Exam Schedule'}
                             </button>
+
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-slate-600">SAMAGAM Portal Sync:</span>
+                                <button type="button" onclick="toggleSamagamStatus()" class="text-xs font-bold px-3 py-1 rounded-full border ${samagamBadgeClass} transition">
+                                    ${samagamSyncStatus === 'VERIFIED & UPLOADED' ? '✅ SAMAGAM UPLOADED' : '⏳ SAMAGAM PENDING'}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- MAIN EXAM CONFIGURATION HEADER PANEL -->
+                    <!-- MAIN EXAM CONFIGURATION PANEL -->
                     ${isExamConfigOpen ? `
                         <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
                             <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider border-b border-indigo-200 pb-2">
@@ -698,7 +798,6 @@
                             </h3>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                                <!-- Exam Name Dropdown -->
                                 <div class="col-span-1 sm:col-span-2">
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Name of the Exam</label>
                                     <select id="exam-name-select" onchange="handleExamNameSelect(this)" class="w-full text-xs p-2.5 border rounded bg-white font-semibold">
@@ -720,7 +819,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Date Range -->
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">From Date</label>
                                     <input type="date" id="exam-from-date" value="2026-11-10" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded bg-white font-medium">
@@ -730,7 +828,6 @@
                                     <input type="date" id="exam-to-date" value="2026-11-15" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded bg-white font-medium">
                                 </div>
 
-                                <!-- Day Indicator (Auto IST) -->
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Day (Auto IST Google Calculation)</label>
                                     <div id="exam-ist-day-indicator" class="text-xs font-bold text-indigo-900 p-2 bg-white rounded border border-indigo-200">
@@ -738,7 +835,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Duration & Marks -->
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Duration</label>
                                     <select class="w-full text-xs p-2 border rounded bg-white font-medium">
@@ -754,7 +850,6 @@
                                     <input type="number" value="80" class="w-full text-xs p-2 border rounded bg-white font-medium">
                                 </div>
 
-                                <!-- Timings -->
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reporting Time</label>
                                     <input type="time" value="08:00" class="w-full text-xs p-2 border rounded bg-white font-medium">
@@ -774,7 +869,7 @@
                             </div>
                         </div>
 
-                        <!-- DAYWISE DATESHEET BUILDER CONTAINER WITH USER-FRIENDLY ACCORDION JUMP CONTROLS -->
+                        <!-- DAYWISE DATESHEET BUILDER -->
                         <div class="space-y-4 pt-2">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-2">
                                 <div>
@@ -795,11 +890,112 @@
 
                             <div id="datesheet-days-container" class="space-y-3"></div>
 
-                            <!-- ADD NEXT DAY BUTTON -->
                             <div class="pt-2">
                                 <button type="button" onclick="addNextDatesheetDay()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-3 rounded-lg shadow-xs transition flex items-center justify-center gap-2">
                                     <span>➕</span> Add Next Day (Day ${datesheetDays.length + 1})
                                 </button>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- 2️⃣ OPERATIONAL LIFECYCLE & TASK STATUS REPORTING HUBS -->
+                    <div class="border-t pt-6 space-y-4">
+                        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                            <span>📊</span> 2. Operational Tasks & Lifecycle Management Hub
+                        </h3>
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <!-- PRE-EXAM READINESS -->
+                            <div class="bg-indigo-50/80 border border-indigo-200 p-4 rounded-xl space-y-3">
+                                <h4 class="text-xs font-bold text-indigo-900 uppercase flex items-center justify-between">
+                                    <span>1️⃣ Pre-Exam Needs</span>
+                                    <span class="bg-indigo-200 text-indigo-800 text-[10px] px-2 py-0.5 rounded-full">Ready</span>
+                                </h4>
+                                <ul class="text-[11px] space-y-1.5 text-slate-700">
+                                    <li class="flex items-center gap-1.5">✓ Question Paper Printing (+5%)</li>
+                                    <li class="flex items-center gap-1.5">✓ Seating & Desk Roll Slips</li>
+                                    <li class="flex items-center gap-1.5">✓ Invigilation Duty Slips</li>
+                                    <li class="flex items-center gap-1.5">✓ SAMAGAM Master Verification</li>
+                                </ul>
+                            </div>
+
+                            <!-- DURING EXAM -->
+                            <div class="bg-amber-50/80 border border-amber-200 p-4 rounded-xl space-y-3">
+                                <h4 class="text-xs font-bold text-amber-900 uppercase flex items-center justify-between">
+                                    <span>2️⃣ During-Exam Tasks</span>
+                                    <span class="bg-amber-200 text-amber-800 text-[10px] px-2 py-0.5 rounded-full">Live Monitor</span>
+                                </h4>
+                                <ul class="text-[11px] space-y-1.5 text-slate-700">
+                                    <li class="flex items-center gap-1.5">⚡ Attendance Sheet Signatures</li>
+                                    <li class="flex items-center gap-1.5">⚡ Absentee Marking</li>
+                                    <li class="flex items-center gap-1.5">⚡ Flying Squad / IC Vigilance</li>
+                                    <li class="flex items-center gap-1.5">⚡ Answer Sheet Collection Count</li>
+                                </ul>
+                            </div>
+
+                            <!-- POST EXAM EVALUATION & SAMAGAM STATUS -->
+                            <div class="bg-emerald-50/80 border border-emerald-200 p-4 rounded-xl space-y-3">
+                                <h4 class="text-xs font-bold text-emerald-900 uppercase flex items-center justify-between">
+                                    <span>3️⃣ Evaluation & SAMAGAM</span>
+                                    <span class="bg-emerald-200 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full">Reporting</span>
+                                </h4>
+                                <ul class="text-[11px] space-y-1.5 text-slate-700">
+                                    <li class="flex items-center gap-1.5">📋 Bundle Handover to Evaluator</li>
+                                    <li class="flex items-center gap-1.5">📋 Evaluation Completion Progress</li>
+                                    <li class="flex items-center gap-1.5">📋 CT Marks Entry Verification</li>
+                                    <li class="flex items-center gap-1.5 font-bold text-indigo-900">
+                                        🌐 SAMAGAM: ${samagamSyncStatus}
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- BIND-UP & PERMANENT ARCHIVE -->
+                            <div class="bg-purple-50/80 border border-purple-200 p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                                <div class="space-y-2">
+                                    <h4 class="text-xs font-bold text-purple-900 uppercase flex items-center justify-between">
+                                        <span>4️⃣ Bind-Up & Save</span>
+                                        <span class="bg-purple-200 text-purple-800 text-[10px] px-2 py-0.5 rounded-full">Archive Vault</span>
+                                    </h4>
+                                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                                        Finalize examination records, lock marks, and bind up complete operational audit logs into the Cloud Vault.
+                                    </p>
+                                </div>
+                                <button type="button" onclick="bindupAndSaveExamRecord()" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs py-2.5 rounded shadow-xs transition">
+                                    📦 Bind-Up & Save Full Record
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ARCHIVED EXAM VAULT DIRECTORY -->
+                    ${archivedExams.length > 0 ? `
+                        <div class="border-t pt-6 space-y-3">
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                                📚 Permanently Bound & Saved Examination Vault Records (${archivedExams.length})
+                            </h3>
+                            <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
+                                <table class="w-full text-xs text-left text-slate-700">
+                                    <thead class="bg-slate-800 text-white font-semibold uppercase">
+                                        <tr>
+                                            <th class="px-3 py-2">Exam Title</th>
+                                            <th class="px-3 py-2">Date Schedule</th>
+                                            <th class="px-3 py-2 text-center">Total Days</th>
+                                            <th class="px-3 py-2 text-center">SAMAGAM Status</th>
+                                            <th class="px-3 py-2">Archived Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y bg-white">
+                                        ${archivedExams.map(ex => `
+                                            <tr class="hover:bg-slate-50">
+                                                <td class="px-3 py-2 font-bold text-indigo-900">${ex.title}</td>
+                                                <td class="px-3 py-2 font-semibold">${ex.fromDate} to ${ex.toDate}</td>
+                                                <td class="px-3 py-2 text-center font-bold text-slate-800">${ex.totalDays} Days</td>
+                                                <td class="px-3 py-2 text-center"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">${ex.samagamStatus}</span></td>
+                                                <td class="px-3 py-2 text-slate-500">${ex.archivedAt}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     ` : ''}
@@ -828,7 +1024,6 @@
                 const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' };
                 let dateDisplay = isNaN(dDate.getTime()) ? `Day ${dayObj.id}` : new Intl.DateTimeFormat('en-IN', options).format(dDate);
 
-                // Build Class Selection Cards for this day
                 let classCardsHtml = '';
                 classesList.forEach(c => {
                     let secsForCls = getAllSectionsForClass(c);
@@ -870,7 +1065,6 @@
                 let dayCard = document.createElement('div');
                 dayCard.className = "bg-slate-50 border border-slate-300 rounded-xl overflow-hidden shadow-xs transition";
                 dayCard.innerHTML = `
-                    <!-- COLLAPSIBLE ACCORDION HEADER BAR -->
                     <div onclick="toggleDayAccordion(${dayObj.id})" class="bg-slate-100 hover:bg-indigo-50 p-3.5 flex items-center justify-between cursor-pointer border-b border-slate-200 select-none">
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
@@ -881,16 +1075,14 @@
                             <span id="day-${dayObj.id}-quick-summary" class="text-[11px] font-semibold text-slate-600 hidden sm:inline-block bg-white px-2.5 py-1 rounded border border-slate-200">
                                 📊 Calculating Scope...
                             </span>
-                            <input type="date" value="${dayObj.dateStr}" onchange="dayObj.dateStr=this.value; renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
+                            <input type="date" value="${dayObj.dateStr}" onchange="dayObj.dateStr=this.value; saveData(); renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
                             <button type="button" onclick="toggleDayAccordion(${dayObj.id})" class="text-xs text-indigo-700 font-bold hover:underline">
                                 ${dayObj.isCollapsed ? 'Expand Day 📂' : 'Minimize Day 📁'}
                             </button>
                         </div>
                     </div>
 
-                    <!-- COLLAPSIBLE BODY CONTENT -->
                     <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-4 bg-slate-50/50">
-                        <!-- 1️⃣ Class-Wise Controls for this date -->
                         <div class="space-y-2">
                             <div class="flex justify-between items-center">
                                 <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (Scope for Day ${dayObj.id})</label>
@@ -905,7 +1097,6 @@
                             </div>
                         </div>
 
-                        <!-- Detailed Table Summary for this day -->
                         <div class="space-y-1.5 pt-2">
                             <h5 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">📊 Detailed Examination Summary for ${dateDisplay}</h5>
                             <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
