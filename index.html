@@ -78,24 +78,6 @@
         </div>
     </header>
 
-    <!-- Printable Header -->
-    <div id="print-header" class="hidden print:block p-3 space-y-2 border-b-2 border-slate-800">
-        <div class="text-center space-y-0.5">
-            <h1 class="text-base font-bold uppercase tracking-wide">🏫 VIDYALAYA EXAMINATION MANAGEMENT SYSTEM (VEMS)</h1>
-            <p class="text-[11px] font-semibold text-slate-700">Session: 2026–27 | Student Subject & Roll Verification Roster</p>
-        </div>
-        <div class="grid grid-cols-2 text-[11px] border p-2 rounded bg-slate-50 gap-1.5">
-            <div><strong>Class & Section:</strong> <span id="print-class-sec">Class XI-A</span></div>
-            <div><strong>Total Strength:</strong> <span id="print-strength">0 Students</span></div>
-            <div><strong>Class Teacher (CT):</strong> <span id="print-ct-name">-</span></div>
-            <div><strong>Co-Class Teacher (Co-CT):</strong> <span id="print-co-ct-name">-</span></div>
-            <div class="col-span-2"><strong>Assigned On-Duty Teacher:</strong> <span id="print-onduty-name">-</span></div>
-            <div class="col-span-2 border-t pt-1 mt-0.5 text-slate-800 font-medium" id="print-header-subjects-box">
-                <strong>Subject Scheme (Compulsory):</strong> <span id="print-header-subjects">-</span>
-            </div>
-        </div>
-    </div>
-
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
         <!-- AREA 1: PUBLIC DISPLAY BOARD -->
@@ -119,7 +101,7 @@
                 <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping (Secondary)</button>
                 <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV (Secondary)</button>
                 <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager (Secondary)</button>
-                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Exam Creator (Secondary)</button>
+                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam (Secondary)</button>
                 <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System & Password Settings</button>
             </div>
             
@@ -139,16 +121,16 @@
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select / Manage Class</label>
                                     <div class="flex items-center gap-1">
                                         <select id="cfg-class" onchange="updateCfgSections(); loadSectionConfigDetails();" class="text-xs p-2 border rounded font-semibold bg-white"></select>
-                                        <button type="button" onclick="promptAddNewClass()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-2 rounded border border-indigo-200" title="Create New Class">➕ Class</button>
-                                        <button type="button" onclick="promptDeleteCurrentClass()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-2 rounded border border-red-200" title="Delete Entire Class">🗑️</button>
+                                        <button type="button" onclick="promptAddNewClass()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-2 rounded border border-indigo-200">➕ Class</button>
+                                        <button type="button" onclick="promptDeleteCurrentClass()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-2 rounded border border-red-200">🗑️</button>
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select / Manage Section</label>
                                     <div class="flex items-center gap-1">
                                         <select id="cfg-section" onchange="loadSectionConfigDetails()" class="text-xs p-2 border rounded font-semibold bg-white"></select>
-                                        <button type="button" onclick="promptAddNewSection()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-2 rounded border border-indigo-200" title="Create New Section">➕ Section</button>
-                                        <button type="button" onclick="promptDeleteCurrentSection()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-2 rounded border border-red-200" title="Delete Selected Section">🗑️</button>
+                                        <button type="button" onclick="promptAddNewSection()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-2 rounded border border-indigo-200">➕ Section</button>
+                                        <button type="button" onclick="promptDeleteCurrentSection()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-2 rounded border border-red-200">🗑️</button>
                                     </div>
                                 </div>
                             </div>
@@ -174,7 +156,7 @@
                             <p class="text-xs text-slate-500">Live view and search of all configured subject schemes across the secondary wing.</p>
                         </div>
                         <div class="w-full md:w-80">
-                            <input type="text" id="master-subject-search" oninput="renderMasterSubjectDirectory()" placeholder="🔍 Search Class or Subject (e.g., XI, Physics)..." class="w-full text-xs p-2.5 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                            <input type="text" id="master-subject-search" oninput="renderMasterSubjectDirectory()" placeholder="🔍 Search Class or Subject..." class="w-full text-xs p-2.5 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm">
                         </div>
                     </div>
                     
@@ -195,29 +177,20 @@
             </section>
 
             <!-- MODULE 2: STUDENT MASTER DATA & CSV -->
-            <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden print:p-0 print:border-none">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4 no-print">
+            <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
                     <div>
                         <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV (Secondary)</h2>
                         <p class="text-xs text-slate-500">Manage student enrollments and upload verified CSV sheets directly to Firebase.</p>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button type="button" onclick="downloadCSVTemplate()" class="bg-slate-600 text-white text-xs font-medium px-3 py-2 rounded">📑 Template</button>
-                        <button type="button" onclick="downloadClassCSV()" class="bg-emerald-600 text-white text-xs font-medium px-3 py-2 rounded">📥 Download CSV</button>
-                        <label class="bg-sky-600 text-white text-xs font-medium px-3 py-2 rounded cursor-pointer">📤 Upload CSV<input type="file" id="csv-file-input" accept=".csv" onchange="uploadCSV(event)" class="hidden"></label>
-                        <button type="button" onclick="generateStudentPDFReport()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded flex items-center gap-1 shadow">
-                            <span>🖨️</span> PDF / Print Report
-                        </button>
-                        <button type="button" onclick="openStudentModal()" class="bg-indigo-600 text-white text-xs font-medium px-3 py-2 rounded">+ Feed Student</button>
-                    </div>
                 </div>
-                <div class="bg-slate-50 p-4 rounded-lg border grid grid-cols-1 sm:grid-cols-4 gap-4 no-print">
+                <div class="bg-slate-50 p-4 rounded-lg border grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Class</label><select id="filter-class" onchange="handleClassChange()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label><select id="filter-section" onchange="filterStudents()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Stream</label><div id="stream-indicator" class="text-xs font-bold p-2 bg-white rounded border">General</div></div>
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Strength</label><div id="student-count-badge" class="text-xs font-bold text-indigo-700 p-2 bg-indigo-50 rounded border">Total: 0</div></div>
                 </div>
-                <div class="overflow-x-auto border rounded-lg print:border-none">
+                <div class="overflow-x-auto border rounded-lg">
                     <table class="w-full text-xs text-left text-slate-600">
                         <thead class="bg-slate-100 uppercase font-semibold border-b" id="student-table-header-row"></thead>
                         <tbody id="student-table-body" class="divide-y bg-white"></tbody>
@@ -232,152 +205,32 @@
                         <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager (Secondary)</h2>
                         <p class="text-xs text-slate-500">Manage faculty profiles, teaching workloads, and class-wise exam duties in one place.</p>
                     </div>
-
-                    <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                            <span>➕</span> Add / Edit Secondary Faculty Member & Duty Allotments
-                        </h3>
-                        <form onsubmit="saveTeacherDirect(event)" class="space-y-4">
-                            <input type="hidden" id="tch-edit-index" value="">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Teacher Full Name</label>
-                                    <input type="text" id="tch-name-input" placeholder="e.g. Dr. Ramkumar Singh" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Designation & Subject</label>
-                                    <input type="text" id="tch-desig-input" placeholder="e.g. PGT PHYSICS, TGT SCIENCE" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white p-4 rounded-lg border space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <label class="block text-xs font-bold text-slate-800 uppercase">Teaching Allotments & Exam Duties (Class-Wise)</label>
-                                    <button type="button" onclick="addTeachingRow()" class="text-[11px] bg-emerald-600 text-white font-semibold px-3 py-1 rounded">➕ Add Class</button>
-                                </div>
-                                <div id="teaching-allotments-container" class="space-y-2"></div>
-                            </div>
-
-                            <div class="flex justify-end gap-2 pt-2 border-t">
-                                <button type="button" onclick="resetTeacherForm()" class="px-4 py-2 text-xs bg-slate-200 rounded font-semibold">Cancel / Reset</button>
-                                <button type="submit" class="px-5 py-2 text-xs bg-indigo-600 text-white rounded font-semibold shadow">💾 Save Faculty</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Secondary Faculty Roster & Workload Overview</h3>
-                            <div class="w-full sm:w-72">
-                                <input type="text" id="faculty-search-input" oninput="renderTeachers()" placeholder="🔍 Search Teacher or Subject..." class="w-full text-xs p-2 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white shadow-sm">
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto border rounded-lg shadow-sm">
-                            <table class="w-full text-xs text-left text-slate-600">
-                                <thead class="bg-indigo-900 text-white uppercase font-semibold border-b">
-                                    <tr>
-                                        <th class="px-4 py-3">Teacher Name & Desig</th>
-                                        <th class="px-4 py-3">Teaching Allotments</th>
-                                        <th class="px-4 py-3">Class-Wise Duties (QP / Eval)</th>
-                                        <th class="px-4 py-3 text-center bg-indigo-950">Booklets</th>
-                                        <th class="px-4 py-3 text-center bg-emerald-950">Bundles</th>
-                                        <th class="px-4 py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="teacher-table-body" class="divide-y bg-white"></tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             </section>
 
-            <!-- MODULE 4 IN PRINCIPAL VIEW: EXAM CREATOR -->
+            <!-- MODULE 4 IN PRINCIPAL VIEW: EXAM CREATOR MODULE -->
             <section id="sec-exam-creator-prin" class="space-y-6 hidden">
-                <div id="exam-analysis-container-prin"></div>
+                <div id="exam-creator-mount-prin"></div>
             </section>
 
             <!-- SETTINGS -->
             <section id="sec-settings" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
                 <div class="border-b pb-4">
                     <h2 class="text-xl font-bold text-slate-900">🛡️ System Security & Password Management</h2>
-                    <p class="text-xs text-slate-500">View and update access credentials for all administrative and operational layers.</p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Principal Password</h3>
-                        <form onsubmit="updatePassword(event, 'principal')" class="space-y-3">
-                            <input type="text" id="pass-prin" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Principal</button>
-                        </form>
-                    </div>
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Secondary IC Password</h3>
-                        <form onsubmit="updatePassword(event, 'sec-ic')" class="space-y-3">
-                            <input type="text" id="pass-sec" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Sec IC</button>
-                        </form>
-                    </div>
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Primary IC Password</h3>
-                        <form onsubmit="updatePassword(event, 'pri-ic')" class="space-y-3">
-                            <input type="text" id="pass-pri" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Pri IC</button>
-                        </form>
-                    </div>
+                    <p class="text-xs text-slate-500">View and update access credentials for administrative layers.</p>
                 </div>
             </section>
         </div>
 
         <!-- AREA 3: SECONDARY EXAM IC WORKSPACE -->
         <div id="area-sec-ic" class="hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                <div class="flex justify-between items-center border-b pb-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900">📊 4. Secondary Exam Creator & Operational Control Hub</h2>
-                        <p class="text-xs text-slate-500">Read-only examination analysis, coupled with active exam generation utilities.</p>
-                    </div>
-                </div>
-
-                <!-- SECTION 1: STRICT READ-ONLY DATA ANALYSIS & SEATING INTELLIGENCE TILE -->
-                <div id="exam-analysis-container-sec"></div>
-
-                <!-- SECTION 2: ACTIVE EXAM CREATION TOOLKIT (INTERACTIVE) -->
-                <div class="border-t pt-6 space-y-4">
-                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
-                        <span>⚡</span> Exam Creator Interactive Utilities
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="bg-indigo-50/70 border border-indigo-200 p-4 rounded-xl space-y-2">
-                            <h4 class="text-xs font-bold text-indigo-900 uppercase">📅 Datesheet Creator</h4>
-                            <p class="text-[11px] text-slate-600">Draft exam timetables and subject schedule grids.</p>
-                            <button type="button" onclick="alert('Datesheet Module Ready!')" class="w-full bg-indigo-600 text-white text-xs font-semibold py-2 rounded shadow-sm">Open Timetable Tool</button>
-                        </div>
-                        <div class="bg-emerald-50/70 border border-emerald-200 p-4 rounded-xl space-y-2">
-                            <h4 class="text-xs font-bold text-emerald-900 uppercase">🪑 Room & Seating Allocator</h4>
-                            <p class="text-[11px] text-slate-600">Generate seating roll lists and room door charts.</p>
-                            <button type="button" onclick="alert('Seating Allocator Ready!')" class="w-full bg-emerald-600 text-white text-xs font-semibold py-2 rounded shadow-sm">Open Seating Tool</button>
-                        </div>
-                        <div class="bg-sky-50/70 border border-sky-200 p-4 rounded-xl space-y-2">
-                            <h4 class="text-xs font-bold text-sky-900 uppercase">📜 Invigilation Roster</h4>
-                            <p class="text-[11px] text-slate-600">Assign exam duty slots and print room duty slips.</p>
-                            <button type="button" onclick="alert('Invigilation Roster Ready!')" class="w-full bg-sky-600 text-white text-xs font-semibold py-2 rounded shadow-sm">Open Duty Roster</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="exam-creator-mount-sec"></div>
         </div>
 
         <!-- AREA 4: PRIMARY EXAM IC WORKSPACE -->
         <div id="area-pri-ic" class="hidden space-y-6">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 space-y-6">
-                <div class="flex justify-between items-center border-b pb-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                            <span>🧸</span> Primary Exam IC Workspace (Classes I to V)
-                        </h2>
-                        <p class="text-xs text-slate-500">Manage primary assessment schedules, formative evaluations, and co-scholastic grading.</p>
-                    </div>
-                </div>
+                <h2 class="text-xl font-bold text-slate-800">🧸 Primary Exam IC Workspace (Classes I to V)</h2>
             </div>
         </div>
     </main>
@@ -388,7 +241,6 @@
             <div class="text-center space-y-1">
                 <span class="text-3xl">🔐</span>
                 <h3 class="text-base font-bold text-slate-800" id="login-modal-title">Portal Login</h3>
-                <p class="text-xs text-slate-500">Enter password to unlock secure area</p>
             </div>
             <form onsubmit="handleLogin(event)" class="space-y-3">
                 <input type="hidden" id="login-target-role">
@@ -400,32 +252,6 @@
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeLoginModal()" class="px-3 py-1.5 text-xs bg-slate-200 rounded">Cancel</button>
                     <button type="submit" class="px-4 py-1.5 text-xs bg-indigo-600 text-white rounded">Login</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- STUDENT MODAL -->
-    <div id="student-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 overflow-y-auto no-print">
-        <div class="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 my-8">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-base font-bold text-slate-800">Feed / Edit Student Record</h3>
-                <span id="modal-class-sec-badge" class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-1 rounded">Target</span>
-            </div>
-            <form id="student-form" onsubmit="saveStudent(event)" class="space-y-4">
-                <input type="hidden" id="stu-id">
-                <div class="grid grid-cols-3 gap-3">
-                    <div><label class="block text-xs font-medium text-slate-700">S.No</label><input type="number" id="stu-sno" required class="w-full text-xs p-2 border rounded bg-slate-50"></div>
-                    <div><label class="block text-xs font-medium text-slate-700">Roll No</label><input type="number" id="stu-roll" required class="w-full text-xs p-2 border rounded"></div>
-                    <div><label class="block text-xs font-medium text-slate-700">Student Name</label><input type="text" id="stu-name" required class="w-full text-xs p-2 border rounded"></div>
-                </div>
-                <div class="border-t pt-3">
-                    <label class="block text-xs font-bold text-slate-800 mb-2">Subject Selection (Section Master Config)</label>
-                    <div id="modal-subjects-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
-                </div>
-                <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" onclick="closeStudentModal()" class="px-4 py-2 text-xs bg-slate-200 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded">Save</button>
                 </div>
             </form>
         </div>
@@ -457,12 +283,7 @@
         let currentActiveRole = localStorage.getItem('vems_active_role') || 'public';
         let currentActiveTab = localStorage.getItem('vems_active_tab') || 'config';
 
-        let appPasswords = JSON.parse(localStorage.getItem('vems_passwords')) || {
-            principal: 'master777',
-            'sec-ic': 'Exam123',
-            'pri-ic': 'Primary123'
-        };
-        function savePasswords() { localStorage.setItem('vems_passwords', JSON.stringify(appPasswords)); }
+        let appPasswords = JSON.parse(localStorage.getItem('vems_passwords')) || { principal: 'master777', 'sec-ic': 'Exam123', 'pri-ic': 'Primary123' };
 
         let defaultSectionConfigs = {};
         ['6', '7', '8'].forEach(cls => { ['A', 'B', 'C', 'D'].forEach(sec => { defaultSectionConfigs[`${cls}-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE']; }); });
@@ -479,7 +300,10 @@
             { id: 1, name: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', allotments: [{ cls: '11', sec: 'A', subject: 'PHYSICS', qpSetter: 'Self', evaluator: 'Self' }, { cls: '12', sec: 'A', subject: 'PHYSICS', qpSetter: 'Self', evaluator: 'Self' }] },
             { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT SCIENCE', allotments: [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }, { cls: '9', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }] }
         ];
-        let classTeacherAssignments = JSON.parse(localStorage.getItem('vems_ct_assignments')) || {};
+
+        // Active Exam State
+        let isExamConfigOpen = false;
+        let datesheetDays = [];
 
         function initFirebaseListeners() {
             db.ref('students').on('value', (snapshot) => {
@@ -497,8 +321,7 @@
                     students = [{ id: 1, sno: 1, roll: 101, name: 'Aarav Sharma', class: '10', section: 'A', subjects: ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'] }];
                 }
                 filterStudents();
-                if(currentActiveTab === 'teachers') renderTeachers();
-                renderExamAnalysisTile();
+                renderExamCreatorModule();
             });
             db.ref('sectionConfigs').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -506,7 +329,7 @@
                     sectionConfigs = data;
                     initCfgSections();
                     renderMasterSubjectDirectory();
-                    renderExamAnalysisTile();
+                    renderExamCreatorModule();
                 }
             });
         }
@@ -514,19 +337,16 @@
         
         window.addEventListener('DOMContentLoaded', () => {
             activateArea(currentActiveRole);
-            if(currentActiveRole === 'principal') {
-                switchTab(currentActiveTab);
-            }
-            renderExamAnalysisTile();
+            if(currentActiveRole === 'principal') switchTab(currentActiveTab);
+            renderExamCreatorModule();
         });
 
         function saveData() {
             localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
             localStorage.setItem('vems_teachers', JSON.stringify(teachers));
-            localStorage.setItem('vems_ct_assignments', JSON.stringify(classTeacherAssignments));
             db.ref('sectionConfigs').set(sectionConfigs);
             renderMasterSubjectDirectory();
-            renderExamAnalysisTile();
+            renderExamCreatorModule();
         }
 
         function switchPortalArea(area) {
@@ -590,12 +410,7 @@
                 badge.textContent = "🧸 Primary IC Active";
                 badge.className = "bg-amber-600 text-white px-3 py-1 rounded-full font-medium";
             }
-            document.getElementById('btn-icon-public').className = area === 'public' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
-            document.getElementById('btn-icon-prin').className = area === 'principal' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
-            document.getElementById('btn-icon-sec').className = area === 'sec-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
-            document.getElementById('btn-icon-pri').className = area === 'pri-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
-            
-            renderExamAnalysisTile();
+            renderExamCreatorModule();
         }
         function switchTab(tab) {
             currentActiveTab = tab;
@@ -607,33 +422,9 @@
             document.getElementById('sec-exam-creator-prin').classList.toggle('hidden', tab !== 'exam-creator-prin');
             document.getElementById('sec-settings').classList.toggle('hidden', tab !== 'settings');
             
-            document.getElementById('tab-btn-config').className = tab === 'config' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
-            document.getElementById('tab-btn-students').className = tab === 'students' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
-            document.getElementById('tab-btn-teachers').className = tab === 'teachers' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
-            document.getElementById('tab-btn-exam-creator-prin').className = tab === 'exam-creator-prin' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
-            document.getElementById('tab-btn-settings').className = tab === 'settings' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
-            
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
-            if(tab === 'teachers') { initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
-            if(tab === 'exam-creator-prin') renderExamAnalysisTile();
-            if(tab === 'settings') {
-                document.getElementById('pass-prin').value = appPasswords.principal;
-                document.getElementById('pass-sec').value = appPasswords['sec-ic'];
-                document.getElementById('pass-pri').value = appPasswords['pri-ic'];
-            }
-        }
-        function updatePassword(e, roleKey) {
-            e.preventDefault();
-            let val = '';
-            if(roleKey === 'principal') val = document.getElementById('pass-prin').value.trim();
-            else if(roleKey === 'sec-ic') val = document.getElementById('pass-sec').value.trim();
-            else if(roleKey === 'pri-ic') val = document.getElementById('pass-pri').value.trim();
-            if(!val) return;
-            appPasswords[roleKey] = val;
-            savePasswords();
-            alert(`Password for ${roleKey.toUpperCase()} updated successfully!`);
-            switchTab('settings');
+            if(tab === 'exam-creator-prin') renderExamCreatorModule();
         }
 
         // MODULE 1: DYNAMIC CLASS & SUBJECT MAPPING SETUP
@@ -677,7 +468,6 @@
         function initCfgSections() { 
             const clsSel = document.getElementById('cfg-class');
             if(!clsSel) return;
-            const currentSelectedClass = clsSel.value;
             clsSel.innerHTML = '';
             
             const classesList = getAllUniqueClasses();
@@ -687,21 +477,13 @@
                 opt.textContent = `Class ${formatClass(cls)}`;
                 clsSel.appendChild(opt);
             });
-            if(currentSelectedClass && classesList.includes(currentSelectedClass)) {
-                clsSel.value = currentSelectedClass;
-            } else if(classesList.length > 0) {
-                clsSel.value = classesList[0];
-            }
             updateCfgSections(); 
-            loadSectionConfigDetails(); 
-            renderMasterSubjectDirectory();
         }
 
         function updateCfgSections() {
             const cls = document.getElementById('cfg-class').value;
             const secSel = document.getElementById('cfg-section');
             if(!secSel || !cls) return;
-            const currentSelectedSec = secSel.value;
             secSel.innerHTML = '';
             
             const sectionsList = getAllSectionsForClass(cls);
@@ -711,11 +493,6 @@
                 opt.textContent = `Section ${s}`;
                 secSel.appendChild(opt);
             });
-            if(currentSelectedSec && sectionsList.includes(currentSelectedSec)) {
-                secSel.value = currentSelectedSec;
-            } else if(sectionsList.length > 0) {
-                secSel.value = sectionsList[0];
-            }
             loadSectionConfigDetails();
         }
 
@@ -735,106 +512,16 @@
             subjects.forEach((sub, idx) => {
                 const div = document.createElement('div');
                 div.className = "flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm";
-                div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${sub}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200" title="Delete Subject">🗑️</button>`;
+                div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${sub}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
                 container.appendChild(div);
             });
         }
 
-        function addNewSubjectField() {
-            const container = document.getElementById('cfg-subjects-container');
-            const div = document.createElement('div');
-            div.className = "flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm";
-            div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">New Sub</label><input type="text" value="SUBJECT" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200" title="Delete Subject">🗑️</button>`;
-            container.appendChild(div);
-        }
-
-        function promptAddNewClass() {
-            let newCls = prompt("Enter New Class Identifier (e.g. 5, 13, or custom string):");
-            if(!newCls) return;
-            newCls = newCls.trim().toUpperCase();
-            if(!newCls) return;
-            
-            let defaultKey = `${newCls}-A`;
-            if(!sectionConfigs[defaultKey]) {
-                sectionConfigs[defaultKey] = ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE'];
-                saveData();
-            }
-            initCfgSections();
-            document.getElementById('cfg-class').value = newCls;
-            updateCfgSections();
-            alert(`✅ Class ${formatClass(newCls)} created successfully with default Section A!`);
-        }
-
-        function promptAddNewSection() {
-            const cls = document.getElementById('cfg-class').value;
-            if(!cls) return;
-            let newSec = prompt(`Enter New Section Letter/Name for Class ${formatClass(cls)} (e.g. E, F, G):`);
-            if(!newSec) return;
-            newSec = newSec.trim().toUpperCase();
-            if(!newSec) return;
-
-            let key = `${cls}-${newSec}`;
-            if(!sectionConfigs[key]) {
-                sectionConfigs[key] = ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE'];
-                saveData();
-            }
-            updateCfgSections();
-            document.getElementById('cfg-section').value = newSec;
-            loadSectionConfigDetails();
-            alert(`✅ Section ${newSec} created successfully for Class ${formatClass(cls)}!`);
-        }
-
-        function promptDeleteCurrentSection() {
-            const cls = document.getElementById('cfg-class').value;
-            const sec = document.getElementById('cfg-section').value;
-            if(!cls || !sec) return;
-            const key = `${cls}-${sec}`;
-            
-            if(confirm(`⚠️ Are you sure you want to delete Section ${sec} from Class ${formatClass(cls)}? This will remove its subject mapping.`)) {
-                delete sectionConfigs[key];
-                saveData();
-                initCfgSections();
-                alert(`🗑️ Section ${sec} removed successfully!`);
-            }
-        }
-
-        function promptDeleteCurrentClass() {
-            const cls = document.getElementById('cfg-class').value;
-            if(!cls) return;
-            
-            if(confirm(`⚠️ Are you sure you want to delete ENTIRE Class ${formatClass(cls)} and all its sections?`)) {
-                Object.keys(sectionConfigs).forEach(k => {
-                    if(k.startsWith(`${cls}-`)) {
-                        delete sectionConfigs[k];
-                    }
-                });
-                saveData();
-                initCfgSections();
-                alert(`🗑️ Class ${formatClass(cls)} removed successfully!`);
-            }
-        }
-
-        function saveSectionConfig(e) {
-            e.preventDefault();
-            const cls = document.getElementById('cfg-class').value;
-            const sec = document.getElementById('cfg-section').value;
-            let subs = [];
-            document.querySelectorAll('.cfg-sub-input').forEach(inp => { if(inp.value.trim()) subs.push(inp.value.trim().toUpperCase()); });
-            sectionConfigs[`${cls}-${sec}`] = subs;
-            saveData();
-            alert(`✅ Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
-            switchTab('config');
-        }
-
-        // RENDER MASTER CONSOLIDATED SUBJECT DIRECTORY & SEARCH
         function renderMasterSubjectDirectory() {
             const tbody = document.getElementById('master-subject-directory-tbody');
             if (!tbody) return;
             tbody.innerHTML = '';
-
-            const searchTerm = (document.getElementById('master-subject-search')?.value || '').trim().toLowerCase();
             let classesList = getAllUniqueClasses();
-            let foundCount = 0;
 
             classesList.forEach(cls => {
                 let sections = getAllSectionsForClass(cls);
@@ -843,47 +530,23 @@
                     let subs = sectionConfigs[key] || [];
                     if (subs.length === 0) return;
 
-                    let classSecTitle = `Class ${formatClass(cls)} - Sec ${sec}`;
-                    let subsText = subs.join(' ');
-                    
-                    if (searchTerm && !classSecTitle.toLowerCase().includes(searchTerm) && !subsText.toLowerCase().includes(searchTerm)) {
-                        return;
-                    }
-
-                    foundCount++;
                     let subBadges = subs.map(s => `<span class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-800 text-[11px] font-semibold px-2 py-0.5 rounded m-0.5">${s}</span>`).join('');
 
                     let tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 border-b";
                     tr.innerHTML = `
-                        <td class="px-4 py-3 font-bold text-indigo-900">${classSecTitle}</td>
+                        <td class="px-4 py-3 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td>
                         <td class="px-4 py-3">${subBadges}</td>
                         <td class="px-4 py-3 text-center font-bold text-slate-700">${subs.length}</td>
                         <td class="px-4 py-3 text-right">
-                            <button type="button" onclick="jumpToEditConfig('${cls}', '${sec}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded border border-indigo-200 transition text-xs flex items-center gap-1 ml-auto">
-                                ✏️ Edit
-                            </button>
+                            <button type="button" onclick="switchTab('config')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded border border-indigo-200 text-xs">✏️ Edit</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
             });
-
-            if (foundCount === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-400 italic">No matching class or subject configurations found.</td></tr>`;
-            }
         }
 
-        function jumpToEditConfig(cls, sec) {
-            switchTab('config');
-            document.getElementById('cfg-class').value = cls;
-            updateCfgSections();
-            document.getElementById('cfg-section').value = sec;
-            loadSectionConfigDetails();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // MODULE 2: STUDENTS & CSV VALIDATION
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             if(!classSel) return;
@@ -892,7 +555,6 @@
             classesList.forEach(cls => {
                 classSel.innerHTML += `<option value="${cls}">Class ${formatClass(cls)}</option>`;
             });
-            if(classesList.length > 0) classSel.value = classesList[0];
             handleClassChange();
         }
         function handleClassChange() {
@@ -904,187 +566,355 @@
             sectionsList.forEach(sec => {
                 secSel.innerHTML += `<option value="${sec}">Section ${sec}</option>`;
             });
-            updateStudentTableHeaders();
             filterStudents();
         }
-        function updateStudentTableHeaders() {
-            const cls = document.getElementById('filter-class').value;
-            const sec = document.getElementById('filter-section').value;
-            const subs = sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE'];
-            let html = `<th class="px-2 py-3 text-center">S.No</th><th class="px-2 py-3">Roll</th><th class="px-3 py-3">Student Name</th>`;
-            subs.forEach(sub => html += `<th class="px-2 py-3 bg-indigo-50/50">${sub}</th>`);
-            html += `<th class="px-3 py-3 text-right no-print">Actions</th>`;
-            document.getElementById('student-table-header-row').innerHTML = html;
-        }
         function filterStudents() {
-            const cls = document.getElementById('filter-class').value;
-            const sec = document.getElementById('filter-section').value;
-            updateStudentTableHeaders();
+            const cls = document.getElementById('filter-class')?.value;
+            const sec = document.getElementById('filter-section')?.value;
+            if(!cls || !sec) return;
             const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
-            document.getElementById('student-count-badge').textContent = `Total: ${filtered.length}`;
-            const activeSubs = sectionConfigs[`${cls}-${sec}`] || [];
-            const tbody = document.getElementById('student-table-body');
-            tbody.innerHTML = '';
-            filtered.forEach((s, idx) => {
-                let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${s.sno || (idx + 1)}</td><td class="px-2 py-3 font-bold">${s.roll}</td><td class="px-3 py-3 font-semibold">${s.name}</td>`;
-                activeSubs.forEach((_, subIdx) => { 
-                    let subVal = sanitizeText(s.subjects ? s.subjects[subIdx] : '-');
-                    rowHtml += `<td class="px-2 py-3 text-slate-700">${subVal}</td>`; 
-                });
-                rowHtml += `<td class="px-3 py-3 text-right space-x-2 no-print"><button type="button" onclick="editStudent('${s.id}')" class="text-indigo-600 hover:underline">Edit</button><button type="button" onclick="deleteStudent('${s.id}')" class="text-red-600 hover:underline">Delete</button></td>`;
-                let tr = document.createElement('tr'); tr.className = "hover:bg-slate-50 border-b"; tr.innerHTML = rowHtml;
-                tbody.appendChild(tr);
-            });
+            const countBadge = document.getElementById('student-count-badge');
+            if(countBadge) countBadge.textContent = `Total: ${filtered.length}`;
         }
 
-        // SECTION 1: PER-CLASS SUBJECT MAPPING & SEATING INTELLIGENCE ENGINE (READ-ONLY)
-        function renderExamAnalysisTile() {
-            const classesList = getAllUniqueClasses();
+        // =========================================================================
+        // 🚀 EXAM CREATOR MODULE ENGINE (WITH ATTENTION BANNER & DAILY SCOPE)
+        // =========================================================================
 
-            // Render Class Cards with per-class section checkboxes AND per-class subject dropdown
-            let classSelectionHtml = '';
-            classesList.forEach(c => {
-                let secsForCls = getAllSectionsForClass(c);
-                let classSubjects = getUniqueSubjectsForClass(c);
+        function toggleExamCreationPanel() {
+            isExamConfigOpen = !isExamConfigOpen;
+            if (isExamConfigOpen && datesheetDays.length === 0) {
+                // Initialize default Day 1
+                datesheetDays = [{ id: 1, dateStr: '2026-11-10' }];
+            }
+            renderExamCreatorModule();
+        }
 
-                let secCheckboxes = secsForCls.map(s => `
-                    <label class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-50">
-                        <input type="checkbox" value="${c}-${s}" class="analysis-sec-item text-indigo-600 rounded" onchange="runExamAnalysisSearch()" checked>
-                        Sec ${s}
-                    </label>
-                `).join('');
+        function updateExamDates() {
+            const fromDateVal = document.getElementById('exam-from-date')?.value;
+            const toDateVal = document.getElementById('exam-to-date')?.value;
+            
+            if (!fromDateVal) return;
 
-                let subOptionsHtml = `<option value="ALL">All Mapped Subjects</option>` + classSubjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+            let startDate = new Date(fromDateVal);
+            let endDate = toDateVal ? new Date(toDateVal) : new Date(fromDateVal);
 
-                classSelectionHtml += `
-                    <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2 shadow-xs">
-                        <div class="flex items-center justify-between border-b pb-1.5">
-                            <label class="font-bold text-xs text-indigo-900 inline-flex items-center gap-1.5 cursor-pointer">
-                                <input type="checkbox" value="${c}" class="analysis-cls-parent text-indigo-700 rounded" onchange="toggleClassSections('${c}', this)" checked>
-                                Class ${formatClass(c)}
-                            </label>
-                            <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100">${secsForCls.length} Secs</span>
-                        </div>
-                        
-                        <div class="flex flex-wrap gap-1 pt-0.5" id="cls-secs-container-${c}">
-                            ${secCheckboxes}
-                        </div>
+            // IST Day Display
+            const options = { weekday: 'long', timeZone: 'Asia/Kolkata' };
+            const startDay = new Intl.DateTimeFormat('en-IN', options).format(startDate);
+            const endDay = new Intl.DateTimeFormat('en-IN', options).format(endDate);
+            
+            const dayIndicator = document.getElementById('exam-ist-day-indicator');
+            if (dayIndicator) {
+                dayIndicator.textContent = startDate.getTime() === endDate.getTime() ? startDay : `${startDay} to ${endDay}`;
+            }
 
-                        <!-- PER-CLASS SUBJECT DROPDOWN (STRICTLY FROM MAPPING) -->
-                        <div class="pt-1 border-t border-slate-100">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">📖 Target Subject (Class ${formatClass(c)})</label>
-                            <select id="analysis-sub-cls-${c}" onchange="runExamAnalysisSearch()" class="analysis-cls-sub-select w-full text-xs p-1.5 border border-indigo-200 rounded bg-slate-50 font-bold text-indigo-950 focus:bg-white">
-                                ${subOptionsHtml}
-                            </select>
-                        </div>
-                    </div>
-                `;
-            });
+            // Re-generate days list
+            datesheetDays = [];
+            let curr = new Date(startDate);
+            let dayIdx = 1;
+            while (curr <= endDate && dayIdx <= 30) {
+                let dStr = curr.toISOString().split('T')[0];
+                datesheetDays.push({ id: dayIdx, dateStr: dStr });
+                curr.setDate(curr.getDate() + 1);
+                dayIdx++;
+            }
+            renderDatesheetDaysContainer();
+        }
 
+        function handleExamNameSelect(selElem) {
+            const customBox = document.getElementById('exam-name-custom-container');
+            if (!customBox) return;
+            if (selElem.value === 'Other') {
+                customBox.classList.remove('hidden');
+            } else {
+                customBox.classList.add('hidden');
+            }
+        }
+
+        function addNextDatesheetDay() {
+            let nextId = datesheetDays.length + 1;
+            let lastDate = datesheetDays.length > 0 ? new Date(datesheetDays[datesheetDays.length - 1].dateStr) : new Date();
+            lastDate.setDate(lastDate.getDate() + 1);
+            let nextDateStr = lastDate.toISOString().split('T')[0];
+            
+            datesheetDays.push({ id: nextId, dateStr: nextDateStr });
+            renderDatesheetDaysContainer();
+        }
+
+        function renderExamCreatorModule() {
             const htmlContent = `
-                <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-indigo-200 pb-3">
-                        <div>
-                            <h3 class="text-sm font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                                🔒 1. Vidyalaya Multi-Class Subject & Seating Intelligence Engine
-                            </h3>
-                            <p class="text-[11px] text-slate-500">Read-only examination summary and seating demand analysis for selected class/section/subject scope.</p>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                    <!-- HEADER & ATTENTION BANNER -->
+                    <div class="border-b pb-4 space-y-3">
+                        <div class="flex justify-between items-center flex-wrap gap-2">
+                            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                <span>📌</span> Create Exam & Multi-Day Datesheet Builder
+                            </h2>
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
                         </div>
-                        <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300">🔒 READ-ONLY AUDIT MODE</span>
+
+                        <!-- ATTENTION / PRE-FLIGHT VERIFICATION NOTICE -->
+                        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg space-y-1.5 shadow-xs">
+                            <div class="flex items-center gap-2 font-bold text-amber-900 text-xs uppercase tracking-wide">
+                                <span>⚠️</span> Mandatory Pre-Flight Verification Notice for Exam IC
+                            </div>
+                            <p class="text-xs text-amber-800 leading-relaxed">
+                                <strong>Welcome Exam IC!</strong> Before creating an examination schedule, please check and verify the 
+                                <span class="underline decoration-amber-400">Subject Mapping</span>, 
+                                <span class="underline decoration-amber-400">Student Master Data</span>, and 
+                                <span class="underline decoration-amber-400">Faculty Duty Data</span>. 
+                                Ensure alignment with the <strong>SAMAGAM portal</strong> and verify directly with Class Teachers (CTs).
+                            </p>
+                        </div>
+
+                        <!-- CREATE EXAM TRIGGER BUTTON -->
+                        <div class="pt-2">
+                            <button type="button" onclick="toggleExamCreationPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow-sm transition flex items-center gap-2">
+                                <span>🚀</span> ${isExamConfigOpen ? 'Close / Hide Exam Configuration' : 'Create Exam Schedule'}
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- GRANULAR CLASS-SPECIFIC SECTION & SUBJECT CONTROL PANEL -->
-                    <div class="bg-white p-4 rounded-lg border border-indigo-100 space-y-3">
-                        <div class="flex justify-between items-center border-b pb-2">
-                            <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (Select Scope For Exam Session)</label>
-                            <div class="space-x-2">
-                                <button type="button" onclick="setAllAnalysisSelections(true)" class="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
-                                <button type="button" onclick="setAllAnalysisSelections(false)" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-1 rounded border border-slate-200">Deselect All</button>
+                    <!-- MAIN EXAM CONFIGURATION HEADER PANEL (UNLOCKED ON CLICK) -->
+                    ${isExamConfigOpen ? `
+                        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
+                            <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider border-b border-indigo-200 pb-2">
+                                📋 1. Main Examination Header Configuration
+                            </h3>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                <!-- Exam Name Dropdown -->
+                                <div class="col-span-1 sm:col-span-2">
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Name of the Exam</label>
+                                    <select id="exam-name-select" onchange="handleExamNameSelect(this)" class="w-full text-xs p-2.5 border rounded bg-white font-semibold">
+                                        <option value="PT-1">Periodic Test 1 (PT-1)</option>
+                                        <option value="Half Yearly" selected>Half Yearly Examination</option>
+                                        <option value="PT-2">Periodic Test 2 (PT-2)</option>
+                                        <option value="PT-3">Periodic Test 3 (PT-3)</option>
+                                        <option value="Monthly Test">Monthly Test</option>
+                                        <option value="PB-1">Pre-Board 1 (PB-1)</option>
+                                        <option value="PB-2">Pre-Board 2 (PB-2)</option>
+                                        <option value="Annual Exam">Annual Examination</option>
+                                        <option value="Retest">Retest Examination</option>
+                                        <option value="Weekly Test">Weekly Test</option>
+                                        <option value="Slip Test">Slip Test</option>
+                                        <option value="Other">Other (Update Manually)</option>
+                                    </select>
+                                    <div id="exam-name-custom-container" class="mt-2 hidden">
+                                        <input type="text" id="exam-name-custom" placeholder="Enter custom exam title..." class="w-full text-xs p-2 border rounded bg-white">
+                                    </div>
+                                </div>
+
+                                <!-- Date Range -->
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">From Date</label>
+                                    <input type="date" id="exam-from-date" value="2026-11-10" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">To Date</label>
+                                    <input type="date" id="exam-to-date" value="2026-11-15" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                </div>
+
+                                <!-- Day Indicator (Auto IST) -->
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Day (Auto IST Google Calculation)</label>
+                                    <div id="exam-ist-day-indicator" class="text-xs font-bold text-indigo-900 p-2 bg-white rounded border border-indigo-200">
+                                        Tuesday to Sunday
+                                    </div>
+                                </div>
+
+                                <!-- Duration & Marks -->
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Duration</label>
+                                    <select class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                        <option value="1 Hour">1 Hour</option>
+                                        <option value="1.5 Hours">1.5 Hours</option>
+                                        <option value="2 Hours">2 Hours</option>
+                                        <option value="2.5 Hours">2.5 Hours</option>
+                                        <option value="3 Hours" selected>3 Hours</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Max Marks</label>
+                                    <input type="number" value="80" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                </div>
+
+                                <!-- Timings -->
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reporting Time</label>
+                                    <input type="time" value="08:00" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reading Time</label>
+                                    <input type="time" value="08:15" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Exam Start Time</label>
+                                    <input type="time" value="08:30" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Exam Over / Commencement</label>
+                                    <input type="time" value="11:30" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-1.5 bg-slate-50 rounded border">
-                            ${classSelectionHtml}
+
+                        <!-- DAYWISE DATESHEET BUILDER CONTAINER -->
+                        <div class="space-y-4 pt-2">
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center justify-between border-b pb-2">
+                                <span>🗓️ Day-by-Day Datesheet & Class Scope Allocator</span>
+                                <span class="text-[11px] text-slate-500 font-normal">Configure mapped subjects and examinee scope per exam date</span>
+                            </h3>
+
+                            <div id="datesheet-days-container" class="space-y-6"></div>
+
+                            <!-- ADD NEXT DAY BUTTON -->
+                            <div class="pt-2">
+                                <button type="button" onclick="addNextDatesheetDay()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-3 rounded-lg shadow-xs transition flex items-center justify-center gap-2">
+                                    <span>➕</span> Add Next Day (Day ${datesheetDays.length + 1})
+                                </button>
+                            </div>
                         </div>
+                    ` : ''}
+                </div>
+            `;
+
+            let prinMount = document.getElementById('exam-creator-mount-prin');
+            let secMount = document.getElementById('exam-creator-mount-sec');
+            if (prinMount) prinMount.innerHTML = htmlContent;
+            if (secMount) secMount.innerHTML = htmlContent;
+
+            if (isExamConfigOpen) {
+                renderDatesheetDaysContainer();
+            }
+        }
+
+        function renderDatesheetDaysContainer() {
+            const container = document.getElementById('datesheet-days-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const classesList = getAllUniqueClasses();
+
+            datesheetDays.forEach((dayObj) => {
+                let dDate = new Date(dayObj.dateStr);
+                const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' };
+                let dateDisplay = isNaN(dDate.getTime()) ? `Day ${dayObj.id}` : new Intl.DateTimeFormat('en-IN', options).format(dDate);
+
+                // Build Class Selection Cards for this day
+                let classCardsHtml = '';
+                classesList.forEach(c => {
+                    let secsForCls = getAllSectionsForClass(c);
+                    let classSubjects = getUniqueSubjectsForClass(c);
+
+                    let secCheckboxes = secsForCls.map(s => `
+                        <label class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer">
+                            <input type="checkbox" value="${c}-${s}" class="day-${dayObj.id}-sec-item text-indigo-600 rounded" onchange="runDayAnalysisSearch(${dayObj.id})" checked>
+                            Sec ${s}
+                        </label>
+                    `).join('');
+
+                    let subOptionsHtml = `<option value="ALL">All Mapped Subjects</option>` + classSubjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+
+                    classCardsHtml += `
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2 shadow-xs">
+                            <div class="flex items-center justify-between border-b pb-1.5">
+                                <label class="font-bold text-xs text-indigo-900 inline-flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" value="${c}" class="day-${dayObj.id}-cls-parent text-indigo-700 rounded" onchange="toggleDayClassSections(${dayObj.id}, '${c}', this)" checked>
+                                    Class ${formatClass(c)}
+                                </label>
+                                <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100">${secsForCls.length} Secs</span>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-1 pt-0.5" id="day-${dayObj.id}-cls-secs-${c}">
+                                ${secCheckboxes}
+                            </div>
+
+                            <div class="pt-1 border-t border-slate-100">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">📖 Subject (Class ${formatClass(c)})</label>
+                                <select id="day-${dayObj.id}-sub-cls-${c}" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-xs p-1.5 border border-indigo-200 rounded bg-slate-50 font-bold text-indigo-950 focus:bg-white">
+                                    ${subOptionsHtml}
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                let dayCard = document.createElement('div');
+                dayCard.className = "bg-slate-50 border border-slate-300 rounded-xl p-4 space-y-4 shadow-xs";
+                dayCard.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-slate-300 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-indigo-900 text-white text-xs font-extrabold px-3 py-1 rounded-md">DAY ${dayObj.id}</span>
+                            <h4 class="text-sm font-bold text-slate-900">${dateDisplay}</h4>
+                        </div>
+                        <input type="date" value="${dayObj.dateStr}" onchange="dayObj.dateStr=this.value; renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
                     </div>
 
-                    <!-- SEATING & HEADCOUNT SUMMARY CARDS -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                        <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Selected Scope</span>
-                            <span id="stat-selected-scope" class="text-xs font-extrabold text-indigo-900 truncate block">0 Sections</span>
-                        </div>
-                        <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Total Examinees</span>
-                            <span id="stat-calc-students" class="text-base font-extrabold text-emerald-700">0 Students</span>
-                        </div>
-                        <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase block">QP Print Buffer (+5%)</span>
-                            <span id="stat-calc-qp" class="text-base font-extrabold text-amber-700">0 Papers</span>
-                        </div>
-                        <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Matched Mapping Rows</span>
-                            <span id="stat-calc-rows" class="text-base font-extrabold text-sky-700">0 Rows</span>
-                        </div>
-                    </div>
-
-                    <!-- DETAILED EXAMINATION SUMMARY TABLE (FOR EXAM IC PLANNING & INFORMING QP SETTERS) -->
+                    <!-- 1️⃣ Class-Wise Controls for this date -->
                     <div class="space-y-2">
-                        <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wide flex items-center justify-between">
-                            <span>📋 Detailed Examination Summary of Selected Scope</span>
-                            <span class="text-[11px] text-slate-500 font-normal">Use this roster to direct Paper Setters & plan seating capacity</span>
-                        </h4>
+                        <div class="flex justify-between items-center">
+                            <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (Scope for Day ${dayObj.id})</label>
+                            <div class="space-x-1.5">
+                                <button type="button" onclick="setDaySelections(${dayObj.id}, true)" class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
+                                <button type="button" onclick="setDaySelections(${dayObj.id}, false)" class="text-[10px] bg-white text-slate-700 font-bold px-2 py-1 rounded border border-slate-200">Deselect All</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-1.5 bg-white rounded border">
+                            ${classCardsHtml}
+                        </div>
+                    </div>
+
+                    <!-- Detailed Table Summary for this day -->
+                    <div class="space-y-1.5 pt-2">
+                        <h5 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">📊 Detailed Examination Summary for ${dateDisplay}</h5>
                         <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
                             <table class="w-full text-xs text-left text-slate-700">
                                 <thead class="bg-indigo-900 text-white uppercase font-semibold">
                                     <tr>
-                                        <th class="px-3 py-2.5">Class & Section</th>
-                                        <th class="px-3 py-2.5">Selected Subject</th>
-                                        <th class="px-3 py-2.5 text-center">Examinees Count</th>
-                                        <th class="px-3 py-2.5 text-center">QP Print Demand (+5%)</th>
-                                        <th class="px-3 py-2.5">QP Setter Name (To Inform)</th>
-                                        <th class="px-3 py-2.5">Evaluator Name</th>
+                                        <th class="px-3 py-2">Class & Section</th>
+                                        <th class="px-3 py-2">Selected Subject</th>
+                                        <th class="px-3 py-2 text-center">Examinees Count</th>
+                                        <th class="px-3 py-2 text-center">QP Demand (+5%)</th>
+                                        <th class="px-3 py-2">QP Setter Name (To Inform)</th>
+                                        <th class="px-3 py-2">Evaluator Name</th>
                                     </tr>
                                 </thead>
-                                <tbody id="exam-analysis-tbody" class="divide-y bg-white"></tbody>
-                                <tfoot id="exam-analysis-tfoot" class="bg-slate-100 font-bold border-t-2 border-indigo-900"></tfoot>
+                                <tbody id="day-${dayObj.id}-tbody" class="divide-y bg-white"></tbody>
+                                <tfoot id="day-${dayObj.id}-tfoot" class="bg-slate-100 font-bold border-t-2 border-indigo-900"></tfoot>
                             </table>
                         </div>
                     </div>
-                </div>
-            `;
-
-            let prinContainer = document.getElementById('exam-analysis-container-prin');
-            let secContainer = document.getElementById('exam-analysis-container-sec');
-            if(prinContainer) prinContainer.innerHTML = htmlContent;
-            if(secContainer) secContainer.innerHTML = htmlContent;
-            
-            runExamAnalysisSearch();
+                `;
+                container.appendChild(dayCard);
+                runDayAnalysisSearch(dayObj.id);
+            });
         }
 
-        function toggleClassSections(cls, parentCb) {
-            const container = document.getElementById(`cls-secs-container-${cls}`);
+        function toggleDayClassSections(dayId, cls, parentCb) {
+            const container = document.getElementById(`day-${dayId}-cls-secs-${cls}`);
             if(!container) return;
-            const checkboxes = container.querySelectorAll('.analysis-sec-item');
+            const checkboxes = container.querySelectorAll(`.day-${dayId}-sec-item`);
             checkboxes.forEach(cb => cb.checked = parentCb.checked);
-            runExamAnalysisSearch();
+            runDayAnalysisSearch(dayId);
         }
 
-        function setAllAnalysisSelections(status) {
-            document.querySelectorAll('.analysis-cls-parent').forEach(cb => cb.checked = status);
-            document.querySelectorAll('.analysis-sec-item').forEach(cb => cb.checked = status);
-            runExamAnalysisSearch();
+        function setDaySelections(dayId, status) {
+            document.querySelectorAll(`.day-${dayId}-cls-parent`).forEach(cb => cb.checked = status);
+            document.querySelectorAll(`.day-${dayId}-sec-item`).forEach(cb => cb.checked = status);
+            runDayAnalysisSearch(dayId);
         }
 
-        function runExamAnalysisSearch() {
-            const tbody = document.getElementById('exam-analysis-tbody');
-            const tfoot = document.getElementById('exam-analysis-tfoot');
+        function runDayAnalysisSearch(dayId) {
+            const tbody = document.getElementById(`day-${dayId}-tbody`);
+            const tfoot = document.getElementById(`day-${dayId}-tfoot`);
             if(!tbody) return;
             tbody.innerHTML = '';
             if(tfoot) tfoot.innerHTML = '';
 
-            // Get all checked granular sections (format: "cls-sec")
-            const selectedSectionKeys = Array.from(document.querySelectorAll('.analysis-sec-item:checked')).map(cb => cb.value);
+            const selectedSectionKeys = Array.from(document.querySelectorAll(`.day-${dayId}-sec-item:checked`)).map(cb => cb.value);
 
             let rowsFound = 0;
             let totalCombinedExaminees = 0;
@@ -1092,7 +922,7 @@
             let classesList = getAllUniqueClasses();
 
             classesList.forEach(cls => {
-                let classSubFilter = document.getElementById(`analysis-sub-cls-${cls}`)?.value || 'ALL';
+                let classSubFilter = document.getElementById(`day-${dayId}-sub-cls-${cls}`)?.value || 'ALL';
                 let sections = getAllSectionsForClass(cls);
 
                 sections.forEach(sec => {
@@ -1103,7 +933,6 @@
                     let classStudents = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
 
                     subs.forEach(sub => {
-                        // Check class-specific subject filter
                         if(classSubFilter !== 'ALL' && sub.toUpperCase() !== classSubFilter.toUpperCase()) return;
 
                         let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(cls) && String(al.sec) === String(sec) && al.subject.toUpperCase() === sub.toUpperCase()));
@@ -1130,7 +959,7 @@
                             <td class="px-3 py-2 font-bold text-slate-800"><span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-100">${sub}</span></td>
                             <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${examineeCount} Examinees</td>
                             <td class="px-3 py-2 text-center font-bold text-amber-800 bg-amber-50/40">${qpCount} Papers</td>
-                            <td class="px-3 py-2 text-indigo-900 font-bold flex items-center gap-1">👤 ${qpSetter}</td>
+                            <td class="px-3 py-2 text-indigo-900 font-bold">👤 ${qpSetter}</td>
                             <td class="px-3 py-2 text-slate-700">${evaluator}</td>
                         `;
                         tbody.appendChild(tr);
@@ -1138,265 +967,18 @@
                 });
             });
 
-            // Update Statistics
-            const scopeElem = document.getElementById('stat-selected-scope');
-            const stuElem = document.getElementById('stat-calc-students');
-            const qpElem = document.getElementById('stat-calc-qp');
-            const rowElem = document.getElementById('stat-calc-rows');
-
-            if(scopeElem) scopeElem.textContent = `${selectedSectionKeys.length} Sections Selected`;
-            if(stuElem) stuElem.textContent = `${totalCombinedExaminees} Students`;
-            if(qpElem) qpElem.textContent = `${totalQpRequired} Papers`;
-            if(rowElem) rowElem.textContent = `${rowsFound} Mapping Rows`;
-
             if(rowsFound === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">No matching examination mapping records found for the selected granular class-subject scope.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-slate-400 italic">No examination mapping scope selected for this day.</td></tr>`;
             } else if(tfoot) {
                 tfoot.innerHTML = `
                     <tr class="text-slate-900 text-xs">
-                        <td colspan="2" class="px-3 py-2.5 text-right font-extrabold uppercase tracking-wide">Grand Total Summary:</td>
-                        <td class="px-3 py-2.5 text-center text-emerald-900 font-extrabold bg-emerald-100/60">${totalCombinedExaminees} Examinees</td>
-                        <td class="px-3 py-2.5 text-center text-amber-900 font-extrabold bg-amber-100/60">${totalQpRequired} Papers</td>
-                        <td colspan="2" class="px-3 py-2.5 text-slate-600 font-normal italic">Scope verified for seating arrangement & paper allocation.</td>
+                        <td colspan="2" class="px-3 py-2 text-right font-extrabold uppercase">Day Total Summary:</td>
+                        <td class="px-3 py-2 text-center text-emerald-900 font-extrabold bg-emerald-100/60">${totalCombinedExaminees} Examinees</td>
+                        <td class="px-3 py-2 text-center text-amber-900 font-extrabold bg-amber-100/60">${totalQpRequired} Papers</td>
+                        <td colspan="2" class="px-3 py-2 text-slate-600 font-normal italic">Scope ready for exam session.</td>
                     </tr>
                 `;
             }
-        }
-
-        // TEACHER ALLOTMENTS & COORDINATION ROSTER
-        function initTeacherFormSelectors() {
-            if(document.getElementById('teaching-allotments-container').children.length === 0) {
-                addTeachingRow();
-            }
-        }
-        function getDutyOptionsHtml(selectedVal = 'Self') {
-            let options = `<option value="Self" ${selectedVal === 'Self' ? 'selected' : ''}>Self (Same as Teacher)</option>`;
-            teachers.forEach(t => {
-                options += `<option value="${t.name}" ${selectedVal === t.name ? 'selected' : ''}>${t.name} (${t.desig})</option>`;
-            });
-            return options;
-        }
-        function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self') {
-            const container = document.getElementById('teaching-allotments-container');
-            const div = document.createElement('div'); div.className = "grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded border teaching-row items-center";
-            
-            let classOptionsHtml = '';
-            const classesList = getAllUniqueClasses();
-            classesList.forEach(c => {
-                classOptionsHtml += `<option value="${c}" ${selCls==c?'selected':''}>Class ${formatClass(c)}</option>`;
-            });
-
-            div.innerHTML = `
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase md:hidden">Class</label>
-                    <select class="text-xs p-1.5 border rounded cls-sel bg-white font-medium w-full" onchange="updateRowSectionsAndSubjects(this)">
-                        ${classOptionsHtml}
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase md:hidden">Section</label>
-                    <select class="text-xs p-1.5 border rounded sec-sel bg-white font-medium w-full" onchange="updateRowSubjects(this)"></select>
-                </div>
-                <div class="md:col-span-3">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase md:hidden">Subject</label>
-                    <select class="text-xs p-1.5 border rounded sub-sel bg-white font-medium w-full"></select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase">QP Setter</label>
-                    <select class="text-xs p-1.5 border rounded qp-sel bg-white font-medium w-full">${getDutyOptionsHtml(qpVal)}</select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase">Evaluator</label>
-                    <select class="text-xs p-1.5 border rounded eval-sel bg-white font-medium w-full">${getDutyOptionsHtml(evalVal)}</select>
-                </div>
-                <div class="md:col-span-1 text-right">
-                    <button type="button" onclick="this.closest('.teaching-row').remove()" class="text-red-600 font-bold px-2.5 py-1 bg-red-50 rounded border hover:bg-red-100">✕</button>
-                </div>`;
-            container.appendChild(div);
-            updateRowSectionsAndSubjects(div.querySelector('.cls-sel'), selSec, selSub);
-        }
-        function updateRowSectionsAndSubjects(clsElem, preSec = null, preSub = null) {
-            const row = clsElem.closest('.teaching-row'); const cls = clsElem.value; const secSel = row.querySelector('.sec-sel'); secSel.innerHTML = '';
-            const sectionsList = getAllSectionsForClass(cls);
-            sectionsList.forEach(s => {
-                secSel.innerHTML += `<option value="${s}" ${preSec==s?'selected':''}>Sec ${s}</option>`;
-            });
-            updateRowSubjects(secSel, preSub);
-        }
-        function updateRowSubjects(secElem, preSub = null) {
-            const row = secElem.closest('.teaching-row'); const cls = row.querySelector('.cls-sel').value; const sec = secElem.value; const subSel = row.querySelector('.sub-sel'); subSel.innerHTML = '';
-            (sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE']).forEach(sub => {
-                subSel.innerHTML += `<option value="${sub}" ${preSub==sub?'selected':''}>${sub}</option>`;
-            });
-        }
-        function saveTeacherDirect(e) {
-            e.preventDefault();
-            const name = document.getElementById('tch-name-input').value.trim();
-            if(!name) { alert("Please enter the teacher's full name."); return; }
-            const desig = document.getElementById('tch-desig-input').value.trim();
-            if(!desig) { alert("Please enter the teacher's designation and subject."); return; }
-            const editIndex = document.getElementById('tch-edit-index').value;
-
-            let allotments = [];
-            document.querySelectorAll('.teaching-row').forEach(row => {
-                allotments.push({
-                    cls: row.querySelector('.cls-sel').value,
-                    sec: row.querySelector('.sec-sel').value,
-                    subject: row.querySelector('.sub-sel').value,
-                    qpSetter: row.querySelector('.qp-sel').value || 'Self',
-                    evaluator: row.querySelector('.eval-sel').value || 'Self'
-                });
-            });
-
-            const teacherData = { id: editIndex !== '' ? teachers[editIndex].id : Date.now(), name, desig, allotments };
-
-            if(editIndex !== '') {
-                teachers[editIndex] = teacherData;
-            } else {
-                teachers.push(teacherData);
-            }
-
-            saveData();
-            resetTeacherForm();
-            renderTeachers();
-            renderClassTeacherCoordinationTable();
-            alert("Faculty assignment saved successfully!");
-            switchTab('teachers');
-        }
-        function resetTeacherForm() {
-            document.getElementById('tch-edit-index').value = '';
-            document.getElementById('tch-name-input').value = '';
-            document.getElementById('tch-desig-input').value = '';
-            document.getElementById('teaching-allotments-container').innerHTML = '';
-            addTeachingRow();
-        }
-        function editTeacher(id) {
-            const idx = teachers.findIndex(t => t.id === id);
-            if(idx === -1) return;
-            const t = teachers[idx];
-            document.getElementById('tch-edit-index').value = idx;
-            document.getElementById('tch-name-input').value = t.name;
-            document.getElementById('tch-desig-input').value = t.desig;
-            
-            const container = document.getElementById('teaching-allotments-container');
-            container.innerHTML = '';
-            if(t.allotments && t.allotments.length > 0) {
-                t.allotments.forEach(al => addTeachingRow(al.cls, al.sec, al.subject, al.qpSetter || 'Self', al.evaluator || 'Self'));
-            } else {
-                addTeachingRow();
-            }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        function deleteTeacher(id) {
-            if(confirm("Remove this teacher's assignment?")) {
-                teachers = teachers.filter(t => t.id !== id);
-                saveData();
-                renderTeachers();
-                renderClassTeacherCoordinationTable();
-                switchTab('teachers');
-            }
-        }
-        function renderTeachers() {
-            const tbody = document.getElementById('teacher-table-body'); 
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            
-            const searchTerm = (document.getElementById('faculty-search-input')?.value || '').trim().toLowerCase();
-            const filteredTeachers = teachers.filter(t => {
-                if(!searchTerm) return true;
-                let matchName = t.name.toLowerCase().includes(searchTerm);
-                let matchDesig = t.desig.toLowerCase().includes(searchTerm);
-                let matchAllotments = t.allotments && t.allotments.some(al => al.subject.toLowerCase().includes(searchTerm) || formatClass(al.cls).toLowerCase().includes(searchTerm));
-                return matchName || matchDesig || matchAllotments;
-            });
-
-            if(filteredTeachers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400 italic">No matching faculty assignments found. Use the form above to add one.</td></tr>`;
-                return;
-            }
-            filteredTeachers.forEach((t) => {
-                let totalStudentsAllotted = 0; 
-                let allotmentsHtml = '';
-                let dutiesHtml = '';
-                
-                if(t.allotments) {
-                    t.allotments.forEach(al => {
-                        let count = students.filter(s => String(s.class) === String(al.cls) && String(s.section) === String(al.sec)).length;
-                        totalStudentsAllotted += count;
-                        allotmentsHtml += `<div class="text-[11px]">• Class ${formatClass(al.cls)}-${al.sec}: <strong class="text-indigo-900">${al.subject}</strong> (${count} Booklets)</div>`;
-                        
-                        let qpText = al.qpSetter === 'Self' ? 'Self' : al.qpSetter;
-                        let evalText = al.evaluator === 'Self' ? 'Self' : al.evaluator;
-                        dutiesHtml += `<div class="text-[11px]">• Class ${formatClass(al.cls)}-${al.sec}: QP: <strong class="text-indigo-900">${qpText}</strong> | Eval: <strong class="text-indigo-900">${evalText}</strong></div>`;
-                    });
-                }
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 border-b">
-                        <td class="px-4 py-3 font-semibold">${t.name}<br><span class="px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${t.desig}</span></td>
-                        <td class="px-4 py-3">${allotmentsHtml || '<i>No allotments</i>'}</td>
-                        <td class="px-4 py-3">${dutiesHtml || '<i>No duties assigned</i>'}</td>
-                        <td class="px-4 py-3 text-center bg-indigo-50/50 font-bold text-indigo-900">${totalStudentsAllotted} Booklets</td>
-                        <td class="px-4 py-3 text-center bg-emerald-50/50 font-bold text-emerald-900">${t.allotments ? t.allotments.length : 0} Bundle(s)</td>
-                        <td class="px-4 py-3 text-right space-x-2">
-                            <button type="button" onclick="editTeacher(${t.id})" class="text-indigo-600 hover:underline font-bold">Edit</button>
-                            <button type="button" onclick="deleteTeacher(${t.id})" class="text-red-600 hover:underline font-bold">Delete</button>
-                        </td>
-                    </tr>`;
-            });
-        }
-        function renderClassTeacherCoordinationTable() {
-            const tbody = document.getElementById('ct-coordination-tbody');
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            
-            let classesList = getAllUniqueClasses();
-            classesList.forEach(cls => {
-                let sections = getAllSectionsForClass(cls);
-                sections.forEach(sec => {
-                    let key = `${cls}-${sec}`;
-                    let facOptions = '<option value="">-- Select --</option>';
-                    teachers.forEach(f => {
-                        facOptions += `<option value="${f.name}">${f.name} (${f.desig})</option>`;
-                    });
-                    tbody.innerHTML += `
-                        <tr class="border-b hover:bg-slate-50">
-                            <td class="px-4 py-2 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td>
-                            <td class="px-4 py-2"><select id="ct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
-                            <td class="px-4 py-2"><select id="coct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
-                            <td class="px-4 py-2 bg-indigo-50/30"><select id="onduty-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
-                        </tr>
-                    `;
-                });
-            });
-            classesList.forEach(cls => {
-                let sections = getAllSectionsForClass(cls);
-                sections.forEach(sec => {
-                    let key = `${cls}-${sec}`;
-                    let currentData = classTeacherAssignments[key];
-                    if(currentData) {
-                        if(document.getElementById(`ct-${key}`)) document.getElementById(`ct-${key}`).value = currentData.ct || '';
-                        if(document.getElementById(`coct-${key}`)) document.getElementById(`coct-${key}`).value = currentData.coCt || '';
-                        if(document.getElementById(`onduty-${key}`)) document.getElementById(`onduty-${key}`).value = currentData.assignedOnDuty || '';
-                    }
-                });
-            });
-        }
-        function saveClassTeacherAssignments() {
-            let classesList = getAllUniqueClasses();
-            classesList.forEach(cls => {
-                let sections = getAllSectionsForClass(cls);
-                sections.forEach(sec => {
-                    let key = `${cls}-${sec}`;
-                    classTeacherAssignments[key] = {
-                        ct: document.getElementById(`ct-${key}`)?.value || '',
-                        coCt: document.getElementById(`coct-${key}`)?.value || '',
-                        assignedOnDuty: document.getElementById(`onduty-${key}`)?.value || ''
-                    };
-                });
-            });
-            saveData();
-            alert("Class Teacher & Coordination Assignments saved successfully!");
-            switchTab('teachers');
         }
     </script>
 </body>
