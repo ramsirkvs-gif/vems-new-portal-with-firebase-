@@ -301,8 +301,8 @@
             { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT SCIENCE', allotments: [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }, { cls: '9', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }] }
         ];
 
+        // Active Exam, Saved Exams & Lifecycle State
         let isExamConfigOpen = false;
-        let activeExamId = null;
         let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
             { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
             { id: 'Half Yearly', label: 'Half Yearly Examination' },
@@ -316,12 +316,17 @@
             { id: 'Weekly Test', label: 'Weekly Test' },
             { id: 'Slip Test', label: 'Slip Test' }
         ];
-        
         let mainHeaderConfig = JSON.parse(localStorage.getItem('vems_header_config')) || {
             name: 'Half Yearly Examination',
             customName: '',
             fromDate: '2026-11-10',
-            toDate: '2026-11-15'
+            toDate: '2026-11-15',
+            duration: '3 Hours',
+            maxMarks: 80,
+            reportingTime: '08:00',
+            readingTime: '08:15',
+            startTime: '08:30',
+            overTime: '11:30'
         };
         let datesheetDays = JSON.parse(localStorage.getItem('vems_datesheet_draft')) || [];
         let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
@@ -376,11 +381,10 @@
 
         function syncActiveExamDraftToVault() {
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
-            if (!activeExamId) activeExamId = Date.now();
-            const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
+            const existingDraftIndex = archivedExams.findIndex(ex => ex.isDraft === true);
             
-            const examRecord = {
-                id: activeExamId,
+            const draftRecord = {
+                id: existingDraftIndex !== -1 ? archivedExams[existingDraftIndex].id : Date.now(),
                 title: examTitle,
                 fromDate: mainHeaderConfig.fromDate,
                 toDate: mainHeaderConfig.toDate,
@@ -392,10 +396,10 @@
                 headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
             };
 
-            if (existingIndex !== -1) {
-                archivedExams[existingIndex] = examRecord;
+            if (existingDraftIndex !== -1) {
+                archivedExams[existingDraftIndex] = draftRecord;
             } else {
-                archivedExams.push(examRecord);
+                archivedExams.push(draftRecord); // Appends as the next row in chronological order
             }
             saveData();
         }
@@ -629,35 +633,58 @@
         }
 
         // =========================================================================
-        // 🚀 PARTIAL SAVE WORKFLOW ENGINE & CLEAN SLOT ACTIONS
+        // 🚀 EXAM VAULT & FULLY FLEXIBLE HEADER WORKFLOW
         // =========================================================================
 
+        function toggleExamCreationPanel() {
+            isExamConfigOpen = !isExamConfigOpen;
+            if (isExamConfigOpen && datesheetDays.length === 0) {
+                datesheetDays = [{ id: 1, dateStr: '2026-11-10', isCollapsed: false, saved: false }];
+            }
+            renderExamCreatorModule();
+        }
+
+        // CREATES A CLEAN BRAND NEW EXAM FRESH IN ACTIVE WORKSPACE
         function startNewExamSetup() {
-            activeExamId = Date.now();
             mainHeaderConfig = {
                 name: 'Periodic Test 1 (PT-1)',
                 customName: '',
                 fromDate: new Date().toISOString().split('T')[0],
-                toDate: new Date().toISOString().split('T')[0]
+                toDate: new Date().toISOString().split('T')[0],
+                duration: '3 Hours',
+                maxMarks: 80,
+                reportingTime: '08:00',
+                readingTime: '08:15',
+                startTime: '08:30',
+                overTime: '11:30'
             };
-            datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false, paperSlots: [] }];
+            datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false }];
             isExamConfigOpen = true;
 
             syncActiveExamDraftToVault();
+            alert("✨ New Exam Initialized! Configure your header and datesheet below.");
             renderExamCreatorModule();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // SAVE / UPDATE MAIN EXAM HEADER (REMAINS FULLY FLEXIBLE)
         function saveMainHeaderConfig() {
             mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
             mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
             mainHeaderConfig.fromDate = document.getElementById('exam-from-date')?.value || '2026-11-10';
             mainHeaderConfig.toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
+            mainHeaderConfig.duration = document.getElementById('exam-duration-select')?.value || '3 Hours';
+            mainHeaderConfig.maxMarks = document.getElementById('exam-max-marks')?.value || 80;
+            mainHeaderConfig.reportingTime = document.getElementById('exam-rep-time')?.value || '08:00';
+            mainHeaderConfig.readingTime = document.getElementById('exam-read-time')?.value || '08:15';
+            mainHeaderConfig.startTime = document.getElementById('exam-start-time')?.value || '08:30';
+            mainHeaderConfig.overTime = document.getElementById('exam-over-time')?.value || '11:30';
 
             syncActiveExamDraftToVault();
-            alert("✅ Main Exam Title & Dates Saved Successfully!");
+            alert("✅ Main Examination Header Saved & Updated Successfully!");
+            renderExamCreatorModule();
         }
 
+        // DYNAMIC EXAM NAME SAVER & DROPDOWN UPDATER
         function saveCustomExamNameOption() {
             const val = document.getElementById('exam-name-custom')?.value?.trim();
             if (!val) {
@@ -677,20 +704,15 @@
             renderExamCreatorModule();
         }
 
-        function saveSpecificSlotConfig(dayId, slotId) {
-            syncActiveExamDraftToVault();
-            runDayAnalysisSearch(dayId);
-            alert(`✅ Paper Slot Configuration Saved!`);
-        }
-
+        // SAVE OR UPDATE INDIVIDUAL DAY SCOPE
         function saveOrUpdateDayConfig(dayId) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (dayObj) {
                 dayObj.saved = true;
                 dayObj.isCollapsed = true;
                 syncActiveExamDraftToVault();
+                alert(`✅ Scope for DAY ${dayId} Saved & Updated Successfully!`);
                 renderDatesheetDaysContainer();
-                alert(`✅ Full Day ${dayObj.id} Schedule Saved & Locked!`);
             }
         }
 
@@ -703,11 +725,10 @@
             }
         }
 
+        // JUMP TO ANY CREATED EXAM IN THE VAULT & KEEP FULLY UNLOCKED FOR EDITING
         function loadArchivedExamToEdit(id) {
             const target = archivedExams.find(ex => ex.id === id);
             if (!target) return;
-
-            activeExamId = target.id;
 
             if (target.headerSnapshot) {
                 mainHeaderConfig = JSON.parse(JSON.stringify(target.headerSnapshot));
@@ -720,19 +741,14 @@
             isExamConfigOpen = true;
 
             saveData();
-            renderExamCreatorModule();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function minimizeActiveWorkspace() {
-            isExamConfigOpen = false;
+            alert(`📂 Loaded Exam Schedule: "${target.title}" into active workspace! All fields are fully flexible and editable.`);
             renderExamCreatorModule();
         }
 
+        // DELETE CREATED EXAM FROM VAULT
         function deleteArchivedExam(id) {
             if (confirm("⚠️ Are you sure you want to delete this exam record from vault?")) {
                 archivedExams = archivedExams.filter(ex => ex.id !== id);
-                if (activeExamId === id) activeExamId = null;
                 saveData();
                 renderExamCreatorModule();
             }
@@ -742,41 +758,33 @@
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
 
             if (datesheetDays.length === 0) {
-                alert("⚠️ Cannot save an empty exam record! Add days to datesheet first.");
+                alert("⚠️ Cannot bind-up an empty exam record! Add days to datesheet first.");
                 return;
             }
 
-            if (!activeExamId) activeExamId = Date.now();
-            const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
+            archivedExams = archivedExams.filter(ex => !ex.isDraft);
 
             const examRecord = {
-                id: activeExamId,
+                id: Date.now(),
                 title: examTitle,
                 fromDate: mainHeaderConfig.fromDate,
                 toDate: mainHeaderConfig.toDate,
                 totalDays: datesheetDays.length,
                 status: 'COMPLETED',
-                isDraft: false,
                 archivedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
                 datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays)),
                 headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
             };
 
-            if (existingIndex !== -1) {
-                archivedExams[existingIndex] = examRecord;
-            } else {
-                archivedExams.push(examRecord);
-            }
-
-            isExamConfigOpen = false;
+            archivedExams.push(examRecord); // Appends as the next row chronologically
             saveData();
-            alert(`🎉 EXAM FULLY SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
+            alert(`🎉 EXAM FULLY BOUND UP & SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
             renderExamCreatorModule();
         }
 
         function getExamStatusBadge(ex) {
             if (ex.isDraft) {
-                return `<span class="bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📝 DRAFT</span>`;
+                return `<span class="bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📝 DRAFT / IN-PROGRESS</span>`;
             }
             const today = new Date().toISOString().split('T')[0];
             if (today >= ex.fromDate && today <= ex.toDate) {
@@ -810,6 +818,15 @@
             let startDate = new Date(fromDateVal);
             let endDate = toDateVal ? new Date(toDateVal) : new Date(fromDateVal);
 
+            const options = { weekday: 'long', timeZone: 'Asia/Kolkata' };
+            const startDay = new Intl.DateTimeFormat('en-IN', options).format(startDate);
+            const endDay = new Intl.DateTimeFormat('en-IN', options).format(endDate);
+            
+            const dayIndicator = document.getElementById('exam-ist-day-indicator');
+            if (dayIndicator) {
+                dayIndicator.textContent = startDate.getTime() === endDate.getTime() ? startDay : `${startDay} to ${endDay}`;
+            }
+
             mainHeaderConfig.fromDate = fromDateVal;
             mainHeaderConfig.toDate = toDateVal || fromDateVal;
 
@@ -818,7 +835,7 @@
             let dayIdx = 1;
             while (curr <= endDate && dayIdx <= 30) {
                 let dStr = curr.toISOString().split('T')[0];
-                datesheetDays.push({ id: dayIdx, dateStr: dStr, isCollapsed: dayIdx !== 1, saved: false, paperSlots: [] });
+                datesheetDays.push({ id: dayIdx, dateStr: dStr, isCollapsed: dayIdx !== 1, saved: false });
                 curr.setDate(curr.getDate() + 1);
                 dayIdx++;
             }
@@ -845,126 +862,10 @@
             let nextDateStr = lastDate.toISOString().split('T')[0];
             
             datesheetDays.forEach(d => d.isCollapsed = true);
-            datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false, saved: false, paperSlots: [] });
+            datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false, saved: false });
             syncActiveExamDraftToVault();
             renderDatesheetDaysContainer();
         }
-
-        // =========================================================================
-        // 💡 DYNAMIC SUBJECT-FIRST SLOT ALLOCATOR HELPERS
-        // =========================================================================
-
-        function addPaperSlotToDay(dayId) {
-            let dayObj = datesheetDays.find(d => d.id === dayId);
-            if (!dayObj) return;
-
-            if (!dayObj.paperSlots) dayObj.paperSlots = [];
-
-            let classesList = getAllUniqueClasses();
-            let defaultCls = classesList.includes('11') ? '11' : classesList[0];
-            let availableSubs = getUniqueSubjectsForClass(defaultCls);
-            let defaultSub = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
-
-            let slotId = Date.now() + Math.floor(Math.random() * 1000);
-            
-            dayObj.paperSlots.push({
-                slotId: slotId,
-                cls: defaultCls,
-                subject: defaultSub,
-                selectedSections: getAllSectionsWithSubject(defaultCls, defaultSub),
-                duration: '3 Hours',
-                maxMarks: 80,
-                repTime: '08:00',
-                readTime: '08:15',
-                startTime: '08:30',
-                overTime: '11:30'
-            });
-
-            syncActiveExamDraftToVault();
-            renderDatesheetDaysContainer();
-        }
-
-        function removePaperSlotFromDay(dayId, slotId) {
-            let dayObj = datesheetDays.find(d => d.id === dayId);
-            if (!dayObj || !dayObj.paperSlots) return;
-
-            dayObj.paperSlots = dayObj.paperSlots.filter(s => s.slotId !== slotId);
-            syncActiveExamDraftToVault();
-            renderDatesheetDaysContainer();
-        }
-
-        function getAllSectionsWithSubject(cls, subject) {
-            let matchingSections = [];
-            let allSecs = getAllSectionsForClass(cls);
-
-            allSecs.forEach(sec => {
-                let key = `${cls}-${sec}`;
-                let subs = sectionConfigs[key] || [];
-                if (subs.map(s => s.toUpperCase()).includes(subject.toUpperCase())) {
-                    matchingSections.push(sec);
-                }
-            });
-            return matchingSections;
-        }
-
-        function handleSlotClassChange(dayId, slotId, clsVal) {
-            let dayObj = datesheetDays.find(d => d.id === dayId);
-            if (!dayObj) return;
-            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
-            if (!slot) return;
-
-            slot.cls = clsVal;
-            let availableSubs = getUniqueSubjectsForClass(clsVal);
-            slot.subject = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
-            slot.selectedSections = getAllSectionsWithSubject(clsVal, slot.subject);
-
-            syncActiveExamDraftToVault();
-            renderDatesheetDaysContainer();
-        }
-
-        function handleSlotSubjectChange(dayId, slotId, subVal) {
-            let dayObj = datesheetDays.find(d => d.id === dayId);
-            if (!dayObj) return;
-            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
-            if (!slot) return;
-
-            slot.subject = subVal;
-            slot.selectedSections = getAllSectionsWithSubject(slot.cls, subVal);
-
-            syncActiveExamDraftToVault();
-            renderDatesheetDaysContainer();
-        }
-
-        function toggleSlotSection(dayId, slotId, secVal, isChecked) {
-            let dayObj = datesheetDays.find(d => d.id === dayId);
-            if (!dayObj) return;
-            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
-            if (!slot) return;
-
-            if (isChecked) {
-                if (!slot.selectedSections.includes(secVal)) slot.selectedSections.push(secVal);
-            } else {
-                slot.selectedSections = slot.selectedSections.filter(s => s !== secVal);
-            }
-
-            syncActiveExamDraftToVault();
-            runDayAnalysisSearch(dayId);
-        }
-
-        function updateSlotField(dayId, slotId, fieldName, val) {
-            let dayObj = datesheetDays.find(d => d.id === dayId);
-            if (!dayObj) return;
-            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
-            if (!slot) return;
-
-            slot[fieldName] = val;
-            syncActiveExamDraftToVault();
-            runDayAnalysisSearch(dayId);
-        }
-
-        // =========================================================================
-        // 📊 MODULE RENDER ENGINE WITH PRE-EXAM NEEDS HUB
-        // =========================================================================
 
         function renderExamCreatorModule() {
             const htmlContent = `
@@ -979,7 +880,7 @@
                             <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
                         </div>
 
-                        <!-- CLEAN MANDATORY NOTICE -->
+                        <!-- CLEAN MANDATORY NOTICE (TEXT ONLY, NO HYPERLINKS) -->
                         <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg space-y-1.5 shadow-xs">
                             <div class="flex items-center gap-2 font-bold text-amber-900 text-xs uppercase tracking-wide">
                                 <span>⚠️</span> Mandatory Pre-Flight Verification Notice for Exam IC
@@ -992,70 +893,40 @@
                         </div>
                     </div>
 
-                    <!-- 📚 CREATED EXAMINATIONS VAULT LIST -->
-                    <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md">
-                        <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
-                            <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-400">
-                                📚 Created Examinations Vault List (${archivedExams.length} Records)
-                            </h3>
-                            <div class="flex items-center gap-2">
-                                <button type="button" onclick="startNewExamSetup()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3.5 py-1.5 rounded shadow-xs flex items-center gap-1">
-                                    <span>➕</span> Create New Exam
-                                </button>
-                                <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded border border-slate-700">Click [Edit] on any exam to open workspace</span>
-                            </div>
+                    <!-- 🚀 FRESH AREA: CREATE NEW EXAM BUTTON & WORKSPACE TOGGLE -->
+                    <div class="flex items-center justify-between flex-wrap gap-3 bg-slate-50 p-4 rounded-xl border">
+                        <div class="space-y-0.5">
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wide">✨ Start New Exam Configuration</h3>
+                            <p class="text-[11px] text-slate-500">Initialize a fresh examination or open/hide your active workspace below.</p>
                         </div>
-
-                        ${archivedExams.length === 0 ? `
-                            <p class="text-xs text-slate-400 italic py-2">No exam schedules created yet. Click 'Create New Exam' above to start!</p>
-                        ` : `
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-xs text-left text-slate-200">
-                                    <thead class="bg-slate-800 uppercase font-semibold text-slate-300 border-b border-slate-700">
-                                        <tr>
-                                            <th class="px-3 py-2.5">Status</th>
-                                            <th class="px-3 py-2.5">Exam Title</th>
-                                            <th class="px-3 py-2.5">Schedule Duration</th>
-                                            <th class="px-3 py-2.5 text-center">Days</th>
-                                            <th class="px-3 py-2.5 text-right">Actions (Edit / Delete)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-800 bg-slate-900">
-                                        ${archivedExams.map((ex, index) => `
-                                            <tr class="hover:bg-slate-800/60 cursor-pointer" onclick="loadArchivedExamToEdit(${ex.id})">
-                                                <td class="px-3 py-2.5">${getExamStatusBadge(ex)}</td>
-                                                <td class="px-3 py-2.5 font-bold text-amber-300 underline">Exam-${index + 1}: ${ex.title}</td>
-                                                <td class="px-3 py-2.5 font-medium text-slate-300">${ex.fromDate} to ${ex.toDate}</td>
-                                                <td class="px-3 py-2.5 text-center text-slate-300 font-bold">${ex.totalDays} Days</td>
-                                                <td class="px-3 py-2.5 text-right space-x-1.5" onclick="event.stopPropagation()">
-                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-3 py-1 rounded shadow-xs">✏️ Edit</button>
-                                                    <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1 rounded">🗑️ Delete</button>
-                                                </td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        `}
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="startNewExamSetup()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-xs transition flex items-center gap-1.5">
+                                <span>➕</span> Create New Exam
+                            </button>
+                            <button type="button" onclick="toggleExamCreationPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                                <span>🚀</span> ${isExamConfigOpen ? 'Close Active Workspace' : 'Open Active Workspace'}
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- 📋 ACTIVE EXAM CONFIGURATION PANEL -->
+                    <!-- 📋 MAIN EXAM CONFIGURATION PANEL (FRESH ACTIVE AREA) -->
                     ${isExamConfigOpen ? `
                         <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
                             <div class="flex justify-between items-center border-b border-indigo-200 pb-2 flex-wrap gap-2">
                                 <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider">
-                                    📋 1. Main Examination Title & Schedule Metadata
+                                    📋 1. Main Examination Header Configuration
                                 </h3>
-                                <div class="flex items-center gap-2">
-                                    <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs flex items-center gap-1">
-                                        <span>💾</span> Save Title & Dates
+                                <div class="space-x-1.5">
+                                    <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
+                                        💾 Save Header
                                     </button>
-                                    <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded shadow-xs">
-                                        📁 Minimize
+                                    <button type="button" onclick="saveMainHeaderConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
+                                        🔄 Update Header
                                     </button>
                                 </div>
                             </div>
 
+                            <!-- UNLOCKED FIELDSET: FULL FLEXIBILITY TO SELECT EXAM NAME & DATES AT ANY TIME -->
                             <div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                     <div class="col-span-1 sm:col-span-2">
@@ -1065,6 +936,7 @@
                                             <option value="Other" ${mainHeaderConfig.name === 'Other' ? 'selected' : ''}>Other (Update Manually)</option>
                                         </select>
                                         
+                                        <!-- DYNAMIC CUSTOM EXAM FEEDER -->
                                         <div id="exam-name-custom-container" class="mt-2.5 flex items-center gap-2 ${mainHeaderConfig.name === 'Other' ? '' : 'hidden'}">
                                             <input type="text" id="exam-name-custom" value="${mainHeaderConfig.customName}" placeholder="Enter new exam title..." class="flex-grow text-xs p-2 border rounded bg-white font-medium">
                                             <button type="button" onclick="saveCustomExamNameOption()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs whitespace-nowrap">
@@ -1081,18 +953,57 @@
                                         <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">To Date</label>
                                         <input type="date" id="exam-to-date" value="${mainHeaderConfig.toDate}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded bg-white font-medium">
                                     </div>
+
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Day (Auto IST Google Calculation)</label>
+                                        <div id="exam-ist-day-indicator" class="text-xs font-bold text-indigo-900 p-2 bg-white rounded border border-indigo-200">
+                                            Tuesday to Sunday
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Duration</label>
+                                        <select id="exam-duration-select" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                            <option value="1 Hour" ${mainHeaderConfig.duration === '1 Hour' ? 'selected' : ''}>1 Hour</option>
+                                            <option value="1.5 Hours" ${mainHeaderConfig.duration === '1.5 Hours' ? 'selected' : ''}>1.5 Hours</option>
+                                            <option value="2 Hours" ${mainHeaderConfig.duration === '2 Hours' ? 'selected' : ''}>2 Hours</option>
+                                            <option value="2.5 Hours" ${mainHeaderConfig.duration === '2.5 Hours' ? 'selected' : ''}>2.5 Hours</option>
+                                            <option value="3 Hours" ${mainHeaderConfig.duration === '3 Hours' ? 'selected' : ''}>3 Hours</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Max Marks</label>
+                                        <input type="number" id="exam-max-marks" value="${mainHeaderConfig.maxMarks}" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reporting Time</label>
+                                        <input type="time" id="exam-rep-time" value="${mainHeaderConfig.reportingTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reading Time</label>
+                                        <input type="time" id="exam-read-time" value="${mainHeaderConfig.readingTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Exam Start Time</label>
+                                        <input type="time" id="exam-start-time" value="${mainHeaderConfig.startTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Exam Over / Commencement</label>
+                                        <input type="time" id="exam-over-time" value="${mainHeaderConfig.overTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- DAYWISE DATESHEET BUILDER -->
+                        <!-- DAYWISE DATESHEET BUILDER WITH STREAMLINED EDIT/SAVE/UPDATE CONTROLS -->
                         <div class="space-y-4 pt-2">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-2">
                                 <div>
                                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wide">
-                                        🗓️ Subject-First Collapsible Day-by-Day Datesheet & Parallel Slot Allocator
+                                        🗓️ Collapsible Day-by-Day Datesheet & Class Scope Allocator
                                     </h3>
-                                    <p class="text-[11px] text-slate-500">Select Standard & Subject to automatically reveal mapped sections and strength</p>
+                                    <p class="text-[11px] text-slate-500">Click any day bar to expand/collapse and manage scope</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button type="button" onclick="setAllDaysCollapseState(true)" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded border border-slate-300">
@@ -1112,17 +1023,50 @@
                                 </button>
                             </div>
                         </div>
-
-                        <!-- SAVE & MINIMIZE WORKSPACE BUTTON -->
-                        <div class="pt-4 border-t flex justify-between items-center">
-                            <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-5 py-2.5 rounded-lg transition flex items-center gap-1.5">
-                                <span>📁</span> Minimize Workspace
-                            </button>
-                            <button type="button" onclick="bindupAndSaveExamRecord()" class="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-md transition flex items-center gap-2">
-                                <span>💾</span> Save Full Exam & Vault Record
-                            </button>
-                        </div>
                     ` : ''}
+
+                    <!-- 📚 CREATED EXAMINATIONS VAULT TABLE (BELOW ACTIVE WORKSPACE) -->
+                    <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md mt-6">
+                        <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
+                            <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-400">
+                                📚 Created Examinations Vault List (${archivedExams.length} Records)
+                            </h3>
+                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded border border-slate-700">Click any exam to edit or update</span>
+                        </div>
+
+                        ${archivedExams.length === 0 ? `
+                            <p class="text-xs text-slate-400 italic py-2">No exam schedules created yet. Click 'Create New Exam' above to start!</p>
+                        ` : `
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left text-slate-200">
+                                    <thead class="bg-slate-800 uppercase font-semibold text-slate-300 border-b border-slate-700">
+                                        <tr>
+                                            <th class="px-3 py-2.5">Status</th>
+                                            <th class="px-3 py-2.5">Exam Title</th>
+                                            <th class="px-3 py-2.5">Schedule Duration</th>
+                                            <th class="px-3 py-2.5 text-center">Days</th>
+                                            <th class="px-3 py-2.5 text-right">Actions (Edit / Update / Delete)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-800 bg-slate-900">
+                                        ${archivedExams.map(ex => `
+                                            <tr class="hover:bg-slate-800/60 cursor-pointer" onclick="loadArchivedExamToEdit(${ex.id})">
+                                                <td class="px-3 py-2.5">${getExamStatusBadge(ex)}</td>
+                                                <td class="px-3 py-2.5 font-bold text-amber-300 underline">${ex.title}</td>
+                                                <td class="px-3 py-2.5 font-medium text-slate-300">${ex.fromDate} to ${ex.toDate}</td>
+                                                <td class="px-3 py-2.5 text-center text-slate-300 font-bold">${ex.totalDays} Days</td>
+                                                <td class="px-3 py-2.5 text-right space-x-1.5" onclick="event.stopPropagation()">
+                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">✏️ Edit</button>
+                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">🔄 Update</button>
+                                                    <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1 rounded">🗑️ Delete</button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `}
+                    </div>
 
                     <!-- OPERATIONAL LIFECYCLE & TASK STATUS REPORTING HUBS -->
                     <div class="border-t pt-6 space-y-4">
@@ -1131,52 +1075,48 @@
                         </h3>
 
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <!-- 1️⃣ PRE-EXAM READINESS (FULLY FUNCTIONAL DESIG) -->
-                            <div class="bg-indigo-50/80 border border-indigo-200 p-4 rounded-xl space-y-3 shadow-sm flex flex-col justify-between">
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold text-indigo-900 uppercase">1️⃣ Pre-Exam Needs</h4>
-                                        <span class="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Ready</span>
-                                    </div>
-                                    <p class="text-[11px] text-slate-600 leading-relaxed">
-                                        Generate QP print demands (+5%), seating arrangements, room desk slips, and invigilation rosters.
-                                    </p>
-                                </div>
-                                <button type="button" onclick="openPreExamModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 rounded shadow-xs transition">
-                                    🚀 Open Pre-Exam Center
-                                </button>
+                            <!-- PRE-EXAM READINESS -->
+                            <div class="bg-indigo-50/80 border border-indigo-200 p-4 rounded-xl space-y-3">
+                                <h4 class="text-xs font-bold text-indigo-900 uppercase flex items-center justify-between">
+                                    <span>1️⃣ Pre-Exam Needs</span>
+                                    <span class="bg-indigo-200 text-indigo-800 text-[10px] px-2 py-0.5 rounded-full">Ready</span>
+                                </h4>
+                                <ul class="text-[11px] space-y-1.5 text-slate-700">
+                                    <li class="flex items-center gap-1.5">✓ Question Paper Printing (+5%)</li>
+                                    <li class="flex items-center gap-1.5">✓ Seating & Desk Roll Slips</li>
+                                    <li class="flex items-center gap-1.5">✓ Invigilation Duty Slips</li>
+                                    <li class="flex items-center gap-1.5">✓ SAMAGAM Master Verification</li>
+                                </ul>
                             </div>
 
                             <!-- DURING EXAM -->
-                            <div class="bg-amber-50/80 border border-amber-200 p-4 rounded-xl space-y-3 flex flex-col justify-between">
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold text-amber-900 uppercase">2️⃣ During-Exam Tasks</h4>
-                                        <span class="bg-amber-200 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Live Monitor</span>
-                                    </div>
-                                    <ul class="text-[11px] space-y-1 text-slate-700">
-                                        <li>⚡ Attendance Sheet Signatures</li>
-                                        <li>⚡ Absentee Marking</li>
-                                        <li>⚡ Flying Squad / IC Vigilance</li>
-                                    </ul>
-                                </div>
-                                <span class="text-[10px] text-amber-800 italic text-center font-medium">Coming up in next phase</span>
+                            <div class="bg-amber-50/80 border border-amber-200 p-4 rounded-xl space-y-3">
+                                <h4 class="text-xs font-bold text-amber-900 uppercase flex items-center justify-between">
+                                    <span>2️⃣ During-Exam Tasks</span>
+                                    <span class="bg-amber-200 text-amber-800 text-[10px] px-2 py-0.5 rounded-full">Live Monitor</span>
+                                </h4>
+                                <ul class="text-[11px] space-y-1.5 text-slate-700">
+                                    <li class="flex items-center gap-1.5">⚡ Attendance Sheet Signatures</li>
+                                    <li class="flex items-center gap-1.5">⚡ Absentee Marking</li>
+                                    <li class="flex items-center gap-1.5">⚡ Flying Squad / IC Vigilance</li>
+                                    <li class="flex items-center gap-1.5">⚡ Answer Sheet Collection Count</li>
+                                </ul>
                             </div>
 
                             <!-- POST EXAM EVALUATION & SAMAGAM STATUS -->
-                            <div class="bg-emerald-50/80 border border-emerald-200 p-4 rounded-xl space-y-3 flex flex-col justify-between">
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold text-emerald-900 uppercase">3️⃣ Evaluation & SAMAGAM</h4>
-                                        <span class="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Reporting</span>
-                                    </div>
-                                    <ul class="text-[11px] space-y-1 text-slate-700">
-                                        <li>📋 Bundle Handover to Evaluators</li>
-                                        <li>📋 CT Marks Entry Verification</li>
-                                        <li class="font-bold text-indigo-900">🌐 SAMAGAM Portal Sync</li>
-                                    </ul>
-                                </div>
-                                <span class="text-[10px] text-emerald-800 italic text-center font-medium">Coming up in next phase</span>
+                            <div class="bg-emerald-50/80 border border-emerald-200 p-4 rounded-xl space-y-3">
+                                <h4 class="text-xs font-bold text-emerald-900 uppercase flex items-center justify-between">
+                                    <span>3️⃣ Evaluation & SAMAGAM</span>
+                                    <span class="bg-emerald-200 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full">Reporting</span>
+                                </h4>
+                                <ul class="text-[11px] space-y-1.5 text-slate-700">
+                                    <li class="flex items-center gap-1.5">📋 Bundle Handover to Evaluator</li>
+                                    <li class="flex items-center gap-1.5">📋 Evaluation Completion Progress</li>
+                                    <li class="flex items-center gap-1.5">📋 CT Marks Entry Verification</li>
+                                    <li class="flex items-center gap-1.5 font-bold text-indigo-900">
+                                        🌐 SAMAGAM Portal Sync
+                                    </li>
+                                </ul>
                             </div>
 
                             <!-- BIND-UP & PERMANENT ARCHIVE -->
@@ -1187,77 +1127,11 @@
                                         <span class="bg-purple-200 text-purple-800 text-[10px] px-2 py-0.5 rounded-full">Archive Vault</span>
                                     </h4>
                                     <p class="text-[11px] text-slate-600 leading-relaxed">
-                                        Finalize examination records, lock marks, and bind up complete audit logs into the Cloud Vault.
+                                        Finalize examination records, lock marks, and bind up complete operational audit logs into the Cloud Vault.
                                     </p>
                                 </div>
                                 <button type="button" onclick="bindupAndSaveExamRecord()" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs py-2.5 rounded shadow-xs transition">
-                                    📦 Save Full Record
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PRE-EXAM READINESS & LOGISTICS CENTER MODAL / EXPANDED DRAWER -->
-                <div id="pre-exam-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 no-print">
-                    <div class="bg-white rounded-xl max-w-4xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div class="flex justify-between items-center border-b pb-3">
-                            <div>
-                                <h3 class="text-base font-bold text-indigo-900 flex items-center gap-2">
-                                    <span>🟦</span> Pre-Exam Readiness & Logistics Center
-                                </h3>
-                                <p class="text-xs text-slate-500">Automated print orders, room allocations, desk slips, and invigilation rosters.</p>
-                            </div>
-                            <button type="button" onclick="closePreExamModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-3 py-1.5 rounded">✕ Close</button>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- CARD 1 -->
-                            <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
-                                <h4 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1.5">
-                                    <span>🖨️</span> 1. Question Paper Printing Demand (+5%)
-                                </h4>
-                                <p class="text-[11px] text-slate-600">Calculates exact examinee strength per subject and adds a safe 5% buffer rounded up for secure printing.</p>
-                                <button type="button" onclick="printQpOrderSheet()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
-                                    📄 Print QP Order Sheet
-                                </button>
-                            </div>
-
-                            <!-- CARD 2 -->
-                            <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-3">
-                                <h4 class="text-xs font-bold text-amber-900 uppercase flex items-center gap-1.5">
-                                    <span>🪑</span> 2. Smart Seating Plan & Desk Roll Slips
-                                </h4>
-                                <p class="text-[11px] text-slate-600">Mixes classes/sections across rooms and generates printable desk roll number stickers and door charts.</p>
-                                <div class="flex gap-2">
-                                    <button type="button" onclick="printDoorChart()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
-                                        📄 Door Chart
-                                    </button>
-                                    <button type="button" onclick="printDeskSlips()" class="bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
-                                        ✂️ Desk Slips
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- CARD 3 -->
-                            <div class="bg-purple-50/60 p-4 rounded-xl border border-purple-200 space-y-3">
-                                <h4 class="text-xs font-bold text-purple-900 uppercase flex items-center gap-1.5">
-                                    <span>👩‍🏫</span> 3. Invigilation Duty Roster Generator
-                                </h4>
-                                <p class="text-[11px] text-slate-600">Auto-assigns teachers based on workload while strictly preventing subject-teacher conflict in exam rooms.</p>
-                                <button type="button" onclick="printDutyRoster()" class="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
-                                    📋 Generate Duty Register
-                                </button>
-                            </div>
-
-                            <!-- CARD 4 -->
-                            <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 space-y-3">
-                                <h4 class="text-xs font-bold text-emerald-900 uppercase flex items-center gap-1.5">
-                                    <span>🌐</span> 4. SAMAGAM Pre-Flight Master Audit
-                                </h4>
-                                <p class="text-[11px] text-slate-600">Verifies roll number alignments, subject codes, and student section integrity before printing exam materials.</p>
-                                <button type="button" onclick="runSamagamAudit()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
-                                    🔍 Run Re-Verification Audit
+                                    📦 Bind-Up & Save Full Record
                                 </button>
                             </div>
                         </div>
@@ -1275,26 +1149,6 @@
             }
         }
 
-        // Pre-Exam Actions Handlers
-        function openPreExamModal() { document.getElementById('pre-exam-modal').classList.remove('hidden'); }
-        function closePreExamModal() { document.getElementById('pre-exam-modal').classList.add('hidden'); }
-
-        function printQpOrderSheet() {
-            window.print();
-        }
-        function printDoorChart() {
-            window.print();
-        }
-        function printDeskSlips() {
-            window.print();
-        }
-        function printDutyRoster() {
-            window.print();
-        }
-        function runSamagamAudit() {
-            alert("🟢 SAMAGAM Master Audit Completed Successfully!\n\n• Student Roll Number Format: 100% Valid\n• Subject Mappings: Fully Synchronized\n• Zero Unassigned Records Found.");
-        }
-
         function renderDatesheetDaysContainer() {
             const container = document.getElementById('datesheet-days-container');
             if (!container) return;
@@ -1307,107 +1161,39 @@
                 const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' };
                 let dateDisplay = isNaN(dDate.getTime()) ? `Day ${dayObj.id}` : new Intl.DateTimeFormat('en-IN', options).format(dDate);
 
-                if (!dayObj.paperSlots) dayObj.paperSlots = [];
+                let classCardsHtml = '';
+                classesList.forEach(c => {
+                    let secsForCls = getAllSectionsForClass(c);
+                    let classSubjects = getUniqueSubjectsForClass(c);
 
-                let slotsHtml = '';
+                    let secCheckboxes = secsForCls.map(s => `
+                        <label class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer">
+                            <input type="checkbox" value="${c}-${s}" class="day-${dayObj.id}-sec-item text-indigo-600 rounded" onchange="runDayAnalysisSearch(${dayObj.id})" checked>
+                            Sec ${s}
+                        </label>
+                    `).join('');
 
-                dayObj.paperSlots.forEach((slot, sIdx) => {
-                    let availableSubjects = getUniqueSubjectsForClass(slot.cls);
-                    let mappedSections = getAllSectionsWithSubject(slot.cls, slot.subject);
+                    let subOptionsHtml = `<option value="ALL">All Mapped Subjects</option>` + classSubjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
 
-                    let classOptions = classesList.map(c => `<option value="${c}" ${slot.cls === String(c) ? 'selected' : ''}>Class ${formatClass(c)}</option>`).join('');
-                    let subOptions = availableSubjects.map(sub => `<option value="${sub}" ${slot.subject === sub ? 'selected' : ''}>${sub}</option>`).join('');
-
-                    let sectionCheckboxes = mappedSections.map(sec => {
-                        let isChecked = slot.selectedSections.includes(sec);
-                        let secStudentsCount = students.filter(s => String(s.class) === String(slot.cls) && String(s.section) === String(sec)).length;
-                        return `
-                            <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-white px-2 py-1 rounded border border-indigo-200 shadow-2xs cursor-pointer">
-                                <input type="checkbox" value="${sec}" ${isChecked ? 'checked' : ''} onchange="toggleSlotSection(${dayObj.id}, ${slot.slotId}, '${sec}', this.checked)" class="text-indigo-600 rounded">
-                                Sec ${sec} (${secStudentsCount} STU)
-                            </label>
-                        `;
-                    }).join('');
-
-                    slotsHtml += `
-                        <div class="bg-white p-4 rounded-xl border border-indigo-200 space-y-3 shadow-xs">
-                            <div class="flex justify-between items-center border-b border-indigo-100 pb-2 flex-wrap gap-2">
-                                <div class="flex items-center gap-2">
-                                    <span class="bg-indigo-900 text-white text-[10px] font-bold px-2 py-0.5 rounded">SLOT ${sIdx + 1}</span>
-                                    <h5 class="text-xs font-bold text-indigo-950 uppercase">Scheduled Paper Slot Settings</h5>
-                                </div>
-                                
-                                <div class="flex items-center gap-2">
-                                    <button type="button" onclick="saveSpecificSlotConfig(${dayObj.id}, ${slot.slotId})" class="text-[11px] bg-indigo-700 hover:bg-indigo-800 text-white font-bold px-3 py-1 rounded shadow-2xs flex items-center gap-1">
-                                        <span>💾</span> Save Slot
-                                    </button>
-                                    <button type="button" onclick="removePaperSlotFromDay(${dayObj.id}, ${slot.slotId})" class="text-[11px] bg-red-50 hover:bg-red-100 text-red-600 font-bold px-2.5 py-1 rounded border border-red-200">
-                                        🗑️ Remove Slot
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- SUBJECT-FIRST ALLOCATION DROPDOWNS -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">1️⃣ Select Standard</label>
-                                    <select onchange="handleSlotClassChange(${dayObj.id}, ${slot.slotId}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-slate-50 text-indigo-900 border-indigo-200">
-                                        ${classOptions}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">2️⃣ Select Subject (Mapped)</label>
-                                    <select onchange="handleSlotSubjectChange(${dayObj.id}, ${slot.slotId}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-white text-indigo-900 border-indigo-300">
-                                        ${subOptions}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">⏱️ Duration</label>
-                                    <select onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'duration', this.value)" class="w-full text-xs p-2 border rounded bg-white font-medium">
-                                        <option value="1 Hour" ${slot.duration === '1 Hour' ? 'selected' : ''}>1 Hour</option>
-                                        <option value="1.5 Hours" ${slot.duration === '1.5 Hours' ? 'selected' : ''}>1.5 Hours</option>
-                                        <option value="2 Hours" ${slot.duration === '2 Hours' ? 'selected' : ''}>2 Hours</option>
-                                        <option value="2.5 Hours" ${slot.duration === '2.5 Hours' ? 'selected' : ''}>2.5 Hours</option>
-                                        <option value="3 Hours" ${slot.duration === '3 Hours' ? 'selected' : ''}>3 Hours</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">🎯 Max Marks</label>
-                                    <input type="number" value="${slot.maxMarks}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'maxMarks', this.value)" class="w-full text-xs p-2 border rounded bg-white font-medium">
-                                </div>
-                            </div>
-
-                            <!-- MAPPED SECTIONS FOUND FOR SUBJECT -->
-                            <div class="bg-indigo-50/60 p-3 rounded-lg border border-indigo-100 space-y-1.5">
-                                <label class="block text-[10px] font-bold text-indigo-900 uppercase">
-                                    📌 Mapped Sections Found for Standard ${formatClass(slot.cls)} - ${slot.subject}:
+                    classCardsHtml += `
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2 shadow-xs">
+                            <div class="flex items-center justify-between border-b pb-1.5">
+                                <label class="font-bold text-xs text-indigo-900 inline-flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" value="${c}" class="day-${dayObj.id}-cls-parent text-indigo-700 rounded" onchange="toggleDayClassSections(${dayObj.id}, '${c}', this)" checked>
+                                    Class ${formatClass(c)}
                                 </label>
-                                <div class="flex flex-wrap gap-2">
-                                    ${mappedSections.length > 0 ? sectionCheckboxes : `<span class="text-xs text-slate-400 italic">No sections mapped for this subject.</span>`}
-                                </div>
+                                <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100">${secsForCls.length} Secs</span>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-1 pt-0.5" id="day-${dayObj.id}-cls-secs-${c}">
+                                ${secCheckboxes}
                             </div>
 
-                            <!-- TIMING WINDOW FOR SLOT -->
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-100">
-                                <div>
-                                    <label class="block text-[9px] font-bold text-slate-500 uppercase">🕒 Reporting Time</label>
-                                    <input type="time" value="${slot.repTime}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'repTime', this.value)" class="w-full text-[11px] p-1 border rounded bg-white">
-                                </div>
-                                <div>
-                                    <label class="block text-[9px] font-bold text-slate-500 uppercase">📖 Reading Time</label>
-                                    <input type="time" value="${slot.readTime}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'readTime', this.value)" class="w-full text-[11px] p-1 border rounded bg-white">
-                                </div>
-                                <div>
-                                    <label class="block text-[9px] font-bold text-slate-500 uppercase">⚡ Start Time</label>
-                                    <input type="time" value="${slot.startTime}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'startTime', this.value)" class="w-full text-[11px] p-1 border rounded bg-white font-bold text-indigo-900">
-                                </div>
-                                <div>
-                                    <label class="block text-[9px] font-bold text-slate-500 uppercase">🔔 Exam Over</label>
-                                    <input type="time" value="${slot.overTime}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'overTime', this.value)" class="w-full text-[11px] p-1 border rounded bg-white font-bold text-indigo-900">
-                                </div>
+                            <div class="pt-1 border-t border-slate-100">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">📖 Subject (Class ${formatClass(c)})</label>
+                                <select id="day-${dayObj.id}-sub-cls-${c}" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-xs p-1.5 border border-indigo-200 rounded bg-slate-50 font-bold text-indigo-950 focus:bg-white">
+                                    ${subOptionsHtml}
+                                </select>
                             </div>
                         </div>
                     `;
@@ -1416,7 +1202,7 @@
                 let dayCard = document.createElement('div');
                 dayCard.className = `border rounded-xl overflow-hidden shadow-xs transition ${dayObj.saved ? 'bg-slate-100 border-slate-400' : 'bg-slate-50 border-indigo-300'}`;
                 dayCard.innerHTML = `
-                    <!-- DAY HEADER BAR -->
+                    <!-- DAY HEADER BAR WITH EDIT, SAVE, UPDATE CONTROLS -->
                     <div onclick="toggleDayAccordion(${dayObj.id})" class="p-3.5 flex items-center justify-between cursor-pointer border-b border-slate-200 select-none ${dayObj.saved ? 'bg-slate-200/80' : 'bg-slate-100 hover:bg-indigo-50'}">
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
@@ -1430,13 +1216,17 @@
                             </span>
                             <input type="date" value="${dayObj.dateStr}" ${dayObj.saved ? 'disabled' : ''} onchange="dayObj.dateStr=this.value; syncActiveExamDraftToVault(); renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
                             
+                            <!-- STREAMLINED DAY BUTTONS: EDIT, SAVE, UPDATE -->
                             ${dayObj.saved ? `
-                                <button type="button" onclick="editDayConfig(${dayObj.id})" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1 rounded shadow-xs">
-                                    ✏️ Edit Day ${dayObj.id}
+                                <button type="button" onclick="editDayConfig(${dayObj.id})" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-2.5 py-1 rounded shadow-xs">
+                                    ✏️ Edit
+                                </button>
+                                <button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded shadow-xs">
+                                    🔄 Update
                                 </button>
                             ` : `
-                                <button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow-xs flex items-center gap-1">
-                                    <span>💾</span> Save Day ${dayObj.id}
+                                <button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow-xs">
+                                    💾 Save
                                 </button>
                             `}
 
@@ -1449,46 +1239,33 @@
                     <!-- DAY BODY CONTENT -->
                     <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-4 bg-slate-50/50">
                         <fieldset ${dayObj.saved ? 'disabled' : ''} class="${dayObj.saved ? 'opacity-80 pointer-events-none' : ''}">
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center border-b pb-2">
-                                    <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Scheduled Paper Slots for ${dateDisplay}</label>
-                                    <button type="button" onclick="addPaperSlotToDay(${dayObj.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded shadow-xs flex items-center gap-1">
-                                        <span>➕ Add Scheduled Paper Slot</span>
-                                    </button>
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (Scope for Day ${dayObj.id})</label>
+                                    <div class="space-x-1.5">
+                                        <button type="button" onclick="setDaySelections(${dayObj.id}, true)" class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
+                                        <button type="button" onclick="setDaySelections(${dayObj.id}, false)" class="text-[10px] bg-white text-slate-700 font-bold px-2 py-1 rounded border border-indigo-200">Deselect All</button>
+                                    </div>
                                 </div>
 
-                                ${dayObj.paperSlots.length === 0 ? `
-                                    <div class="p-4 bg-white rounded-lg border border-dashed text-center text-slate-400 text-xs italic">
-                                        No paper slots scheduled for this day yet. Click 'Add Scheduled Paper Slot' above to configure!
-                                    </div>
-                                ` : `
-                                    <div class="space-y-3">${slotsHtml}</div>
-                                `}
-
-                                ${dayObj.paperSlots.length > 0 ? `
-                                    <div class="pt-2 flex justify-start">
-                                        <button type="button" onclick="addPaperSlotToDay(${dayObj.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded shadow-xs flex items-center gap-1">
-                                            <span>➕ Add Another Scheduled Paper Slot</span>
-                                        </button>
-                                    </div>
-                                ` : ''}
+                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-1.5 bg-white rounded border">
+                                    ${classCardsHtml}
+                                </div>
                             </div>
                         </fieldset>
 
                         <div class="space-y-1.5 pt-2">
-                            <h5 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">📊 Consolidated Scheduled Papers Summary (${dateDisplay})</h5>
+                            <h5 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">📊 Detailed Examination Summary for ${dateDisplay}</h5>
                             <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
                                 <table class="w-full text-xs text-left text-slate-700">
                                     <thead class="bg-indigo-900 text-white uppercase font-semibold">
                                         <tr>
-                                            <th class="px-3 py-2">Standard & Sections</th>
-                                            <th class="px-3 py-2">Scheduled Subject</th>
-                                            <th class="px-3 py-2 text-center">Duration & Max Marks</th>
-                                            <th class="px-3 py-2 text-center">Exam Window</th>
-                                            <th class="px-3 py-2 text-center">Total Examinees</th>
-                                            <th class="px-3 py-2 text-center">QP Print Demand (+5%)</th>
-                                            <th class="px-3 py-2">QP Setter</th>
-                                            <th class="px-3 py-2">Evaluator</th>
+                                            <th class="px-3 py-2">Class & Section</th>
+                                            <th class="px-3 py-2">Selected Subject</th>
+                                            <th class="px-3 py-2 text-center">Examinees Count</th>
+                                            <th class="px-3 py-2 text-center">QP Demand (+5%)</th>
+                                            <th class="px-3 py-2">QP Setter Name (To Inform)</th>
+                                            <th class="px-3 py-2">Evaluator Name</th>
                                         </tr>
                                     </thead>
                                     <tbody id="day-${dayObj.id}-tbody" class="divide-y bg-white"></tbody>
@@ -1503,6 +1280,20 @@
             });
         }
 
+        function toggleDayClassSections(dayId, cls, parentCb) {
+            const container = document.getElementById(`day-${dayId}-cls-secs-${cls}`);
+            if(!container) return;
+            const checkboxes = container.querySelectorAll(`.day-${dayId}-sec-item`);
+            checkboxes.forEach(cb => cb.checked = parentCb.checked);
+            runDayAnalysisSearch(dayId);
+        }
+
+        function setDaySelections(dayId, status) {
+            document.querySelectorAll(`.day-${dayId}-cls-parent`).forEach(cb => cb.checked = status);
+            document.querySelectorAll(`.day-${dayId}-sec-item`).forEach(cb => cb.checked = status);
+            runDayAnalysisSearch(dayId);
+        }
+
         function runDayAnalysisSearch(dayId) {
             const tbody = document.getElementById(`day-${dayId}-tbody`);
             const tfoot = document.getElementById(`day-${dayId}-tfoot`);
@@ -1512,63 +1303,69 @@
             tbody.innerHTML = '';
             if(tfoot) tfoot.innerHTML = '';
 
-            let dayObj = datesheetDays.find(d => d.id === dayId);
-            if (!dayObj || !dayObj.paperSlots || dayObj.paperSlots.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-slate-400 italic">No scheduled papers configured for this date.</td></tr>`;
-                if (quickSummaryElem) quickSummaryElem.textContent = `📊 Scope: 0 Papers | 0 Examinees`;
-                return;
-            }
+            const selectedSectionKeys = Array.from(document.querySelectorAll(`.day-${dayId}-sec-item:checked`)).map(cb => cb.value);
 
+            let rowsFound = 0;
             let totalCombinedExaminees = 0;
             let totalQpRequired = 0;
+            let classesList = getAllUniqueClasses();
 
-            dayObj.paperSlots.forEach(slot => {
-                let secList = slot.selectedSections || [];
-                if (secList.length === 0) return;
+            classesList.forEach(cls => {
+                let classSubFilter = document.getElementById(`day-${dayId}-sub-cls-${cls}`)?.value || 'ALL';
+                let sections = getAllSectionsForClass(cls);
 
-                let totalExamineesForSlot = 0;
-                secList.forEach(sec => {
-                    let count = students.filter(s => String(s.class) === String(slot.cls) && String(s.section) === String(sec)).length;
-                    totalExamineesForSlot += count;
+                sections.forEach(sec => {
+                    let secKey = `${cls}-${sec}`;
+                    if(!selectedSectionKeys.includes(secKey)) return;
+
+                    let subs = sectionConfigs[secKey] || [];
+                    let classStudents = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
+
+                    subs.forEach(sub => {
+                        if(classSubFilter !== 'ALL' && sub.toUpperCase() !== classSubFilter.toUpperCase()) return;
+
+                        let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(cls) && String(al.sec) === String(sec) && al.subject.toUpperCase() === sub.toUpperCase()));
+                        
+                        let teacherName = assignedTeacher ? assignedTeacher.name : 'Unassigned';
+                        let qpSetter = assignedTeacher ? (assignedTeacher.qpSetter || 'Self') : '-';
+                        let evaluator = assignedTeacher ? (assignedTeacher.evaluator || 'Self') : '-';
+
+                        if(qpSetter === 'Self') qpSetter = teacherName;
+                        if(evaluator === 'Self') evaluator = teacherName;
+
+                        let classSecTitle = `Class ${formatClass(cls)}-${sec}`;
+                        let examineeCount = classStudents.length;
+                        let qpCount = Math.ceil(examineeCount * 1.05);
+
+                        rowsFound++;
+                        totalCombinedExaminees += examineeCount;
+                        totalQpRequired += qpCount;
+
+                        let tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 border-b";
+                        tr.innerHTML = `
+                            <td class="px-3 py-2 font-bold text-indigo-900">${classSecTitle}</td>
+                            <td class="px-3 py-2 font-bold text-slate-800"><span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-100">${sub}</span></td>
+                            <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${examineeCount} Examinees</td>
+                            <td class="px-3 py-2 text-center font-bold text-amber-800 bg-amber-50/40">${qpCount} Papers</td>
+                            <td class="px-3 py-2 text-indigo-900 font-bold">👤 ${qpSetter}</td>
+                            <td class="px-3 py-2 text-slate-700">${evaluator}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
                 });
-
-                let qpDemand = Math.ceil(totalExamineesForSlot * 1.05);
-
-                totalCombinedExaminees += totalExamineesForSlot;
-                totalQpRequired += qpDemand;
-
-                let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(slot.cls) && al.subject.toUpperCase() === slot.subject.toUpperCase()));
-                
-                let teacherName = assignedTeacher ? assignedTeacher.name : 'Unassigned';
-                let qpSetter = assignedTeacher ? (assignedTeacher.qpSetter || 'Self') : '-';
-                let evaluator = assignedTeacher ? (assignedTeacher.evaluator || 'Self') : '-';
-
-                if(qpSetter === 'Self') qpSetter = teacherName;
-                if(evaluator === 'Self') evaluator = teacherName;
-
-                let tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 border-b text-xs";
-                tr.innerHTML = `
-                    <td class="px-3 py-2 font-bold text-indigo-900">Class ${formatClass(slot.cls)} - Sec ${secList.join(', ')}</td>
-                    <td class="px-3 py-2 font-bold text-slate-800"><span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-100">${slot.subject}</span></td>
-                    <td class="px-3 py-2 text-center font-semibold text-slate-700">${slot.duration} | ${slot.maxMarks} Marks</td>
-                    <td class="px-3 py-2 text-center font-bold text-indigo-900 bg-indigo-50/30">${slot.startTime} to ${slot.overTime}</td>
-                    <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${totalExamineesForSlot} Examinees</td>
-                    <td class="px-3 py-2 text-center font-bold text-amber-800 bg-amber-50/40">${qpDemand} Papers</td>
-                    <td class="px-3 py-2 text-indigo-900 font-bold">👤 ${qpSetter}</td>
-                    <td class="px-3 py-2 text-slate-700">${evaluator}</td>
-                `;
-                tbody.appendChild(tr);
             });
 
             if (quickSummaryElem) {
-                quickSummaryElem.textContent = `📊 Scope: ${dayObj.paperSlots.length} Papers | ${totalCombinedExaminees} Examinees | ${totalQpRequired} QPs`;
+                quickSummaryElem.textContent = `📊 Scope: ${rowsFound} Classes/Subs | ${totalCombinedExaminees} Examinees | ${totalQpRequired} QPs`;
             }
 
-            if(tfoot) {
+            if(rowsFound === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-slate-400 italic">No examination mapping scope selected for this day.</td></tr>`;
+            } else if(tfoot) {
                 tfoot.innerHTML = `
                     <tr class="text-slate-900 text-xs">
-                        <td colspan="4" class="px-3 py-2 text-right font-extrabold uppercase">Day Total Summary:</td>
+                        <td colspan="2" class="px-3 py-2 text-right font-extrabold uppercase">Day Total Summary:</td>
                         <td class="px-3 py-2 text-center text-emerald-900 font-extrabold bg-emerald-100/60">${totalCombinedExaminees} Examinees</td>
                         <td class="px-3 py-2 text-center text-amber-900 font-extrabold bg-amber-100/60">${totalQpRequired} Papers</td>
                         <td colspan="2" class="px-3 py-2 text-slate-600 font-normal italic">Scope ready for exam session.</td>
