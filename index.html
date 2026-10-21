@@ -126,7 +126,7 @@
             </div>
         </div>
 
-        <!-- AREA 2: PRINCIPAL WORKSPACE (Tabs 1, 2, 3, 4 + Settings) -->
+        <!-- AREA 2: PRINCIPAL WORKSPACE -->
         <div id="area-principal" class="hidden space-y-6">
             <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
                 <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping (Secondary)</button>
@@ -146,7 +146,6 @@
                         </div>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
-                        <!-- Controls for Class/Section creation & deletion -->
                         <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-3 rounded border shadow-sm">
                             <div class="flex items-center gap-3 flex-wrap">
                                 <div>
@@ -178,7 +177,7 @@
                     </div>
                 </div>
 
-                <!-- CONSOLIDATED CLASS-SUBJECT MAPPING LIST & SEARCH -->
+                <!-- CONSOLIDATED DIRECTORY -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b pb-3">
                         <div>
@@ -237,19 +236,9 @@
                         <tbody id="student-table-body" class="divide-y bg-white"></tbody>
                     </table>
                 </div>
-                <div class="hidden print:block space-y-4 pt-3 border-t mt-3">
-                    <p class="text-[10px] text-slate-800 italic border-l-4 border-slate-800 pl-2">
-                        <strong>📌 Note for Class Teacher / Exam Coordinator:</strong> Please thoroughly verify student roll numbers and elective subject choices from SAMAGAM mapping/CBSE/physically by student. Report any discrepancies immediately to the Exam Control Room prior to datesheet printing.
-                    </p>
-                    <div class="grid grid-cols-3 gap-4 pt-6 text-[11px] text-center font-bold">
-                        <div><p class="border-t border-slate-400 pt-1">Class Teacher Signature</p></div>
-                        <div><p class="border-t border-slate-400 pt-1">Co-Class Teacher Signature</p></div>
-                        <div><p class="border-t border-slate-400 pt-1">Exam In-Charge Signature</p></div>
-                    </div>
-                </div>
             </section>
 
-            <!-- MODULE 3: FACULTY MANAGER (SECONDARY) -->
+            <!-- MODULE 3: FACULTY MANAGER -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
                 <div class="space-y-6">
                     <div class="border-b pb-4">
@@ -257,7 +246,6 @@
                         <p class="text-xs text-slate-500">Manage faculty profiles, teaching workloads, and class-wise exam duties in one place.</p>
                     </div>
 
-                    <!-- SINGLE COMPACT FACULTY ENTRY & ASSIGNMENT CARD -->
                     <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
                         <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
                             <span>➕</span> Add / Edit Secondary Faculty Member & Duty Allotments
@@ -290,7 +278,6 @@
                         </form>
                     </div>
 
-                    <!-- FACULTY DISPLAY MASTER TABLE -->
                     <div class="space-y-3">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Secondary Faculty Roster & Workload Overview</h3>
@@ -315,78 +302,14 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- CLASS TEACHER COORDINATION ROSTER -->
-                <div class="border-t pt-6 space-y-4">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <span>🏫</span> Secondary Class Teacher & Data Coordination Roster
-                            </h3>
-                            <p class="text-xs text-slate-500">Assign Class Teachers, Co-Class Teachers, and backup On-Duty Coordinators section-by-section.</p>
-                        </div>
-                        <button type="button" onclick="saveClassTeacherAssignments()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded shadow transition">
-                            💾 Save Coordination Assignments
-                        </button>
-                    </div>
-                    <div class="overflow-x-auto border rounded-lg shadow-sm">
-                        <table class="w-full text-xs text-left text-slate-700">
-                            <thead class="bg-indigo-900 text-white uppercase font-semibold">
-                                <tr>
-                                    <th class="px-4 py-3">Class & Section</th>
-                                    <th class="px-4 py-3">Class Teacher (CT)</th>
-                                    <th class="px-4 py-3">Co-Class Teacher (Co-CT)</th>
-                                    <th class="px-4 py-3 bg-indigo-950">Assigned On-Duty Teacher <span class="text-[10px] text-amber-300 block normal-case font-normal">(Backup when CT/Co-CT unavailable)</span></th>
-                                </tr>
-                            </thead>
-                            <tbody id="ct-coordination-tbody" class="divide-y bg-white"></tbody>
-                        </table>
-                    </div>
-                </div>
             </section>
 
-            <!-- MODULE 4 IN PRINCIPAL VIEW: EXAM CREATOR SUPERVISORY VIEW -->
-            <section id="sec-exam-creator-prin" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
-                <div class="border-b pb-4 flex justify-between items-center">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900">📊 4. Exam Creator (Secondary)</h2>
-                        <p class="text-xs text-slate-500">Full inspection and override control over Secondary Exam In-Charge workflows.</p>
-                    </div>
-                    <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">Principal Override Mode</span>
-                </div>
-                <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
-                    <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                        <span>🔍</span> Universal Headcount & QP Print Demand Query (Secondary View)
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-700 mb-1">Select Class</label>
-                            <select id="prin-query-class" onchange="updateQuerySections(); runCustomQuery();" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium"></select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label>
-                            <select id="prin-query-section" onchange="updateQuerySubjects(); runCustomQuery();" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium">
-                                <option value="ALL">All Sections</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-700 mb-1">Select Subject</label>
-                            <select id="prin-query-subject" onchange="runCustomQuery()" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium">
-                                <option value="ALL">All Subjects</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="prin-query-result-box" class="bg-white border border-indigo-200 rounded-lg p-4 space-y-3 mt-3 shadow-sm">
-                        <div class="flex justify-between items-center text-xs text-indigo-900 font-bold border-b pb-2">
-                            <span id="prin-query-result-title">Query Results</span>
-                            <span id="prin-query-result-badge" class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-mono">0 Examinees</span>
-                        </div>
-                        <div id="prin-query-result-details" class="text-xs text-slate-700 space-y-1">Select filters above.</div>
-                    </div>
-                </div>
+            <!-- MODULE 4 IN PRINCIPAL VIEW: EXAM CREATOR -->
+            <section id="sec-exam-creator-prin" class="space-y-6 hidden">
+                <div id="exam-analysis-container-prin"></div>
             </section>
 
-            <!-- SETTINGS: PASSWORD & ACCESS MANAGER -->
+            <!-- SETTINGS -->
             <section id="sec-settings" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
                 <div class="border-b pb-4">
                     <h2 class="text-xl font-bold text-slate-900">🛡️ System Security & Password Management</h2>
@@ -423,38 +346,35 @@
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                 <div class="flex justify-between items-center border-b pb-4">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">📊 4. Secondary Exam Creator & Data Analysis Hub (Classes VI–XII)</h2>
-                        <p class="text-xs text-slate-500">Generate datasheets, seating arrangements, duty charts, and track question paper demands.</p>
+                        <h2 class="text-xl font-bold text-slate-900">📊 4. Secondary Exam Creator & Operational Control Hub</h2>
+                        <p class="text-xs text-slate-500">Read-only examination analysis, coupled with active exam generation utilities.</p>
                     </div>
                 </div>
-                <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
-                    <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                        <span>🔍</span> Interactive Exam Demand & Headcount Query Tool
+
+                <!-- SECTION 1: STRICT READ-ONLY DATA ANALYSIS TILE AREA -->
+                <div id="exam-analysis-container-sec"></div>
+
+                <!-- SECTION 2: ACTIVE EXAM CREATION TOOLKIT (INTERACTIVE) -->
+                <div class="border-t pt-6 space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                        <span>⚡</span> Exam Creator Interactive Utilities
                     </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-700 mb-1">Select Class</label>
-                            <select id="query-class" onchange="updateQuerySections(); runCustomQuery();" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium"></select>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-indigo-50/70 border border-indigo-200 p-4 rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-indigo-900 uppercase">📅 Datesheet Creator</h4>
+                            <p class="text-[11px] text-slate-600">Draft exam timetables and subject schedule grids.</p>
+                            <button type="button" onclick="alert('Datesheet Module Ready!')" class="w-full bg-indigo-600 text-white text-xs font-semibold py-2 rounded shadow-sm">Open Timetable Tool</button>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label>
-                            <select id="query-section" onchange="updateQuerySubjects(); runCustomQuery();" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium">
-                                <option value="ALL">All Sections</option>
-                            </select>
+                        <div class="bg-emerald-50/70 border border-emerald-200 p-4 rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-emerald-900 uppercase">🪑 Room & Seating Allocator</h4>
+                            <p class="text-[11px] text-slate-600">Generate seating roll lists and room door charts.</p>
+                            <button type="button" onclick="alert('Seating Allocator Ready!')" class="w-full bg-emerald-600 text-white text-xs font-semibold py-2 rounded shadow-sm">Open Seating Tool</button>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-700 mb-1">Select Subject</label>
-                            <select id="query-subject" onchange="runCustomQuery()" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium">
-                                <option value="ALL">All Subjects</option>
-                            </select>
+                        <div class="bg-sky-50/70 border border-sky-200 p-4 rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-sky-900 uppercase">📜 Invigilation Roster</h4>
+                            <p class="text-[11px] text-slate-600">Assign exam duty slots and print room duty slips.</p>
+                            <button type="button" onclick="alert('Invigilation Roster Ready!')" class="w-full bg-sky-600 text-white text-xs font-semibold py-2 rounded shadow-sm">Open Duty Roster</button>
                         </div>
-                    </div>
-                    <div id="query-result-box" class="bg-white border border-indigo-200 rounded-lg p-4 space-y-3 mt-3 shadow-sm">
-                        <div class="flex justify-between items-center text-xs text-indigo-900 font-bold border-b pb-2">
-                            <span id="query-result-title">Query Results</span>
-                            <span id="query-result-badge" class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-mono">0 Examinees</span>
-                        </div>
-                        <div id="query-result-details" class="text-xs text-slate-700 space-y-1">Select filters above.</div>
                     </div>
                 </div>
             </div>
@@ -591,6 +511,7 @@
                 }
                 filterStudents();
                 if(currentActiveTab === 'teachers') renderTeachers();
+                renderExamAnalysisTile();
             });
             db.ref('sectionConfigs').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -598,6 +519,7 @@
                     sectionConfigs = data;
                     initCfgSections();
                     renderMasterSubjectDirectory();
+                    renderExamAnalysisTile();
                 }
             });
         }
@@ -608,6 +530,7 @@
             if(currentActiveRole === 'principal') {
                 switchTab(currentActiveTab);
             }
+            renderExamAnalysisTile();
         });
 
         function saveData() {
@@ -616,6 +539,7 @@
             localStorage.setItem('vems_ct_assignments', JSON.stringify(classTeacherAssignments));
             db.ref('sectionConfigs').set(sectionConfigs);
             renderMasterSubjectDirectory();
+            renderExamAnalysisTile();
         }
 
         function switchPortalArea(area) {
@@ -683,6 +607,8 @@
             document.getElementById('btn-icon-prin').className = area === 'principal' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
             document.getElementById('btn-icon-sec').className = area === 'sec-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
             document.getElementById('btn-icon-pri').className = area === 'pri-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
+            
+            renderExamAnalysisTile();
         }
         function switchTab(tab) {
             currentActiveTab = tab;
@@ -703,6 +629,7 @@
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
             if(tab === 'teachers') { initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
+            if(tab === 'exam-creator-prin') renderExamAnalysisTile();
             if(tab === 'settings') {
                 document.getElementById('pass-prin').value = appPasswords.principal;
                 document.getElementById('pass-sec').value = appPasswords['sec-ic'];
@@ -743,6 +670,18 @@
             let arr = Array.from(secSet);
             arr.sort();
             return arr.length > 0 ? arr : ['A', 'B', 'C', 'D'];
+        }
+
+        function getAllUniqueSubjects() {
+            let subSet = new Set();
+            Object.values(sectionConfigs).forEach(subs => {
+                if (Array.isArray(subs)) {
+                    subs.forEach(s => subSet.add(s.toUpperCase()));
+                }
+            });
+            let arr = Array.from(subSet);
+            arr.sort();
+            return arr;
         }
 
         function initCfgSections() { 
@@ -1007,239 +946,207 @@
                 tbody.appendChild(tr);
             });
         }
-        function generateStudentPDFReport() {
-            const cls = document.getElementById('filter-class').value;
-            const sec = document.getElementById('filter-section').value;
-            const key = `${cls}-${sec}`;
-            const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
-            const subs = sectionConfigs[key] || [];
-            let ctData = classTeacherAssignments[key] || { ct: '-', coCt: '-', assignedOnDuty: '-' };
-            document.getElementById('print-class-sec').textContent = `Class ${formatClass(cls)} - Section ${sec}`;
-            document.getElementById('print-strength').textContent = `${filtered.length} Students`;
-            document.getElementById('print-ct-name').textContent = ctData.ct || '-';
-            document.getElementById('print-co-ct-name').textContent = ctData.coCt || '-';
-            document.getElementById('print-onduty-name').textContent = ctData.assignedOnDuty || '-';
-            const subBox = document.getElementById('print-header-subjects-box');
-            const subSpan = document.getElementById('print-header-subjects');
-            const isHigher = (cls === '11' || cls === '12');
-            if (!isHigher) {
-                subBox.classList.remove('hidden');
-                subSpan.textContent = subs.join(', ');
-                document.getElementById('student-table-header-row').innerHTML = `
-                    <th class="px-2 py-1 text-center border">S.No</th>
-                    <th class="px-2 py-1 border">Roll</th>
-                    <th class="px-3 py-1 border">Student Name</th>
-                    <th class="px-2 py-1 text-center border bg-slate-200/50">S.No</th>
-                    <th class="px-2 py-1 border bg-slate-200/50">Roll</th>
-                    <th class="px-3 py-1 border bg-slate-200/50">Student Name</th>
-                `;
-                const half = Math.ceil(filtered.length / 2);
-                const col1 = filtered.slice(0, half);
-                const col2 = filtered.slice(half);
-                const tbody = document.getElementById('student-table-body');
-                tbody.innerHTML = '';
-                for (let i = 0; i < half; i++) {
-                    let s1 = col1[i];
-                    let s2 = col2[i];
-                    let s1No = s1 ? (s1.sno || (i + 1)) : '';
-                    let s1Roll = s1 ? s1.roll : '';
-                    let s1Name = s1 ? s1.name : '';
-                    let s2No = s2 ? (s2.sno || (half + i + 1)) : '';
-                    let s2Roll = s2 ? s2.roll : '';
-                    let s2Name = s2 ? s2.name : '';
-                    let tr = document.createElement('tr');
-                    tr.className = "border-b";
-                    tr.innerHTML = `
-                        <td class="px-2 py-1 text-center font-bold border">${s1No}</td>
-                        <td class="px-2 py-1 font-bold border">${s1Roll}</td>
-                        <td class="px-3 py-1 font-semibold border">${s1Name}</td>
-                        <td class="px-2 py-1 text-center font-bold border bg-slate-50">${s2No}</td>
-                        <td class="px-2 py-1 font-bold border bg-slate-50">${s2Roll}</td>
-                        <td class="px-3 py-1 font-semibold border bg-slate-50">${s2Name}</td>
-                    `;
-                    tbody.appendChild(tr);
-                }
-            } else {
-                subBox.classList.add('hidden');
-                filterStudents();
-            }
-            window.print();
-            setTimeout(() => { filterStudents(); }, 1000);
-        }
-        function downloadCSVTemplate() {
-            const cls = document.getElementById('filter-class').value; 
-            const sec = document.getElementById('filter-section').value;
-            const subs = sectionConfigs[`${cls}-${sec}`] || [];
-            let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n1,101,Sample Student,` + subs.map(() => '-').join(',') + `\n`;
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `VEMS_Template_Class_${formatClass(cls)}_${sec}.csv`; a.click();
-        }
-        function downloadClassCSV() {
-            const cls = document.getElementById('filter-class').value; 
-            const sec = document.getElementById('filter-section').value;
-            const subs = sectionConfigs[`${cls}-${sec}`] || [];
-            const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
-            let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n`;
-            filtered.forEach((s, idx) => {
-                let rowArr = [s.sno || (idx+1), s.roll, `"${s.name}"`];
-                subs.forEach((_, subIdx) => rowArr.push(`"${sanitizeText(s.subjects ? s.subjects[subIdx] : '-')}"`));
-                csv += rowArr.join(',') + '\n';
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Class_${formatClass(cls)}_Sec_${sec}_Students.csv`; a.click();
-        }
 
-        // STRICT CSV UPLOAD VALIDATION & STRICT CELL VALUE MATCHING
-        function uploadCSV(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const cls = document.getElementById('filter-class').value; 
-            const sec = document.getElementById('filter-section').value;
-            const expectedSubs = sectionConfigs[`${cls}-${sec}`] || [];
-            const reader = new FileReader();
+        // SECTION 1: MULTI-PARAMETRIC COMBINED DATA ANALYSIS ENGINE (STRICTLY READ-ONLY)
+        function renderExamAnalysisTile() {
+            const classesList = getAllUniqueClasses();
+            const subjectsList = getAllUniqueSubjects();
+
+            const classCheckboxesHtml = classesList.map(c => `
+                <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" value="${c}" class="analysis-cls-cb font-medium text-indigo-600 rounded" onchange="runExamAnalysisSearch()" checked>
+                    Class ${formatClass(c)}
+                </label>
+            `).join('');
+
+            const sectionCheckboxesHtml = ['A', 'B', 'C', 'D', 'E'].map(s => `
+                <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" value="${s}" class="analysis-sec-cb font-medium text-indigo-600 rounded" onchange="runExamAnalysisSearch()" checked>
+                    Sec ${s}
+                </label>
+            `).join('');
+
+            const subjectOptionsHtml = `<option value="ALL">All Subjects (Combined)</option>` + subjectsList.map(s => `<option value="${s}">${s}</option>`).join('');
+
+            const htmlContent = `
+                <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-indigo-200 pb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+                                🔒 1. Vidyalaya Multi-Parametric Examination Data Analysis Engine
+                            </h3>
+                            <p class="text-[11px] text-slate-500">Read-only examination statistics, multi-class combined headcount analysis, and duty audit tool.</p>
+                        </div>
+                        <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300">🔒 READ-ONLY AUDIT MODE</span>
+                    </div>
+
+                    <!-- COMBINED MULTI-PARAMETRIC FILTER PANEL -->
+                    <div class="bg-white p-4 rounded-lg border border-indigo-100 space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">1️⃣ Combined Class Selection (Multi-Select)</label>
+                                <div class="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded border border-slate-200 max-h-24 overflow-y-auto">
+                                    ${classCheckboxesHtml}
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">2️⃣ Combined Section Selection (Multi-Select)</label>
+                                <div class="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded border border-slate-200">
+                                    ${sectionCheckboxesHtml}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">3️⃣ Specific Subject Filter</label>
+                                <select id="analysis-sub-select" onchange="runExamAnalysisSearch()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
+                                    ${subjectOptionsHtml}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">4️⃣ Faculty Duty Role Filter</label>
+                                <select id="analysis-duty-select" onchange="runExamAnalysisSearch()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
+                                    <option value="ALL">All Roles & Duties</option>
+                                    <option value="QP">QP Setters Only</option>
+                                    <option value="EVAL">Evaluators Only</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">5️⃣ Universal Keyword Search</label>
+                                <input type="text" id="analysis-text-search" oninput="runExamAnalysisSearch()" placeholder="🔍 Search Class, Subject, Teacher, QP, or Eval..." class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- READ-ONLY LIVE COMPUTED STATS -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                        <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Selected Scope</span>
+                            <span id="stat-selected-scope" class="text-xs font-extrabold text-indigo-900 truncate block">All Combined</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Combined Examinees</span>
+                            <span id="stat-calc-students" class="text-base font-extrabold text-emerald-700">0 Students</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">QP Print Buffer (+5%)</span>
+                            <span id="stat-calc-qp" class="text-base font-extrabold text-amber-700">0 Papers</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border text-center shadow-xs">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase block">Matched Mapping Rows</span>
+                            <span id="stat-calc-rows" class="text-base font-extrabold text-sky-700">0 Rows</span>
+                        </div>
+                    </div>
+
+                    <!-- READ-ONLY AUDIT & ANALYSIS TABLE -->
+                    <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
+                        <table class="w-full text-xs text-left text-slate-700">
+                            <thead class="bg-indigo-900 text-white uppercase font-semibold">
+                                <tr>
+                                    <th class="px-3 py-2.5">Class & Sec</th>
+                                    <th class="px-3 py-2.5">Subject</th>
+                                    <th class="px-3 py-2.5">Assigned Teacher</th>
+                                    <th class="px-3 py-2.5">QP Setter Duty</th>
+                                    <th class="px-3 py-2.5">Evaluator Duty</th>
+                                    <th class="px-3 py-2.5 text-center">Section Examinees</th>
+                                </tr>
+                            </thead>
+                            <tbody id="exam-analysis-tbody" class="divide-y bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            let prinContainer = document.getElementById('exam-analysis-container-prin');
+            let secContainer = document.getElementById('exam-analysis-container-sec');
+            if(prinContainer) prinContainer.innerHTML = htmlContent;
+            if(secContainer) secContainer.innerHTML = htmlContent;
             
-            reader.onload = function(e) {
-                const text = e.target.result.replace(/\r/g, '');
-                const lines = text.split('\n');
-                if (lines.length === 0 || !lines[0].trim()) {
-                    alert("❌ Upload Aborted: The uploaded CSV file is empty.");
-                    event.target.value = '';
-                    return;
-                }
+            runExamAnalysisSearch();
+        }
 
-                // 1. Strict Header Validation
-                const headerCols = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim().toUpperCase());
-                const uploadedSubs = headerCols.slice(3);
+        function runExamAnalysisSearch() {
+            const tbody = document.getElementById('exam-analysis-tbody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
 
-                const expectedClean = expectedSubs.map(s => s.trim().toUpperCase());
-                const uploadedClean = uploadedSubs.map(s => s.trim().toUpperCase());
+            // Selected Classes
+            const selectedClasses = Array.from(document.querySelectorAll('.analysis-cls-cb:checked')).map(cb => cb.value);
+            // Selected Sections
+            const selectedSections = Array.from(document.querySelectorAll('.analysis-sec-cb:checked')).map(cb => cb.value);
+            
+            const subFilter = document.getElementById('analysis-sub-select')?.value || 'ALL';
+            const dutyFilter = document.getElementById('analysis-duty-select')?.value || 'ALL';
+            const searchTerm = (document.getElementById('analysis-text-search')?.value || '').trim().toLowerCase();
 
-                let isHeaderMatch = expectedClean.length === uploadedClean.length && expectedClean.every((sub, i) => sub === uploadedClean[i]);
-                if (!isHeaderMatch) {
-                    alert(`❌ CSV Subject Header Mismatch Error!\n\nExpected Headers for Class ${formatClass(cls)} - Sec ${sec}:\n${expectedClean.join(', ')}\n\nUploaded CSV Headers:\n${uploadedClean.join(', ')}\n\nUpload Aborted! Please download the official CSV template for this section.`);
-                    event.target.value = '';
-                    return;
-                }
+            let rowsFound = 0;
+            let totalCombinedExaminees = 0;
+            let classesList = getAllUniqueClasses();
 
-                // 2. Strict Row Cell Validation
-                let parsedRows = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if(!line) continue;
-                    
-                    const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
-                    if (cols.length >= 3) {
-                        let studentMappedSubs = [];
-                        for (let subIdx = 0; subIdx < expectedClean.length; subIdx++) {
-                            let val = cols[3 + subIdx] ? cols[3 + subIdx].trim().toUpperCase() : '-';
-                            
-                            if (val && val !== '-' && val !== 'NIL' && val !== 'NONE') {
-                                if (val !== expectedClean[subIdx]) {
-                                    alert(`❌ CSV Student Data Mismatch Error at Row ${i} (Roll: ${cols[1] || 'Unknown'})!\n\nInvalid subject entry found: "${val}" under column "${expectedClean[subIdx]}".\n\nStudents must write the exact master subject name or leave blank / '-' for unchosen subjects.\nUpload Aborted!`);
-                                    event.target.value = '';
-                                    return;
-                                }
-                                studentMappedSubs.push(val);
-                            } else {
-                                studentMappedSubs.push('-');
-                            }
-                        }
+            classesList.forEach(cls => {
+                if(!selectedClasses.includes(cls)) return;
 
-                        parsedRows.push({
-                            sno: parseInt(cols[0]) || (parsedRows.length + 1),
-                            roll: parseInt(cols[1]) || 0,
-                            name: cols[2],
-                            class: cls,
-                            section: sec,
-                            subjects: studentMappedSubs
-                        });
-                    }
-                }
-                
-                if (parsedRows.length === 0) {
-                    alert("⚠️ No valid student rows detected in the CSV file.");
-                    event.target.value = '';
-                    return;
-                }
+                let sections = getAllSectionsForClass(cls);
+                sections.forEach(sec => {
+                    if(!selectedSections.includes(sec)) return;
 
-                // 3. Push to Firebase Cloud
-                let updates = {};
-                parsedRows.forEach(row => {
-                    const newKey = db.ref(`students/${cls}/${sec}`).push().key;
-                    row.id = newKey;
-                    updates[newKey] = row;
+                    let key = `${cls}-${sec}`;
+                    let subs = sectionConfigs[key] || [];
+                    let classStudents = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
+
+                    subs.forEach(sub => {
+                        if(subFilter !== 'ALL' && sub.toUpperCase() !== subFilter.toUpperCase()) return;
+
+                        let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(cls) && String(al.sec) === String(sec) && al.subject.toUpperCase() === sub.toUpperCase()));
+                        
+                        let teacherName = assignedTeacher ? assignedTeacher.name : 'Unassigned';
+                        let qpSetter = assignedTeacher ? (assignedTeacher.qpSetter || 'Self') : '-';
+                        let evaluator = assignedTeacher ? (assignedTeacher.evaluator || 'Self') : '-';
+
+                        if(dutyFilter === 'QP' && (!qpSetter || qpSetter === '-')) return;
+                        if(dutyFilter === 'EVAL' && (!evaluator || evaluator === '-')) return;
+
+                        let classSecTitle = `Class ${formatClass(cls)}-${sec}`;
+                        let searchableStr = `${classSecTitle} ${sub} ${teacherName} ${qpSetter} ${evaluator}`.toLowerCase();
+
+                        if(searchTerm && !searchableStr.includes(searchTerm)) return;
+
+                        rowsFound++;
+                        totalCombinedExaminees += classStudents.length;
+
+                        let tr = document.createElement('tr');
+                        tr.className = "hover:bg-slate-50 border-b";
+                        tr.innerHTML = `
+                            <td class="px-3 py-2 font-bold text-indigo-900">${classSecTitle}</td>
+                            <td class="px-3 py-2 font-semibold text-slate-800">${sub}</td>
+                            <td class="px-3 py-2">${teacherName}</td>
+                            <td class="px-3 py-2 text-indigo-700 font-medium">${qpSetter}</td>
+                            <td class="px-3 py-2 text-emerald-700 font-medium">${evaluator}</td>
+                            <td class="px-3 py-2 text-center font-bold text-slate-800">${classStudents.length} Examinees</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
                 });
-
-                db.ref(`students/${cls}/${sec}`).set(updates).then(() => {
-                    alert(`✅ CSV Uploaded & Synced Successfully! ${parsedRows.length} student records loaded.`);
-                    event.target.value = '';
-                    switchTab('students');
-                }).catch((error) => {
-                    alert("❌ Firebase Sync Failed: " + error.message);
-                    event.target.value = '';
-                });
-            };
-            
-            reader.onerror = function() {
-                alert("❌ Error reading the uploaded file.");
-                event.target.value = '';
-            };
-            
-            reader.readAsText(file);
-        }
-
-        function openStudentModal(id = null) {
-            const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value;
-            document.getElementById('modal-class-sec-badge').textContent = `Target: Class ${formatClass(cls)}-${sec}`;
-            const subs = sectionConfigs[`${cls}-${sec}`] || [];
-            const grid = document.getElementById('modal-subjects-grid'); grid.innerHTML = '';
-            subs.forEach((subName, idx) => {
-                grid.innerHTML += `<div class="space-y-1"><label class="block text-[11px] font-semibold text-indigo-900">${subName}</label><input type="text" id="modal-sub-${idx}" value="${subName}" class="modal-sub-input w-full text-xs p-2 border rounded uppercase"></div>`;
             });
-            document.getElementById('student-modal').classList.remove('hidden');
-            if(id) {
-                const s = students.find(item => String(item.id) === String(id));
-                document.getElementById('stu-id').value = s.id; document.getElementById('stu-sno').value = s.sno || 1; document.getElementById('stu-roll').value = s.roll; document.getElementById('stu-name').value = s.name;
-                subs.forEach((_, idx) => { if(s.subjects && s.subjects[idx]) document.getElementById(`modal-sub-${idx}`).value = sanitizeText(s.subjects[idx]); });
-            } else {
-                document.getElementById('student-form').reset(); document.getElementById('stu-id').value = '';
-                const currentList = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
-                document.getElementById('stu-sno').value = currentList.length + 1; document.getElementById('stu-roll').value = 100 + currentList.length + 1;
-            }
-        }
-        function closeStudentModal() { document.getElementById('student-modal').classList.add('hidden'); }
-        function saveStudent(e) {
-            e.preventDefault();
-            const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value; const id = document.getElementById('stu-id').value;
-            let studentSubjects = []; document.querySelectorAll('.modal-sub-input').forEach(inp => studentSubjects.push(sanitizeText(inp.value)));
-            
-            const studentRef = id ? db.ref(`students/${cls}/${sec}/${id}`) : db.ref(`students/${cls}/${sec}`).push();
-            const stuId = id || studentRef.key;
-            
-            const stuData = { 
-                id: stuId, 
-                sno: parseInt(document.getElementById('stu-sno').value), 
-                roll: parseInt(document.getElementById('stu-roll').value), 
-                name: document.getElementById('stu-name').value, 
-                class: cls, 
-                section: sec, 
-                subjects: studentSubjects 
-            };
-            studentRef.set(stuData).then(() => {
-                closeStudentModal();
-                switchTab('students');
-            });
-        }
-        function editStudent(id) { openStudentModal(id); }
-        function deleteStudent(id) {
-            const s = students.find(item => String(item.id) === String(id));
-            if(s && confirm(`Delete student ${s.name}?`)) {
-                db.ref(`students/${s.class}/${s.section}/${id}`).remove().then(() => {
-                    switchTab('students');
-                });
+
+            // Update Statistics
+            const scopeElem = document.getElementById('stat-selected-scope');
+            const stuElem = document.getElementById('stat-calc-students');
+            const qpElem = document.getElementById('stat-calc-qp');
+            const rowElem = document.getElementById('stat-calc-rows');
+
+            if(scopeElem) scopeElem.textContent = `${selectedClasses.length} Cls / ${selectedSections.length} Secs`;
+            if(stuElem) stuElem.textContent = `${totalCombinedExaminees} Examinees`;
+            if(qpElem) qpElem.textContent = `${Math.ceil(totalCombinedExaminees * 1.05)} Papers`;
+            if(rowElem) rowElem.textContent = `${rowsFound} Mapping Rows`;
+
+            if(rowsFound === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">No matching examination mapping records found for the combined filter query.</td></tr>`;
             }
         }
 
-        // MODULE 3: STREAMLINED FACULTY MANAGER
+        // TEACHER ALLOTMENTS & COORDINATION ROSTER
         function initTeacherFormSelectors() {
             if(document.getElementById('teaching-allotments-container').children.length === 0) {
                 addTeachingRow();
