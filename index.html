@@ -317,17 +317,13 @@
             { id: 'Weekly Test', label: 'Weekly Test' },
             { id: 'Slip Test', label: 'Slip Test' }
         ];
+        
+        // STREAMLINED MASTER HEADER CONFIG (STRICTLY HIGH-LEVEL METADATA)
         let mainHeaderConfig = JSON.parse(localStorage.getItem('vems_header_config')) || {
             name: 'Half Yearly Examination',
             customName: '',
             fromDate: '2026-11-10',
-            toDate: '2026-11-15',
-            duration: '3 Hours',
-            maxMarks: 80,
-            reportingTime: '08:00',
-            readingTime: '08:15',
-            startTime: '08:30',
-            overTime: '11:30'
+            toDate: '2026-11-15'
         };
         let datesheetDays = JSON.parse(localStorage.getItem('vems_datesheet_draft')) || [];
         let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
@@ -635,7 +631,7 @@
         }
 
         // =========================================================================
-        // 🚀 EXAM VAULT & STREAMLINED EDIT/SAVE WORKFLOW
+        // 🚀 EXAM VAULT & STREAMLINED CLASS/SUBJECT-WISE TIMING WORKFLOW
         // =========================================================================
 
         function startNewExamSetup() {
@@ -644,13 +640,7 @@
                 name: 'Periodic Test 1 (PT-1)',
                 customName: '',
                 fromDate: new Date().toISOString().split('T')[0],
-                toDate: new Date().toISOString().split('T')[0],
-                duration: '3 Hours',
-                maxMarks: 80,
-                reportingTime: '08:00',
-                readingTime: '08:15',
-                startTime: '08:30',
-                overTime: '11:30'
+                toDate: new Date().toISOString().split('T')[0]
             };
             datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false }];
             isExamConfigOpen = true;
@@ -665,15 +655,9 @@
             mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
             mainHeaderConfig.fromDate = document.getElementById('exam-from-date')?.value || '2026-11-10';
             mainHeaderConfig.toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
-            mainHeaderConfig.duration = document.getElementById('exam-duration-select')?.value || '3 Hours';
-            mainHeaderConfig.maxMarks = document.getElementById('exam-max-marks')?.value || 80;
-            mainHeaderConfig.reportingTime = document.getElementById('exam-rep-time')?.value || '08:00';
-            mainHeaderConfig.readingTime = document.getElementById('exam-read-time')?.value || '08:15';
-            mainHeaderConfig.startTime = document.getElementById('exam-start-time')?.value || '08:30';
-            mainHeaderConfig.overTime = document.getElementById('exam-over-time')?.value || '11:30';
 
             syncActiveExamDraftToVault();
-            alert("✅ Header Saved!");
+            alert("✅ Main Exam Title & Dates Saved!");
         }
 
         function saveCustomExamNameOption() {
@@ -714,7 +698,6 @@
             }
         }
 
-        // EDIT EXAM: AUTOMATICALLY OPENS WORKSPACE
         function loadArchivedExamToEdit(id) {
             const target = archivedExams.find(ex => ex.id === id);
             if (!target) return;
@@ -736,7 +719,6 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // MINIMISE WORKSPACE
         function minimizeActiveWorkspace() {
             isExamConfigOpen = false;
             renderExamCreatorModule();
@@ -751,7 +733,6 @@
             }
         }
 
-        // SAVE BUTTON: SAVES RECORD AND MINIMISES WORKSPACE
         function bindupAndSaveExamRecord() {
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
 
@@ -782,7 +763,7 @@
                 archivedExams.push(examRecord);
             }
 
-            isExamConfigOpen = false; // MINIMISES WORKSPACE UPON SAVING
+            isExamConfigOpen = false;
             saveData();
             alert(`🎉 EXAM FULLY SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
             renderExamCreatorModule();
@@ -886,7 +867,7 @@
                             <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
                         </div>
 
-                        <!-- CLEAN MANDATORY NOTICE (TEXT ONLY, NO HYPERLINKS) -->
+                        <!-- CLEAN MANDATORY NOTICE -->
                         <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg space-y-1.5 shadow-xs">
                             <div class="flex items-center gap-2 font-bold text-amber-900 text-xs uppercase tracking-wide">
                                 <span>⚠️</span> Mandatory Pre-Flight Verification Notice for Exam IC
@@ -899,7 +880,7 @@
                         </div>
                     </div>
 
-                    <!-- 📚 CREATED EXAMINATIONS VAULT LIST (NOW PLACED ALWAYS OVERSIDE RIGHT AFTER EXAM IC MSG) -->
+                    <!-- 📚 CREATED EXAMINATIONS VAULT LIST (ALWAYS AT THE TOP DIRECTLY AFTER PRE-FLIGHT NOTICE) -->
                     <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md">
                         <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
                             <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-400">
@@ -946,19 +927,19 @@
                         `}
                     </div>
 
-                    <!-- 📋 ACTIVE EXAM CONFIGURATION PANEL (AUTOMATICALLY EXPANDED UPON CLICKING EDIT OR CREATE NEW) -->
+                    <!-- 📋 ACTIVE EXAM CONFIGURATION PANEL (MASTER HEADER STRICTLY OVERALL TITLE & DATES) -->
                     ${isExamConfigOpen ? `
                         <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
                             <div class="flex justify-between items-center border-b border-indigo-200 pb-2 flex-wrap gap-2">
                                 <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider">
-                                    📋 1. Main Examination Header Configuration
+                                    📋 1. Main Examination Title & Schedule Metadata
                                 </h3>
                                 <div class="flex items-center gap-2">
                                     <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
-                                        💾 Save Header
+                                        💾 Save Title & Dates
                                     </button>
                                     <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded shadow-xs">
-                                        📁 Minimize 
+                                        📁 Minimize
                                     </button>
                                 </div>
                             </div>
@@ -988,57 +969,18 @@
                                         <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">To Date</label>
                                         <input type="date" id="exam-to-date" value="${mainHeaderConfig.toDate}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded bg-white font-medium">
                                     </div>
-
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Day (Auto IST Google Calculation)</label>
-                                        <div id="exam-ist-day-indicator" class="text-xs font-bold text-indigo-900 p-2 bg-white rounded border border-indigo-200">
-                                            Tuesday to Sunday
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Duration</label>
-                                        <select id="exam-duration-select" class="w-full text-xs p-2 border rounded bg-white font-medium">
-                                            <option value="1 Hour" ${mainHeaderConfig.duration === '1 Hour' ? 'selected' : ''}>1 Hour</option>
-                                            <option value="1.5 Hours" ${mainHeaderConfig.duration === '1.5 Hours' ? 'selected' : ''}>1.5 Hours</option>
-                                            <option value="2 Hours" ${mainHeaderConfig.duration === '2 Hours' ? 'selected' : ''}>2 Hours</option>
-                                            <option value="2.5 Hours" ${mainHeaderConfig.duration === '2.5 Hours' ? 'selected' : ''}>2.5 Hours</option>
-                                            <option value="3 Hours" ${mainHeaderConfig.duration === '3 Hours' ? 'selected' : ''}>3 Hours</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Max Marks</label>
-                                        <input type="number" id="exam-max-marks" value="${mainHeaderConfig.maxMarks}" class="w-full text-xs p-2 border rounded bg-white font-medium">
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reporting Time</label>
-                                        <input type="time" id="exam-rep-time" value="${mainHeaderConfig.reportingTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Reading Time</label>
-                                        <input type="time" id="exam-read-time" value="${mainHeaderConfig.readingTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Exam Start Time</label>
-                                        <input type="time" id="exam-start-time" value="${mainHeaderConfig.startTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Exam Over / Commencement</label>
-                                        <input type="time" id="exam-over-time" value="${mainHeaderConfig.overTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
-                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- DAYWISE DATESHEET BUILDER -->
+                        <!-- DAYWISE DATESHEET BUILDER WITH CLASS & SUBJECT DURATION/MARKS ALLOCATOR -->
                         <div class="space-y-4 pt-2">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-2">
                                 <div>
                                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wide">
-                                        🗓️ Collapsible Day-by-Day Datesheet & Class Scope Allocator
+                                        🗓️ Collapsible Day-by-Day Datesheet & Classwise Timing Allocator
                                     </h3>
-                                    <p class="text-[11px] text-slate-500">Click any day bar to expand/collapse and manage scope</p>
+                                    <p class="text-[11px] text-slate-500">Configure class-wise duration, max marks, and timings per subject for each date</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button type="button" onclick="setAllDaysCollapseState(true)" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded border border-slate-300">
@@ -1177,8 +1119,9 @@
 
                     let subOptionsHtml = `<option value="ALL">All Mapped Subjects</option>` + classSubjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
 
+                    // CLASS-WISE DURATION, MARKS & TIMING CONTROLS INSIDE CARD
                     classCardsHtml += `
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2 shadow-xs">
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2.5 shadow-xs">
                             <div class="flex items-center justify-between border-b pb-1.5">
                                 <label class="font-bold text-xs text-indigo-900 inline-flex items-center gap-1.5 cursor-pointer">
                                     <input type="checkbox" value="${c}" class="day-${dayObj.id}-cls-parent text-indigo-700 rounded" onchange="toggleDayClassSections(${dayObj.id}, '${c}', this)" checked>
@@ -1187,15 +1130,56 @@
                                 <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100">${secsForCls.length} Secs</span>
                             </div>
                             
-                            <div class="flex flex-wrap gap-1 pt-0.5" id="day-${dayObj.id}-cls-secs-${c}">
+                            <div class="flex flex-wrap gap-1" id="day-${dayObj.id}-cls-secs-${c}">
                                 ${secCheckboxes}
                             </div>
 
-                            <div class="pt-1 border-t border-slate-100">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">📖 Subject (Class ${formatClass(c)})</label>
-                                <select id="day-${dayObj.id}-sub-cls-${c}" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-xs p-1.5 border border-indigo-200 rounded bg-slate-50 font-bold text-indigo-950 focus:bg-white">
-                                    ${subOptionsHtml}
-                                </select>
+                            <div class="pt-2 border-t border-slate-100 space-y-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">📖 Subject (Class ${formatClass(c)})</label>
+                                    <select id="day-${dayObj.id}-sub-cls-${c}" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-xs p-1.5 border border-indigo-200 rounded bg-slate-50 font-bold text-indigo-950 focus:bg-white">
+                                        ${subOptionsHtml}
+                                    </select>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">⏱️ Duration</label>
+                                        <select id="day-${dayObj.id}-dur-cls-${c}" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[11px] p-1 border rounded bg-white font-medium">
+                                            <option value="1 Hour">1 Hour</option>
+                                            <option value="1.5 Hours">1.5 Hours</option>
+                                            <option value="2 Hours">2 Hours</option>
+                                            <option value="2.5 Hours" selected>2.5 Hours</option>
+                                            <option value="3 Hours">3 Hours</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">🎯 Max Marks</label>
+                                        <input type="number" id="day-${dayObj.id}-marks-cls-${c}" value="80" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[11px] p-1 border rounded bg-white font-medium">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[9px] font-bold text-slate-500 uppercase">🕒 Reporting Time</label>
+                                        <input type="time" id="day-${dayObj.id}-rep-cls-${c}" value="08:00" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[10px] p-1 border rounded bg-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[9px] font-bold text-slate-500 uppercase">📖 Reading Time</label>
+                                        <input type="time" id="day-${dayObj.id}-read-cls-${c}" value="08:15" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[10px] p-1 border rounded bg-white">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[9px] font-bold text-slate-500 uppercase">⚡ Start Time</label>
+                                        <input type="time" id="day-${dayObj.id}-start-cls-${c}" value="08:30" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[10px] p-1 border rounded bg-white font-bold text-indigo-900">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[9px] font-bold text-slate-500 uppercase">🔔 Exam Over</label>
+                                        <input type="time" id="day-${dayObj.id}-over-cls-${c}" value="11:30" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[10px] p-1 border rounded bg-white font-bold text-indigo-900">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1204,7 +1188,7 @@
                 let dayCard = document.createElement('div');
                 dayCard.className = `border rounded-xl overflow-hidden shadow-xs transition ${dayObj.saved ? 'bg-slate-100 border-slate-400' : 'bg-slate-50 border-indigo-300'}`;
                 dayCard.innerHTML = `
-                    <!-- DAY HEADER BAR WITH EDIT / SAVE CONTROLS -->
+                    <!-- DAY HEADER BAR -->
                     <div onclick="toggleDayAccordion(${dayObj.id})" class="p-3.5 flex items-center justify-between cursor-pointer border-b border-slate-200 select-none ${dayObj.saved ? 'bg-slate-200/80' : 'bg-slate-100 hover:bg-indigo-50'}">
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
@@ -1218,7 +1202,6 @@
                             </span>
                             <input type="date" value="${dayObj.dateStr}" ${dayObj.saved ? 'disabled' : ''} onchange="dayObj.dateStr=this.value; syncActiveExamDraftToVault(); renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
                             
-                            <!-- STREAMLINED DAY BUTTONS: EDIT / SAVE -->
                             ${dayObj.saved ? `
                                 <button type="button" onclick="editDayConfig(${dayObj.id})" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1 rounded shadow-xs">
                                     ✏️ Edit
@@ -1240,31 +1223,33 @@
                         <fieldset ${dayObj.saved ? 'disabled' : ''} class="${dayObj.saved ? 'opacity-80 pointer-events-none' : ''}">
                             <div class="space-y-2">
                                 <div class="flex justify-between items-center">
-                                    <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (Scope for Day ${dayObj.id})</label>
+                                    <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Scope, Duration & Timing Controls (Day ${dayObj.id})</label>
                                     <div class="space-x-1.5">
                                         <button type="button" onclick="setDaySelections(${dayObj.id}, true)" class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
                                         <button type="button" onclick="setDaySelections(${dayObj.id}, false)" class="text-[10px] bg-white text-slate-700 font-bold px-2 py-1 rounded border border-indigo-200">Deselect All</button>
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-1.5 bg-white rounded border">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-96 overflow-y-auto p-1.5 bg-white rounded border">
                                     ${classCardsHtml}
                                 </div>
                             </div>
                         </fieldset>
 
                         <div class="space-y-1.5 pt-2">
-                            <h5 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">📊 Detailed Examination Summary for ${dateDisplay}</h5>
+                            <h5 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">📊 Detailed Class-wise & Subject-wise Examination Schedule Summary (${dateDisplay})</h5>
                             <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
                                 <table class="w-full text-xs text-left text-slate-700">
                                     <thead class="bg-indigo-900 text-white uppercase font-semibold">
                                         <tr>
                                             <th class="px-3 py-2">Class & Section</th>
-                                            <th class="px-3 py-2">Selected Subject</th>
-                                            <th class="px-3 py-2 text-center">Examinees Count</th>
+                                            <th class="px-3 py-2">Subject</th>
+                                            <th class="px-3 py-2 text-center">Duration & Max Marks</th>
+                                            <th class="px-3 py-2 text-center">Timing Window</th>
+                                            <th class="px-3 py-2 text-center">Examinees</th>
                                             <th class="px-3 py-2 text-center">QP Demand (+5%)</th>
-                                            <th class="px-3 py-2">QP Setter Name (To Inform)</th>
-                                            <th class="px-3 py-2">Evaluator Name</th>
+                                            <th class="px-3 py-2">QP Setter</th>
+                                            <th class="px-3 py-2">Evaluator</th>
                                         </tr>
                                     </thead>
                                     <tbody id="day-${dayObj.id}-tbody" class="divide-y bg-white"></tbody>
@@ -1311,6 +1296,11 @@
 
             classesList.forEach(cls => {
                 let classSubFilter = document.getElementById(`day-${dayId}-sub-cls-${cls}`)?.value || 'ALL';
+                let durationVal = document.getElementById(`day-${dayId}-dur-cls-${cls}`)?.value || '2.5 Hours';
+                let marksVal = document.getElementById(`day-${dayId}-marks-cls-${cls}`)?.value || '80';
+                let startTimeVal = document.getElementById(`day-${dayId}-start-cls-${cls}`)?.value || '08:30';
+                let overTimeVal = document.getElementById(`day-${dayId}-over-cls-${cls}`)?.value || '11:30';
+
                 let sections = getAllSectionsForClass(cls);
 
                 sections.forEach(sec => {
@@ -1341,10 +1331,12 @@
                         totalQpRequired += qpCount;
 
                         let tr = document.createElement('tr');
-                        tr.className = "hover:bg-slate-50 border-b";
+                        tr.className = "hover:bg-slate-50 border-b text-xs";
                         tr.innerHTML = `
                             <td class="px-3 py-2 font-bold text-indigo-900">${classSecTitle}</td>
                             <td class="px-3 py-2 font-bold text-slate-800"><span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-100">${sub}</span></td>
+                            <td class="px-3 py-2 text-center font-semibold text-slate-700">${durationVal} | ${marksVal} Marks</td>
+                            <td class="px-3 py-2 text-center font-bold text-indigo-900 bg-indigo-50/30">${startTimeVal} to ${overTimeVal}</td>
                             <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${examineeCount} Examinees</td>
                             <td class="px-3 py-2 text-center font-bold text-amber-800 bg-amber-50/40">${qpCount} Papers</td>
                             <td class="px-3 py-2 text-indigo-900 font-bold">👤 ${qpSetter}</td>
@@ -1360,11 +1352,11 @@
             }
 
             if(rowsFound === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-4 text-center text-slate-400 italic">No examination mapping scope selected for this day.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-slate-400 italic">No examination mapping scope selected for this day.</td></tr>`;
             } else if(tfoot) {
                 tfoot.innerHTML = `
                     <tr class="text-slate-900 text-xs">
-                        <td colspan="2" class="px-3 py-2 text-right font-extrabold uppercase">Day Total Summary:</td>
+                        <td colspan="4" class="px-3 py-2 text-right font-extrabold uppercase">Day Total Summary:</td>
                         <td class="px-3 py-2 text-center text-emerald-900 font-extrabold bg-emerald-100/60">${totalCombinedExaminees} Examinees</td>
                         <td class="px-3 py-2 text-center text-amber-900 font-extrabold bg-amber-100/60">${totalQpRequired} Papers</td>
                         <td colspan="2" class="px-3 py-2 text-slate-600 font-normal italic">Scope ready for exam session.</td>
