@@ -659,6 +659,21 @@
             return arr.length > 0 ? arr : ['A', 'B', 'C', 'D'];
         }
 
+        function getUniqueSubjectsForClass(cls) {
+            let subSet = new Set();
+            Object.keys(sectionConfigs).forEach(k => {
+                if(k.startsWith(`${cls}-`)) {
+                    let subs = sectionConfigs[k];
+                    if(Array.isArray(subs)) {
+                        subs.forEach(s => subSet.add(s.toUpperCase()));
+                    }
+                }
+            });
+            let arr = Array.from(subSet);
+            arr.sort();
+            return arr;
+        }
+
         function getAllUniqueSubjects() {
             let subSet = new Set();
             Object.values(sectionConfigs).forEach(subs => {
@@ -934,74 +949,79 @@
             });
         }
 
-        // SECTION 1: GRANULAR CLASS-SPECIFIC SECTIONS & SEATING INTELLIGENCE ENGINE (READ-ONLY)
+        // SECTION 1: PER-CLASS SUBJECT MAPPING & SEATING INTELLIGENCE ENGINE (READ-ONLY)
         function renderExamAnalysisTile() {
             const classesList = getAllUniqueClasses();
-            const subjectsList = getAllUniqueSubjects();
 
-            // Render Class Checkboxes with nested granular section checkboxes
+            // Render Class Cards with per-class section checkboxes AND per-class subject dropdown
             let classSelectionHtml = '';
             classesList.forEach(c => {
                 let secsForCls = getAllSectionsForClass(c);
+                let classSubjects = getUniqueSubjectsForClass(c);
+
                 let secCheckboxes = secsForCls.map(s => `
-                    <label class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer">
+                    <label class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-50">
                         <input type="checkbox" value="${c}-${s}" class="analysis-sec-item text-indigo-600 rounded" onchange="runExamAnalysisSearch()" checked>
                         Sec ${s}
                     </label>
                 `).join('');
 
+                let subOptionsHtml = `<option value="ALL">All Mapped Subjects</option>` + classSubjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+
                 classSelectionHtml += `
-                    <div class="bg-white p-2.5 rounded-lg border border-slate-200 space-y-1.5 shadow-xs">
-                        <div class="flex items-center justify-between border-b pb-1">
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2 shadow-xs">
+                        <div class="flex items-center justify-between border-b pb-1.5">
                             <label class="font-bold text-xs text-indigo-900 inline-flex items-center gap-1.5 cursor-pointer">
                                 <input type="checkbox" value="${c}" class="analysis-cls-parent text-indigo-700 rounded" onchange="toggleClassSections('${c}', this)" checked>
                                 Class ${formatClass(c)}
                             </label>
-                            <span class="text-[10px] text-slate-400 font-mono">${secsForCls.length} Secs</span>
+                            <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100">${secsForCls.length} Secs</span>
                         </div>
+                        
                         <div class="flex flex-wrap gap-1 pt-0.5" id="cls-secs-container-${c}">
                             ${secCheckboxes}
+                        </div>
+
+                        <!-- PER-CLASS SUBJECT DROPDOWN (STRICTLY FROM MAPPING) -->
+                        <div class="pt-1 border-t border-slate-100">
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">📖 Target Subject (Class ${formatClass(c)})</label>
+                            <select id="analysis-sub-cls-${c}" onchange="runExamAnalysisSearch()" class="analysis-cls-sub-select w-full text-xs p-1.5 border border-indigo-200 rounded bg-slate-50 font-bold text-indigo-950 focus:bg-white">
+                                ${subOptionsHtml}
+                            </select>
                         </div>
                     </div>
                 `;
             });
-
-            const subjectOptionsHtml = `<option value="ALL">All Subjects (Combined)</option>` + subjectsList.map(s => `<option value="${s}">${s}</option>`).join('');
 
             const htmlContent = `
                 <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-indigo-200 pb-3">
                         <div>
                             <h3 class="text-sm font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                                🔒 1. Vidyalaya Seating & Examination Intelligence Engine
+                                🔒 1. Vidyalaya Multi-Class Subject & Seating Intelligence Engine
                             </h3>
-                            <p class="text-[11px] text-slate-500">Read-only seating intelligence, granular section selection, examinee headcounts, and duty audit tool.</p>
+                            <p class="text-[11px] text-slate-500">Read-only examination analysis with class-specific section and subject mapping controls.</p>
                         </div>
                         <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300">🔒 READ-ONLY AUDIT MODE</span>
                     </div>
 
-                    <!-- GRANULAR CLASS-SPECIFIC SECTION SELECTION PANEL -->
+                    <!-- GRANULAR CLASS-SPECIFIC SECTION & SUBJECT CONTROL PANEL -->
                     <div class="bg-white p-4 rounded-lg border border-indigo-100 space-y-3">
                         <div class="flex justify-between items-center border-b pb-2">
-                            <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Granular Class & Section Selection (For Seating & Room Planning)</label>
+                            <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Section & Subject Mapping Controls (For Combined Exam Planning)</label>
                             <div class="space-x-2">
                                 <button type="button" onclick="setAllAnalysisSelections(true)" class="text-[10px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
                                 <button type="button" onclick="setAllAnalysisSelections(false)" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-1 rounded border border-slate-200">Deselect All</button>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 max-h-56 overflow-y-auto p-1 bg-slate-50 rounded border">
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-72 overflow-y-auto p-1.5 bg-slate-50 rounded border">
                             ${classSelectionHtml}
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">2️⃣ Specific Subject Filter</label>
-                                <select id="analysis-sub-select" onchange="runExamAnalysisSearch()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
-                                    ${subjectOptionsHtml}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">3️⃣ Faculty Duty Role Filter</label>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">2️⃣ Faculty Duty Role Filter</label>
                                 <select id="analysis-duty-select" onchange="runExamAnalysisSearch()" class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
                                     <option value="ALL">All Roles & Duties</option>
                                     <option value="QP">QP Setters Only</option>
@@ -1009,7 +1029,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">4️⃣ Universal Keyword Search</label>
+                                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">3️⃣ Universal Keyword Search</label>
                                 <input type="text" id="analysis-text-search" oninput="runExamAnalysisSearch()" placeholder="🔍 Search Class, Subject, Teacher, QP, or Eval..." class="w-full text-xs p-2 border border-slate-300 rounded bg-white font-medium">
                             </div>
                         </div>
@@ -1084,7 +1104,6 @@
             // Get all checked granular sections (format: "cls-sec")
             const selectedSectionKeys = Array.from(document.querySelectorAll('.analysis-sec-item:checked')).map(cb => cb.value);
             
-            const subFilter = document.getElementById('analysis-sub-select')?.value || 'ALL';
             const dutyFilter = document.getElementById('analysis-duty-select')?.value || 'ALL';
             const searchTerm = (document.getElementById('analysis-text-search')?.value || '').trim().toLowerCase();
 
@@ -1093,7 +1112,9 @@
             let classesList = getAllUniqueClasses();
 
             classesList.forEach(cls => {
+                let classSubFilter = document.getElementById(`analysis-sub-cls-${cls}`)?.value || 'ALL';
                 let sections = getAllSectionsForClass(cls);
+
                 sections.forEach(sec => {
                     let secKey = `${cls}-${sec}`;
                     if(!selectedSectionKeys.includes(secKey)) return;
@@ -1102,7 +1123,8 @@
                     let classStudents = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
 
                     subs.forEach(sub => {
-                        if(subFilter !== 'ALL' && sub.toUpperCase() !== subFilter.toUpperCase()) return;
+                        // Check class-specific subject filter
+                        if(classSubFilter !== 'ALL' && sub.toUpperCase() !== classSubFilter.toUpperCase()) return;
 
                         let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(cls) && String(al.sec) === String(sec) && al.subject.toUpperCase() === sub.toUpperCase()));
                         
@@ -1125,7 +1147,7 @@
                         tr.className = "hover:bg-slate-50 border-b";
                         tr.innerHTML = `
                             <td class="px-3 py-2 font-bold text-indigo-900">${classSecTitle}</td>
-                            <td class="px-3 py-2 font-semibold text-slate-800">${sub}</td>
+                            <td class="px-3 py-2 font-bold text-slate-800"><span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-100">${sub}</span></td>
                             <td class="px-3 py-2">${teacherName}</td>
                             <td class="px-3 py-2 text-indigo-700 font-medium">${qpSetter}</td>
                             <td class="px-3 py-2 text-emerald-700 font-medium">${evaluator}</td>
@@ -1148,7 +1170,7 @@
             if(rowElem) rowElem.textContent = `${rowsFound} Mapping Rows`;
 
             if(rowsFound === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">No matching examination mapping records found for the selected granular sections.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 italic">No matching examination mapping records found for the selected granular class-subject combinations.</td></tr>`;
             }
         }
 
