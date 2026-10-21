@@ -303,7 +303,6 @@
 
         // Active Exam, Saved Exams & Lifecycle State
         let isExamConfigOpen = false;
-        let mainHeaderSaved = false;
         let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
             { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
             { id: 'Half Yearly', label: 'Half Yearly Examination' },
@@ -318,7 +317,7 @@
             { id: 'Slip Test', label: 'Slip Test' }
         ];
         let mainHeaderConfig = JSON.parse(localStorage.getItem('vems_header_config')) || {
-            name: 'Half Yearly',
+            name: 'Half Yearly Examination',
             customName: '',
             fromDate: '2026-11-10',
             toDate: '2026-11-15',
@@ -634,7 +633,7 @@
         }
 
         // =========================================================================
-        // 🚀 EXAM VAULT & STREAMLINED EDIT/SAVE/UPDATE/DELETE WORKFLOW
+        // 🚀 EXAM VAULT & FULLY FLEXIBLE HEADER WORKFLOW
         // =========================================================================
 
         function toggleExamCreationPanel() {
@@ -663,7 +662,6 @@
                 startTime: '08:30',
                 overTime: '11:30'
             };
-            mainHeaderSaved = false;
             datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false }];
             isExamConfigOpen = true;
 
@@ -672,15 +670,9 @@
             renderExamCreatorModule();
         }
 
-        // EDIT MAIN EXAM HEADER (UNLOCKS INPUTS)
-        function editMainHeaderConfig() {
-            mainHeaderSaved = false;
-            renderExamCreatorModule();
-        }
-
-        // SAVE / UPDATE MAIN EXAM HEADER
+        // SAVE / UPDATE MAIN EXAM HEADER (REMAINS FULLY FLEXIBLE)
         function saveMainHeaderConfig() {
-            mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly';
+            mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
             mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
             mainHeaderConfig.fromDate = document.getElementById('exam-from-date')?.value || '2026-11-10';
             mainHeaderConfig.toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
@@ -691,7 +683,6 @@
             mainHeaderConfig.startTime = document.getElementById('exam-start-time')?.value || '08:30';
             mainHeaderConfig.overTime = document.getElementById('exam-over-time')?.value || '11:30';
 
-            mainHeaderSaved = true;
             syncActiveExamDraftToVault();
             alert("✅ Main Examination Header Saved & Updated Successfully!");
             renderExamCreatorModule();
@@ -738,7 +729,7 @@
             }
         }
 
-        // JUMP TO ANY CREATED EXAM IN THE VAULT & UNLOCK FOR EDITING
+        // JUMP TO ANY CREATED EXAM IN THE VAULT & KEEP FULLY UNLOCKED FOR EDITING
         function loadArchivedExamToEdit(id) {
             const target = archivedExams.find(ex => ex.id === id);
             if (!target) return;
@@ -752,10 +743,9 @@
             }
             datesheetDays = target.datesheetSnapshot ? JSON.parse(JSON.stringify(target.datesheetSnapshot)) : [];
             isExamConfigOpen = true;
-            mainHeaderSaved = false; // Unlocked by default upon jumping for smooth editing
 
             saveData();
-            alert(`📂 Loaded Exam Schedule: "${target.title}" into workspace for editing!`);
+            alert(`📂 Loaded Exam Schedule: "${target.title}" into workspace! All fields are fully flexible and editable.`);
             renderExamCreatorModule();
         }
 
@@ -841,6 +831,10 @@
                 dayIndicator.textContent = startDate.getTime() === endDate.getTime() ? startDay : `${startDay} to ${endDay}`;
             }
 
+            // Update mainHeaderConfig dates immediately
+            mainHeaderConfig.fromDate = fromDateVal;
+            mainHeaderConfig.toDate = toDateVal || fromDateVal;
+
             datesheetDays = [];
             let curr = new Date(startDate);
             let dayIdx = 1;
@@ -861,6 +855,8 @@
                 customBox.classList.remove('hidden');
             } else {
                 customBox.classList.add('hidden');
+                mainHeaderConfig.name = selElem.value;
+                syncActiveExamDraftToVault();
             }
         }
 
@@ -918,7 +914,7 @@
                                                 <td class="px-3 py-2.5 text-right space-x-1.5" onclick="event.stopPropagation()">
                                                     <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">✏️ Edit</button>
                                                     <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">🔄 Update</button>
-                                                    <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1 rounded">🗑️ Delete</button>
+                                                    <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2 py-1 rounded">🗑️ Delete</button>
                                                 </td>
                                             </tr>
                                         `).join('')}
@@ -957,7 +953,7 @@
                         </div>
                     </div>
 
-                    <!-- MAIN EXAM CONFIGURATION PANEL WITH DYNAMIC DROPDOWN FEEDER -->
+                    <!-- MAIN EXAM CONFIGURATION PANEL WITH FULLY UNLOCKED FLEXIBLE INPUTS -->
                     ${isExamConfigOpen ? `
                         <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
                             <div class="flex justify-between items-center border-b border-indigo-200 pb-2 flex-wrap gap-2">
@@ -965,22 +961,17 @@
                                     📋 1. Main Examination Header Configuration
                                 </h3>
                                 <div class="space-x-1.5">
-                                    ${mainHeaderSaved ? `
-                                        <button type="button" onclick="editMainHeaderConfig()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded border border-amber-700 shadow-xs">
-                                            ✏️ Edit Header
-                                        </button>
-                                        <button type="button" onclick="editMainHeaderConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow-xs">
-                                            🔄 Update Header
-                                        </button>
-                                    ` : `
-                                        <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
-                                            💾 Save Header
-                                        </button>
-                                    `}
+                                    <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
+                                        💾 Save Header
+                                    </button>
+                                    <button type="button" onclick="saveMainHeaderConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
+                                        🔄 Update Header
+                                    </button>
                                 </div>
                             </div>
 
-                            <fieldset ${mainHeaderSaved ? 'disabled' : ''} class="${mainHeaderSaved ? 'opacity-80 pointer-events-none' : ''}">
+                            <!-- UNLOCKED FIELDSET: FULL FLEXIBILITY TO SELECT EXAM NAME & DATES AT ANY TIME -->
+                            <div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                     <div class="col-span-1 sm:col-span-2">
                                         <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Name of the Exam</label>
@@ -1046,7 +1037,7 @@
                                         <input type="time" id="exam-over-time" value="${mainHeaderConfig.overTime}" class="w-full text-xs p-2 border rounded bg-white font-medium">
                                     </div>
                                 </div>
-                            </fieldset>
+                            </div>
                         </div>
 
                         <!-- DAYWISE DATESHEET BUILDER WITH STREAMLINED EDIT/SAVE/UPDATE CONTROLS -->
