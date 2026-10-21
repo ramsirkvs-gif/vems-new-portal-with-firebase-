@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VEMS - Vidyalaya Examination Management System (Firebase Edition)</title>
+    <title>VEMS - Vidyalaya Examination Management System (Master Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Firebase App & Realtime Database CDN SDKs -->
@@ -32,7 +32,7 @@
             }
             th, td {
                 border: 1px solid #333 !important;
-                padding: 4px 6px !important;
+                padding: 6px 8px !important;
             }
             th {
                 background-color: #f1f5f9 !important;
@@ -58,7 +58,7 @@
                         <span>📢</span> Public
                     </button>
                     <button type="button" onclick="switchPortalArea('principal')" id="btn-icon-prin" class="flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800 transition">
-                        <span>🔒👔</span> Principal (Master Access)
+                        <span>🔒👔</span> Principal (Master)
                     </button>
                     <button type="button" onclick="switchPortalArea('sec-ic')" id="btn-icon-sec" class="flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800 transition">
                         <span>🔒🎓</span> Sec IC (VI-XII)
@@ -99,10 +99,10 @@
         <div id="area-principal" class="hidden space-y-6">
             <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
                 <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Subject Mapping</button>
-                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV</button>
+                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master & CSV</button>
                 <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager</button>
                 <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam & Lifecycle Hub</button>
-                <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ Settings</button>
+                <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System Settings</button>
             </div>
             
             <!-- MODULE 1: SUBJECT MAPPING -->
@@ -257,7 +257,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT ENGINE -->
+    <!-- COMPLETE SCRIPT ENGINE -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDBBQqXgZn9ixs1xpXIbVDspHKLLbpzxiE",
