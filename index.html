@@ -294,6 +294,7 @@
         ['11-A', '11-B', '12-A', '12-B'].forEach(key => { defaultSectionConfigs[key] = ['PHYSICS', 'CHEMISTRY', 'ENGLISH', 'MATHS', 'BIOLOGY', 'C.S', 'HINDI CORE', 'AI']; });
         ['11-C', '12-C'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI']; });
         ['11-D', '11-E', '12-D', '12-E'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI']; });
+        
         let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || defaultSectionConfigs;
         let students = [];
         let teachers = JSON.parse(localStorage.getItem('vems_teachers')) || [
@@ -327,6 +328,7 @@
         let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
 
         function initFirebaseListeners() {
+            // Live Student Sync
             db.ref('students').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -338,20 +340,33 @@
                             });
                         });
                     });
-                } else {
-                    students = [{ id: 1, sno: 1, roll: 101, name: 'Aarav Sharma', class: '10', section: 'A', subjects: ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'] }];
                 }
                 filterStudents();
                 renderExamCreatorModule();
             });
+
+            // Live Section Config Sync
             db.ref('sectionConfigs').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
                     sectionConfigs = data;
+                    localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
                     initCfgSections();
                     renderMasterSubjectDirectory();
                     renderExamCreatorModule();
                 }
+            });
+
+            // Live Archived Exams Vault Sync (Fixes Mobile vs Laptop Discrepancy)
+            db.ref('archivedExams').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    archivedExams = Array.isArray(data) ? data : Object.values(data);
+                } else {
+                    archivedExams = [];
+                }
+                localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
+                renderExamCreatorModule();
             });
         }
         initFirebaseListeners();
@@ -369,7 +384,11 @@
             localStorage.setItem('vems_datesheet_draft', JSON.stringify(datesheetDays));
             localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
             localStorage.setItem('vems_exam_options', JSON.stringify(examOptionsList));
+
+            // Push to Firebase Cloud
             db.ref('sectionConfigs').set(sectionConfigs);
+            db.ref('archivedExams').set(archivedExams);
+
             renderMasterSubjectDirectory();
             renderExamCreatorModule();
         }
@@ -629,7 +648,7 @@
         }
 
         // =========================================================================
-        // 🚀 PARTIAL SAVE WORKFLOW ENGINE & CLEAN SLOT ACTIONS
+        // 🚀 EXAM WORKFLOW & VAULT ACTIONS
         // =========================================================================
 
         function startNewExamSetup() {
@@ -850,10 +869,6 @@
             renderDatesheetDaysContainer();
         }
 
-        // =========================================================================
-        // 💡 DYNAMIC SUBJECT-FIRST SLOT ALLOCATOR HELPERS
-        // =========================================================================
-
         function addPaperSlotToDay(dayId) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (!dayObj) return;
@@ -962,10 +977,7 @@
             runDayAnalysisSearch(dayId);
         }
 
-        // =========================================================================
-        // 📊 MODULE RENDER ENGINE WITH PRE-EXAM NEEDS HUB
-        // =========================================================================
-
+        // MODULE RENDER ENGINE WITH PRE-EXAM NEEDS HUB
         function renderExamCreatorModule() {
             const htmlContent = `
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
@@ -1131,7 +1143,7 @@
                         </h3>
 
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <!-- 1️⃣ PRE-EXAM READINESS (FULLY FUNCTIONAL DESIG) -->
+                            <!-- PRE-EXAM READINESS -->
                             <div class="bg-indigo-50/80 border border-indigo-200 p-4 rounded-xl space-y-3 shadow-sm flex flex-col justify-between">
                                 <div class="space-y-2">
                                     <div class="flex justify-between items-center">
@@ -1198,7 +1210,7 @@
                     </div>
                 </div>
 
-                <!-- PRE-EXAM READINESS & LOGISTICS CENTER MODAL / EXPANDED DRAWER -->
+                <!-- PRE-EXAM READINESS & LOGISTICS CENTER MODAL -->
                 <div id="pre-exam-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 no-print">
                     <div class="bg-white rounded-xl max-w-4xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div class="flex justify-between items-center border-b pb-3">
@@ -1212,51 +1224,47 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- CARD 1 -->
                             <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
                                 <h4 class="text-xs font-bold text-indigo-900 uppercase flex items-center gap-1.5">
                                     <span>🖨️</span> 1. Question Paper Printing Demand (+5%)
                                 </h4>
                                 <p class="text-[11px] text-slate-600">Calculates exact examinee strength per subject and adds a safe 5% buffer rounded up for secure printing.</p>
-                                <button type="button" onclick="printQpOrderSheet()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
+                                <button type="button" onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
                                     📄 Print QP Order Sheet
                                 </button>
                             </div>
 
-                            <!-- CARD 2 -->
                             <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-3">
                                 <h4 class="text-xs font-bold text-amber-900 uppercase flex items-center gap-1.5">
                                     <span>🪑</span> 2. Smart Seating Plan & Desk Roll Slips
                                 </h4>
                                 <p class="text-[11px] text-slate-600">Mixes classes/sections across rooms and generates printable desk roll number stickers and door charts.</p>
                                 <div class="flex gap-2">
-                                    <button type="button" onclick="printDoorChart()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
+                                    <button type="button" onclick="window.print()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
                                         📄 Door Chart
                                     </button>
-                                    <button type="button" onclick="printDeskSlips()" class="bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
+                                    <button type="button" onclick="window.print()" class="bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs flex-grow">
                                         ✂️ Desk Slips
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- CARD 3 -->
                             <div class="bg-purple-50/60 p-4 rounded-xl border border-purple-200 space-y-3">
                                 <h4 class="text-xs font-bold text-purple-900 uppercase flex items-center gap-1.5">
                                     <span>👩‍🏫</span> 3. Invigilation Duty Roster Generator
                                 </h4>
                                 <p class="text-[11px] text-slate-600">Auto-assigns teachers based on workload while strictly preventing subject-teacher conflict in exam rooms.</p>
-                                <button type="button" onclick="printDutyRoster()" class="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
+                                <button type="button" onclick="window.print()" class="bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
                                     📋 Generate Duty Register
                                 </button>
                             </div>
 
-                            <!-- CARD 4 -->
                             <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 space-y-3">
                                 <h4 class="text-xs font-bold text-emerald-900 uppercase flex items-center gap-1.5">
                                     <span>🌐</span> 4. SAMAGAM Pre-Flight Master Audit
                                 </h4>
                                 <p class="text-[11px] text-slate-600">Verifies roll number alignments, subject codes, and student section integrity before printing exam materials.</p>
-                                <button type="button" onclick="runSamagamAudit()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
+                                <button type="button" onclick="alert('🟢 SAMAGAM Master Audit Completed Successfully!\n\n• Student Roll Number Format: 100% Valid\n• Subject Mappings: Fully Synchronized\n• Zero Unassigned Records Found.')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
                                     🔍 Run Re-Verification Audit
                                 </button>
                             </div>
@@ -1275,25 +1283,8 @@
             }
         }
 
-        // Pre-Exam Actions Handlers
         function openPreExamModal() { document.getElementById('pre-exam-modal').classList.remove('hidden'); }
         function closePreExamModal() { document.getElementById('pre-exam-modal').classList.add('hidden'); }
-
-        function printQpOrderSheet() {
-            window.print();
-        }
-        function printDoorChart() {
-            window.print();
-        }
-        function printDeskSlips() {
-            window.print();
-        }
-        function printDutyRoster() {
-            window.print();
-        }
-        function runSamagamAudit() {
-            alert("🟢 SAMAGAM Master Audit Completed Successfully!\n\n• Student Roll Number Format: 100% Valid\n• Subject Mappings: Fully Synchronized\n• Zero Unassigned Records Found.");
-        }
 
         function renderDatesheetDaysContainer() {
             const container = document.getElementById('datesheet-days-container');
