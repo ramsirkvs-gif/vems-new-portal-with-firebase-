@@ -25,13 +25,6 @@
                 padding: 0 !important;
                 margin: 0 !important;
             }
-            .printable-area {
-                display: block !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-            }
             table {
                 width: 100% !important;
                 border-collapse: collapse !important;
@@ -310,6 +303,7 @@
 
         let isExamConfigOpen = false;
         let activeExamId = null;
+        let selectedVaultExamForPreExam = null;
         let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
             { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
             { id: 'Half Yearly', label: 'Half Yearly Examination' },
@@ -335,7 +329,6 @@
         let editableQpDemands = [];
 
         function initFirebaseListeners() {
-            // Live Student Sync
             db.ref('students').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -352,7 +345,6 @@
                 renderExamCreatorModule();
             });
 
-            // Live Section Config Sync
             db.ref('sectionConfigs').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -364,7 +356,6 @@
                 }
             });
 
-            // Live Archived Exams Sync
             db.ref('archivedExams').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -398,7 +389,6 @@
             localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
             localStorage.setItem('vems_exam_options', JSON.stringify(examOptionsList));
 
-            // Push to Firebase Cloud
             db.ref('sectionConfigs').set(sectionConfigs);
             db.ref('archivedExams').set(archivedExams);
 
@@ -514,7 +504,6 @@
             if(tab === 'exam-creator-prin') renderExamCreatorModule();
         }
 
-        // MODULE 1: DYNAMIC CLASS & SUBJECT MAPPING SETUP
         function getAllUniqueClasses() {
             let clsSet = new Set();
             Object.keys(sectionConfigs).forEach(k => {
@@ -663,9 +652,6 @@
             if(countBadge) countBadge.textContent = `Total: ${filtered.length}`;
         }
 
-        // =========================================================================
-        // 🚀 EXAM WORKFLOW & VAULT ACTIONS
-        // =========================================================================
         function startNewExamSetup() {
             activeExamId = Date.now();
             mainHeaderConfig = {
@@ -965,12 +951,58 @@
         }
 
         // =========================================================================
-        // 🖨️ EDITABLE PRE-EXAM MODULE 1: QP PRINTING DEMAND WORKSPACE
+        // 🖨️ WORKSTATION: SELECT EXAM FROM VAULT & GENERATE QP PRINT DEMAND SHEET
         // =========================================================================
+        function openPreExamModal() {
+            const vaultSelect = document.getElementById('pre-exam-vault-select');
+            if (vaultSelect) {
+                vaultSelect.innerHTML = '';
+                if (archivedExams.length === 0) {
+                    vaultSelect.innerHTML = `<option value="">⚠️ No Created Exams Found in Vault</option>`;
+                } else {
+                    archivedExams.forEach(ex => {
+                        let opt = document.createElement('option');
+                        opt.value = ex.id;
+                        opt.textContent = `${ex.title} (${ex.fromDate} to ${ex.toDate}) [${ex.totalDays} Days]`;
+                        vaultSelect.appendChild(opt);
+                    });
+                    if (activeExamId) vaultSelect.value = activeExamId;
+                }
+            }
+            document.getElementById('pre-exam-modal').classList.remove('hidden');
+        }
+
+        function closePreExamModal() { 
+            document.getElementById('pre-exam-modal').classList.add('hidden'); 
+        }
+
+        function handlePreExamVaultChange() {
+            const selId = parseInt(document.getElementById('pre-exam-vault-select').value);
+            selectedVaultExamForPreExam = archivedExams.find(ex => ex.id === selId);
+        }
+
         function openEditableQpDemandWorkspace() {
+            const vaultSelect = document.getElementById('pre-exam-vault-select');
+            const selId = vaultSelect ? parseInt(vaultSelect.value) : null;
+            let targetExam = archivedExams.find(ex => ex.id === selId);
+            
+            if (!targetExam) {
+                if (datesheetDays && datesheetDays.length > 0) {
+                    targetExam = {
+                        title: mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name,
+                        datesheetSnapshot: datesheetDays
+                    };
+                } else {
+                    alert("⚠️ Please select an exam from the Created Vault list first!");
+                    return;
+                }
+            }
+
+            selectedVaultExamForPreExam = targetExam;
             editableQpDemands = [];
             
-            datesheetDays.forEach(day => {
+            let targetDays = targetExam.datesheetSnapshot || [];
+            targetDays.forEach(day => {
                 if (day.paperSlots && day.paperSlots.length > 0) {
                     day.paperSlots.forEach(slot => {
                         let secList = slot.selectedSections || [];
@@ -999,6 +1031,7 @@
                 }
             });
             
+            closePreExamModal();
             renderQpDemandModalTable();
             document.getElementById('qp-demand-modal').classList.remove('hidden');
         }
@@ -1050,15 +1083,20 @@
 
         function renderQpDemandModalTable() {
             const tbody = document.getElementById('qp-modal-tbody');
+            const titleSpan = document.getElementById('qp-modal-exam-title');
             if (!tbody) return;
             tbody.innerHTML = '';
             
+            if (titleSpan) {
+                titleSpan.textContent = selectedVaultExamForPreExam ? selectedVaultExamForPreExam.title : 'Selected Exam';
+            }
+
             let totalEnrolled = 0;
             let totalBuffer = 0;
             let totalFinal = 0;
 
             if (editableQpDemands.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">No scheduled papers found in current exam. Add slots in datesheet or add manual rows!</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">No scheduled paper slots found in this vault exam record. Add paper slots in datesheet builder or add manual rows above!</td></tr>`;
             } else {
                 editableQpDemands.forEach(item => {
                     totalEnrolled += item.enrolled;
@@ -1100,7 +1138,7 @@
         }
 
         function triggerQpDemandPrintReport() {
-            const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
+            const examTitle = selectedVaultExamForPreExam ? selectedVaultExamForPreExam.title : 'Examination';
             const printWin = window.open('', '_blank', 'width=900,height=700');
             
             let tableRowsHtml = editableQpDemands.map((q, idx) => `
@@ -1144,8 +1182,7 @@
                         <p>CONFIDENTIAL QUESTION PAPER PRINTING DEMAND INDENT SHEET</p>
                     </div>
                     <div class="meta">
-                        <div><b>Examination Name:</b> ${examTitle}</div>
-                        <div><b>Duration:</b> ${mainHeaderConfig.fromDate} to ${mainHeaderConfig.toDate}</div>
+                        <div><b>Selected Vault Exam:</b> ${examTitle}</div>
                         <div><b>Date Generated:</b> ${new Date().toLocaleDateString('en-IN')}</div>
                     </div>
                     <table>
@@ -1193,7 +1230,6 @@
             printWin.document.close();
         }
 
-        // MODULE RENDER ENGINE WITH PRE-EXAM NEEDS HUB
         function renderExamCreatorModule() {
             const htmlContent = `
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
@@ -1411,7 +1447,7 @@
                     </div>
                 </div>
 
-                <!-- PRE-EXAM READINESS & LOGISTICS CENTER MODAL -->
+                <!-- PRE-EXAM READINESS & LOGISTICS CENTER MODAL WITH VAULT SELECTION -->
                 <div id="pre-exam-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 no-print">
                     <div class="bg-white rounded-xl max-w-4xl w-full p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div class="flex justify-between items-center border-b pb-3">
@@ -1423,6 +1459,19 @@
                             </div>
                             <button type="button" onclick="closePreExamModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-3 py-1.5 rounded">✕ Close</button>
                         </div>
+
+                        <!-- VAULT SELECTION DROPDOWN BAR -->
+                        <div class="bg-indigo-900 text-white p-4 rounded-xl space-y-2 shadow-md">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-amber-300">
+                                📌 Step 1: Select Examination Record from Vault
+                            </label>
+                            <select id="pre-exam-vault-select" onchange="handlePreExamVaultChange()" class="w-full text-xs p-2.5 border rounded bg-white text-slate-900 font-bold">
+                            </select>
+                            <p class="text-[11px] text-indigo-200 italic">
+                                Note: Pre-exam logistics will automatically extract student strength and datesheets directly from this selected vault record.
+                            </p>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- CARD 1: EDITABLE QP DEMAND SHEET -->
                             <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
@@ -1430,8 +1479,8 @@
                                     <span>🖨️</span> 1. Question Paper Printing Demand (+5%)
                                 </h4>
                                 <p class="text-[11px] text-slate-600">Calculates examinee strength, allows full editing of buffers, custom copies, and generates print indents.</p>
-                                <button type="button" onclick="closePreExamModal(); openEditableQpDemandWorkspace();" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full">
-                                    📄 Open QP Demand Workstation
+                                <button type="button" onclick="openEditableQpDemandWorkspace()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs w-full flex items-center justify-center gap-1">
+                                    <span>📄</span> Generate & View QP Demand Sheet
                                 </button>
                             </div>
                             <!-- CARD 2: SEATING PLAN -->
@@ -1481,7 +1530,9 @@
                                 <h3 class="text-base font-bold text-indigo-900 flex items-center gap-2">
                                     <span>🖨️</span> Interactive QP Printing Demand Workstation
                                 </h3>
-                                <p class="text-xs text-slate-500">Edit print demands, adjust extra buffer copies, add subject remarks, and export formal print order.</p>
+                                <p class="text-xs text-slate-500">
+                                    Vault Exam Alignment: <span id="qp-modal-exam-title" class="font-bold text-indigo-700">Loading...</span>
+                                </p>
                             </div>
                             <button type="button" onclick="closeQpDemandModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs px-3 py-1.5 rounded">✕ Close</button>
                         </div>
@@ -1537,9 +1588,6 @@
             }
         }
 
-        function openPreExamModal() { document.getElementById('pre-exam-modal').classList.remove('hidden'); }
-        function closePreExamModal() { document.getElementById('pre-exam-modal').classList.add('hidden'); }
-
         function renderDatesheetDaysContainer() {
             const container = document.getElementById('datesheet-days-container');
             if (!container) return;
@@ -1583,7 +1631,6 @@
                                     </button>
                                 </div>
                             </div>
-                            <!-- SUBJECT-FIRST ALLOCATION DROPDOWNS -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">1️⃣ Select Standard</label>
@@ -1612,7 +1659,6 @@
                                     <input type="number" value="${slot.maxMarks}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'maxMarks', this.value)" class="w-full text-xs p-2 border rounded bg-white font-medium">
                                 </div>
                             </div>
-                            <!-- MAPPED SECTIONS FOUND FOR SUBJECT -->
                             <div class="bg-indigo-50/60 p-3 rounded-lg border border-indigo-100 space-y-1.5">
                                 <label class="block text-[10px] font-bold text-indigo-900 uppercase">
                                     📌 Mapped Sections Found for Standard ${formatClass(slot.cls)} - ${slot.subject}:
@@ -1621,7 +1667,6 @@
                                     ${mappedSections.length > 0 ? sectionCheckboxes : `<span class="text-xs text-slate-400 italic">No sections mapped for this subject.</span>`}
                                 </div>
                             </div>
-                            <!-- TIMING WINDOW FOR SLOT -->
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-100">
                                 <div>
                                     <label class="block text-[9px] font-bold text-slate-500 uppercase">🕒 Reporting Time</label>
@@ -1646,7 +1691,6 @@
                 let dayCard = document.createElement('div');
                 dayCard.className = `border rounded-xl overflow-hidden shadow-xs transition ${dayObj.saved ? 'bg-slate-100 border-slate-400' : 'bg-slate-50 border-indigo-300'}`;
                 dayCard.innerHTML = `
-                    <!-- DAY HEADER BAR -->
                     <div onclick="toggleDayAccordion(${dayObj.id})" class="p-3.5 flex items-center justify-between cursor-pointer border-b border-slate-200 select-none ${dayObj.saved ? 'bg-slate-200/80' : 'bg-slate-100 hover:bg-indigo-50'}">
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
@@ -1674,7 +1718,6 @@
                             </button>
                         </div>
                     </div>
-                    <!-- DAY BODY CONTENT -->
                     <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-4 bg-slate-50/50">
                         <fieldset ${dayObj.saved ? 'disabled' : ''} class="${dayObj.saved ? 'opacity-80 pointer-events-none' : ''}">
                             <div class="space-y-3">
