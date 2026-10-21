@@ -318,7 +318,6 @@
             { id: 'Slip Test', label: 'Slip Test' }
         ];
         
-        // STREAMLINED MASTER HEADER CONFIG (STRICTLY HIGH-LEVEL METADATA)
         let mainHeaderConfig = JSON.parse(localStorage.getItem('vems_header_config')) || {
             name: 'Half Yearly Examination',
             customName: '',
@@ -631,7 +630,7 @@
         }
 
         // =========================================================================
-        // 🚀 EXAM VAULT & STREAMLINED CLASS/SUBJECT-WISE TIMING WORKFLOW
+        // 🚀 SUBJECT-FIRST & STANDARD SCOPE ALLOCATION ENGINE
         // =========================================================================
 
         function startNewExamSetup() {
@@ -642,7 +641,7 @@
                 fromDate: new Date().toISOString().split('T')[0],
                 toDate: new Date().toISOString().split('T')[0]
             };
-            datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false }];
+            datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false, paperSlots: [] }];
             isExamConfigOpen = true;
 
             syncActiveExamDraftToVault();
@@ -805,15 +804,6 @@
             let startDate = new Date(fromDateVal);
             let endDate = toDateVal ? new Date(toDateVal) : new Date(fromDateVal);
 
-            const options = { weekday: 'long', timeZone: 'Asia/Kolkata' };
-            const startDay = new Intl.DateTimeFormat('en-IN', options).format(startDate);
-            const endDay = new Intl.DateTimeFormat('en-IN', options).format(endDate);
-            
-            const dayIndicator = document.getElementById('exam-ist-day-indicator');
-            if (dayIndicator) {
-                dayIndicator.textContent = startDate.getTime() === endDate.getTime() ? startDay : `${startDay} to ${endDay}`;
-            }
-
             mainHeaderConfig.fromDate = fromDateVal;
             mainHeaderConfig.toDate = toDateVal || fromDateVal;
 
@@ -822,7 +812,7 @@
             let dayIdx = 1;
             while (curr <= endDate && dayIdx <= 30) {
                 let dStr = curr.toISOString().split('T')[0];
-                datesheetDays.push({ id: dayIdx, dateStr: dStr, isCollapsed: dayIdx !== 1, saved: false });
+                datesheetDays.push({ id: dayIdx, dateStr: dStr, isCollapsed: dayIdx !== 1, saved: false, paperSlots: [] });
                 curr.setDate(curr.getDate() + 1);
                 dayIdx++;
             }
@@ -849,10 +839,126 @@
             let nextDateStr = lastDate.toISOString().split('T')[0];
             
             datesheetDays.forEach(d => d.isCollapsed = true);
-            datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false, saved: false });
+            datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false, saved: false, paperSlots: [] });
             syncActiveExamDraftToVault();
             renderDatesheetDaysContainer();
         }
+
+        // =========================================================================
+        // 💡 DYNAMIC SUBJECT-FIRST SLOT ALLOCATOR HELPERS
+        // =========================================================================
+
+        function addPaperSlotToDay(dayId) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+
+            if (!dayObj.paperSlots) dayObj.paperSlots = [];
+
+            let classesList = getAllUniqueClasses();
+            let defaultCls = classesList.includes('11') ? '11' : classesList[0];
+            let availableSubs = getUniqueSubjectsForClass(defaultCls);
+            let defaultSub = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
+
+            let slotId = Date.now() + Math.floor(Math.random() * 1000);
+            
+            dayObj.paperSlots.push({
+                slotId: slotId,
+                cls: defaultCls,
+                subject: defaultSub,
+                selectedSections: getAllSectionsWithSubject(defaultCls, defaultSub),
+                duration: '3 Hours',
+                maxMarks: 80,
+                repTime: '08:00',
+                readTime: '08:15',
+                startTime: '08:30',
+                overTime: '11:30'
+            });
+
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function removePaperSlotFromDay(dayId, slotId) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj || !dayObj.paperSlots) return;
+
+            dayObj.paperSlots = dayObj.paperSlots.filter(s => s.slotId !== slotId);
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function getAllSectionsWithSubject(cls, subject) {
+            let matchingSections = [];
+            let allSecs = getAllSectionsForClass(cls);
+
+            allSecs.forEach(sec => {
+                let key = `${cls}-${sec}`;
+                let subs = sectionConfigs[key] || [];
+                if (subs.map(s => s.toUpperCase()).includes(subject.toUpperCase())) {
+                    matchingSections.push(sec);
+                }
+            });
+            return matchingSections;
+        }
+
+        function handleSlotClassChange(dayId, slotId, clsVal) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
+            if (!slot) return;
+
+            slot.cls = clsVal;
+            let availableSubs = getUniqueSubjectsForClass(clsVal);
+            slot.subject = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
+            slot.selectedSections = getAllSectionsWithSubject(clsVal, slot.subject);
+
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function handleSlotSubjectChange(dayId, slotId, subVal) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
+            if (!slot) return;
+
+            slot.subject = subVal;
+            slot.selectedSections = getAllSectionsWithSubject(slot.cls, subVal);
+
+            syncActiveExamDraftToVault();
+            renderDatesheetDaysContainer();
+        }
+
+        function toggleSlotSection(dayId, slotId, secVal, isChecked) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
+            if (!slot) return;
+
+            if (isChecked) {
+                if (!slot.selectedSections.includes(secVal)) slot.selectedSections.push(secVal);
+            } else {
+                slot.selectedSections = slot.selectedSections.filter(s => s !== secVal);
+            }
+
+            syncActiveExamDraftToVault();
+            runDayAnalysisSearch(dayId);
+        }
+
+        function updateSlotField(dayId, slotId, fieldName, val) {
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj) return;
+            let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
+            if (!slot) return;
+
+            slot[fieldName] = val;
+            syncActiveExamDraftToVault();
+            runDayAnalysisSearch(dayId);
+        }
+
+        // =========================================================================
+        // 📊 MODULE RENDER ENGINE
+        // =========================================================================
 
         function renderExamCreatorModule() {
             const htmlContent = `
@@ -927,7 +1033,7 @@
                         `}
                     </div>
 
-                    <!-- 📋 ACTIVE EXAM CONFIGURATION PANEL (MASTER HEADER STRICTLY OVERALL TITLE & DATES) -->
+                    <!-- 📋 ACTIVE EXAM CONFIGURATION PANEL -->
                     ${isExamConfigOpen ? `
                         <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
                             <div class="flex justify-between items-center border-b border-indigo-200 pb-2 flex-wrap gap-2">
@@ -973,14 +1079,14 @@
                             </div>
                         </div>
 
-                        <!-- DAYWISE DATESHEET BUILDER WITH CLASS & SUBJECT DURATION/MARKS ALLOCATOR -->
+                        <!-- DAYWISE DATESHEET BUILDER (SUBJECT-FIRST PARALLEL SLOTS MODEL) -->
                         <div class="space-y-4 pt-2">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-2">
                                 <div>
                                     <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wide">
-                                        🗓️ Collapsible Day-by-Day Datesheet & Classwise Timing Allocator
+                                        🗓️ Subject-First Collapsible Day-by-Day Datesheet & Parallel Slot Allocator
                                     </h3>
-                                    <p class="text-[11px] text-slate-500">Configure class-wise duration, max marks, and timings per subject for each date</p>
+                                    <p class="text-[11px] text-slate-500">Select Standard & Subject to automatically reveal mapped sections and strength</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button type="button" onclick="setAllDaysCollapseState(true)" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded border border-slate-300">
@@ -1105,80 +1211,100 @@
                 const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' };
                 let dateDisplay = isNaN(dDate.getTime()) ? `Day ${dayObj.id}` : new Intl.DateTimeFormat('en-IN', options).format(dDate);
 
-                let classCardsHtml = '';
-                classesList.forEach(c => {
-                    let secsForCls = getAllSectionsForClass(c);
-                    let classSubjects = getUniqueSubjectsForClass(c);
+                if (!dayObj.paperSlots) dayObj.paperSlots = [];
 
-                    let secCheckboxes = secsForCls.map(s => `
-                        <label class="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer">
-                            <input type="checkbox" value="${c}-${s}" class="day-${dayObj.id}-sec-item text-indigo-600 rounded" onchange="runDayAnalysisSearch(${dayObj.id})" checked>
-                            Sec ${s}
-                        </label>
-                    `).join('');
+                let slotsHtml = '';
 
-                    let subOptionsHtml = `<option value="ALL">All Mapped Subjects</option>` + classSubjects.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+                dayObj.paperSlots.forEach((slot, sIdx) => {
+                    let availableSubjects = getUniqueSubjectsForClass(slot.cls);
+                    let mappedSections = getAllSectionsWithSubject(slot.cls, slot.subject);
 
-                    // CLASS-WISE DURATION, MARKS & TIMING CONTROLS INSIDE CARD
-                    classCardsHtml += `
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 space-y-2.5 shadow-xs">
-                            <div class="flex items-center justify-between border-b pb-1.5">
-                                <label class="font-bold text-xs text-indigo-900 inline-flex items-center gap-1.5 cursor-pointer">
-                                    <input type="checkbox" value="${c}" class="day-${dayObj.id}-cls-parent text-indigo-700 rounded" onchange="toggleDayClassSections(${dayObj.id}, '${c}', this)" checked>
-                                    Class ${formatClass(c)}
-                                </label>
-                                <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-100">${secsForCls.length} Secs</span>
+                    let classOptions = classesList.map(c => `<option value="${c}" ${slot.cls === String(c) ? 'selected' : ''}>Class ${formatClass(c)}</option>`).join('');
+                    let subOptions = availableSubjects.map(sub => `<option value="${sub}" ${slot.subject === sub ? 'selected' : ''}>${sub}</option>`).join('');
+
+                    let sectionCheckboxes = mappedSections.map(sec => {
+                        let isChecked = slot.selectedSections.includes(sec);
+                        let secStudentsCount = students.filter(s => String(s.class) === String(slot.cls) && String(s.section) === String(sec)).length;
+                        return `
+                            <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-white px-2 py-1 rounded border border-indigo-200 shadow-2xs cursor-pointer">
+                                <input type="checkbox" value="${sec}" ${isChecked ? 'checked' : ''} onchange="toggleSlotSection(${dayObj.id}, ${slot.slotId}, '${sec}', this.checked)" class="text-indigo-600 rounded">
+                                Sec ${sec} (${secStudentsCount} STU)
+                            </label>
+                        `;
+                    }).join('');
+
+                    slotsHtml += `
+                        <div class="bg-white p-4 rounded-xl border border-indigo-200 space-y-3 shadow-xs">
+                            <div class="flex justify-between items-center border-b border-indigo-100 pb-2 flex-wrap gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-indigo-900 text-white text-[10px] font-bold px-2 py-0.5 rounded">SLOT ${sIdx + 1}</span>
+                                    <h5 class="text-xs font-bold text-indigo-950 uppercase">Scheduled Paper Slot Settings</h5>
+                                </div>
+                                <button type="button" onclick="removePaperSlotFromDay(${dayObj.id}, ${slot.slotId})" class="text-[11px] bg-red-50 hover:bg-red-100 text-red-600 font-bold px-2.5 py-1 rounded border border-red-200">
+                                    🗑️ Remove Slot
+                                </button>
                             </div>
-                            
-                            <div class="flex flex-wrap gap-1" id="day-${dayObj.id}-cls-secs-${c}">
-                                ${secCheckboxes}
-                            </div>
 
-                            <div class="pt-2 border-t border-slate-100 space-y-2">
+                            <!-- SUBJECT-FIRST ALLOCATION DROPDOWNS -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">📖 Subject (Class ${formatClass(c)})</label>
-                                    <select id="day-${dayObj.id}-sub-cls-${c}" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-xs p-1.5 border border-indigo-200 rounded bg-slate-50 font-bold text-indigo-950 focus:bg-white">
-                                        ${subOptionsHtml}
+                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">1️⃣ Select Standard</label>
+                                    <select onchange="handleSlotClassChange(${dayObj.id}, ${slot.slotId}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-slate-50 text-indigo-900 border-indigo-200">
+                                        ${classOptions}
                                     </select>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">⏱️ Duration</label>
-                                        <select id="day-${dayObj.id}-dur-cls-${c}" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[11px] p-1 border rounded bg-white font-medium">
-                                            <option value="1 Hour">1 Hour</option>
-                                            <option value="1.5 Hours">1.5 Hours</option>
-                                            <option value="2 Hours">2 Hours</option>
-                                            <option value="2.5 Hours" selected>2.5 Hours</option>
-                                            <option value="3 Hours">3 Hours</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">🎯 Max Marks</label>
-                                        <input type="number" id="day-${dayObj.id}-marks-cls-${c}" value="80" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[11px] p-1 border rounded bg-white font-medium">
-                                    </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">2️⃣ Select Subject (Mapped)</label>
+                                    <select onchange="handleSlotSubjectChange(${dayObj.id}, ${slot.slotId}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-white text-indigo-900 border-indigo-300">
+                                        ${subOptions}
+                                    </select>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-[9px] font-bold text-slate-500 uppercase">🕒 Reporting Time</label>
-                                        <input type="time" id="day-${dayObj.id}-rep-cls-${c}" value="08:00" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[10px] p-1 border rounded bg-white">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[9px] font-bold text-slate-500 uppercase">📖 Reading Time</label>
-                                        <input type="time" id="day-${dayObj.id}-read-cls-${c}" value="08:15" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[10px] p-1 border rounded bg-white">
-                                    </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">⏱️ Duration</label>
+                                    <select onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'duration', this.value)" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                        <option value="1 Hour" ${slot.duration === '1 Hour' ? 'selected' : ''}>1 Hour</option>
+                                        <option value="1.5 Hours" ${slot.duration === '1.5 Hours' ? 'selected' : ''}>1.5 Hours</option>
+                                        <option value="2 Hours" ${slot.duration === '2 Hours' ? 'selected' : ''}>2 Hours</option>
+                                        <option value="2.5 Hours" ${slot.duration === '2.5 Hours' ? 'selected' : ''}>2.5 Hours</option>
+                                        <option value="3 Hours" ${slot.duration === '3 Hours' ? 'selected' : ''}>3 Hours</option>
+                                    </select>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-[9px] font-bold text-slate-500 uppercase">⚡ Start Time</label>
-                                        <input type="time" id="day-${dayObj.id}-start-cls-${c}" value="08:30" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[10px] p-1 border rounded bg-white font-bold text-indigo-900">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[9px] font-bold text-slate-500 uppercase">🔔 Exam Over</label>
-                                        <input type="time" id="day-${dayObj.id}-over-cls-${c}" value="11:30" onchange="runDayAnalysisSearch(${dayObj.id})" class="w-full text-[10px] p-1 border rounded bg-white font-bold text-indigo-900">
-                                    </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">🎯 Max Marks</label>
+                                    <input type="number" value="${slot.maxMarks}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'maxMarks', this.value)" class="w-full text-xs p-2 border rounded bg-white font-medium">
+                                </div>
+                            </div>
+
+                            <!-- MAPPED SECTIONS FOUND FOR SUBJECT -->
+                            <div class="bg-indigo-50/60 p-3 rounded-lg border border-indigo-100 space-y-1.5">
+                                <label class="block text-[10px] font-bold text-indigo-900 uppercase">
+                                    📌 Mapped Sections Found for Standard ${formatClass(slot.cls)} - ${slot.subject}:
+                                </label>
+                                <div class="flex flex-wrap gap-2">
+                                    ${mappedSections.length > 0 ? sectionCheckboxes : `<span class="text-xs text-slate-400 italic">No sections mapped for this subject.</span>`}
+                                </div>
+                            </div>
+
+                            <!-- TIMING WINDOW FOR SLOT -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-100">
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-500 uppercase">🕒 Reporting Time</label>
+                                    <input type="time" value="${slot.repTime}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'repTime', this.value)" class="w-full text-[11px] p-1 border rounded bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-500 uppercase">📖 Reading Time</label>
+                                    <input type="time" value="${slot.readTime}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'readTime', this.value)" class="w-full text-[11px] p-1 border rounded bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-500 uppercase">⚡ Start Time</label>
+                                    <input type="time" value="${slot.startTime}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'startTime', this.value)" class="w-full text-[11px] p-1 border rounded bg-white font-bold text-indigo-900">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-500 uppercase">🔔 Exam Over</label>
+                                    <input type="time" value="${slot.overTime}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'overTime', this.value)" class="w-full text-[11px] p-1 border rounded bg-white font-bold text-indigo-900">
                                 </div>
                             </div>
                         </div>
@@ -1221,33 +1347,36 @@
                     <!-- DAY BODY CONTENT -->
                     <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-4 bg-slate-50/50">
                         <fieldset ${dayObj.saved ? 'disabled' : ''} class="${dayObj.saved ? 'opacity-80 pointer-events-none' : ''}">
-                            <div class="space-y-2">
+                            <div class="space-y-3">
                                 <div class="flex justify-between items-center">
-                                    <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Class-Wise Scope, Duration & Timing Controls (Day ${dayObj.id})</label>
-                                    <div class="space-x-1.5">
-                                        <button type="button" onclick="setDaySelections(${dayObj.id}, true)" class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200">Select All</button>
-                                        <button type="button" onclick="setDaySelections(${dayObj.id}, false)" class="text-[10px] bg-white text-slate-700 font-bold px-2 py-1 rounded border border-indigo-200">Deselect All</button>
-                                    </div>
+                                    <label class="block text-[11px] font-bold text-slate-800 uppercase">1️⃣ Scheduled Paper Slots for ${dateDisplay}</label>
+                                    <button type="button" onclick="addPaperSlotToDay(${dayObj.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded shadow-xs flex items-center gap-1">
+                                        <span>➕ Add Scheduled Paper Slot</span>
+                                    </button>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-96 overflow-y-auto p-1.5 bg-white rounded border">
-                                    ${classCardsHtml}
-                                </div>
+                                ${dayObj.paperSlots.length === 0 ? `
+                                    <div class="p-4 bg-white rounded-lg border border-dashed text-center text-slate-400 text-xs italic">
+                                        No paper slots scheduled for this day yet. Click 'Add Scheduled Paper Slot' above to configure!
+                                    </div>
+                                ` : `
+                                    <div class="space-y-3">${slotsHtml}</div>
+                                `}
                             </div>
                         </fieldset>
 
                         <div class="space-y-1.5 pt-2">
-                            <h5 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">📊 Detailed Class-wise & Subject-wise Examination Schedule Summary (${dateDisplay})</h5>
+                            <h5 class="text-[11px] font-bold text-indigo-900 uppercase tracking-wide">📊 Consolidated Scheduled Papers Summary (${dateDisplay})</h5>
                             <div class="overflow-x-auto border rounded-lg shadow-xs bg-white">
                                 <table class="w-full text-xs text-left text-slate-700">
                                     <thead class="bg-indigo-900 text-white uppercase font-semibold">
                                         <tr>
-                                            <th class="px-3 py-2">Class & Section</th>
-                                            <th class="px-3 py-2">Subject</th>
+                                            <th class="px-3 py-2">Standard & Sections</th>
+                                            <th class="px-3 py-2">Scheduled Subject</th>
                                             <th class="px-3 py-2 text-center">Duration & Max Marks</th>
-                                            <th class="px-3 py-2 text-center">Timing Window</th>
-                                            <th class="px-3 py-2 text-center">Examinees</th>
-                                            <th class="px-3 py-2 text-center">QP Demand (+5%)</th>
+                                            <th class="px-3 py-2 text-center">Exam Window</th>
+                                            <th class="px-3 py-2 text-center">Total Examinees</th>
+                                            <th class="px-3 py-2 text-center">QP Print Demand (+5%)</th>
                                             <th class="px-3 py-2">QP Setter</th>
                                             <th class="px-3 py-2">Evaluator</th>
                                         </tr>
@@ -1264,20 +1393,6 @@
             });
         }
 
-        function toggleDayClassSections(dayId, cls, parentCb) {
-            const container = document.getElementById(`day-${dayId}-cls-secs-${cls}`);
-            if(!container) return;
-            const checkboxes = container.querySelectorAll(`.day-${dayId}-sec-item`);
-            checkboxes.forEach(cb => cb.checked = parentCb.checked);
-            runDayAnalysisSearch(dayId);
-        }
-
-        function setDaySelections(dayId, status) {
-            document.querySelectorAll(`.day-${dayId}-cls-parent`).forEach(cb => cb.checked = status);
-            document.querySelectorAll(`.day-${dayId}-sec-item`).forEach(cb => cb.checked = status);
-            runDayAnalysisSearch(dayId);
-        }
-
         function runDayAnalysisSearch(dayId) {
             const tbody = document.getElementById(`day-${dayId}-tbody`);
             const tfoot = document.getElementById(`day-${dayId}-tfoot`);
@@ -1287,73 +1402,60 @@
             tbody.innerHTML = '';
             if(tfoot) tfoot.innerHTML = '';
 
-            const selectedSectionKeys = Array.from(document.querySelectorAll(`.day-${dayId}-sec-item:checked`)).map(cb => cb.value);
+            let dayObj = datesheetDays.find(d => d.id === dayId);
+            if (!dayObj || !dayObj.paperSlots || dayObj.paperSlots.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-slate-400 italic">No scheduled papers configured for this date.</td></tr>`;
+                if (quickSummaryElem) quickSummaryElem.textContent = `📊 Scope: 0 Papers | 0 Examinees`;
+                return;
+            }
 
-            let rowsFound = 0;
             let totalCombinedExaminees = 0;
             let totalQpRequired = 0;
-            let classesList = getAllUniqueClasses();
 
-            classesList.forEach(cls => {
-                let classSubFilter = document.getElementById(`day-${dayId}-sub-cls-${cls}`)?.value || 'ALL';
-                let durationVal = document.getElementById(`day-${dayId}-dur-cls-${cls}`)?.value || '2.5 Hours';
-                let marksVal = document.getElementById(`day-${dayId}-marks-cls-${cls}`)?.value || '80';
-                let startTimeVal = document.getElementById(`day-${dayId}-start-cls-${cls}`)?.value || '08:30';
-                let overTimeVal = document.getElementById(`day-${dayId}-over-cls-${cls}`)?.value || '11:30';
+            dayObj.paperSlots.forEach(slot => {
+                let secList = slot.selectedSections || [];
+                if (secList.length === 0) return;
 
-                let sections = getAllSectionsForClass(cls);
-
-                sections.forEach(sec => {
-                    let secKey = `${cls}-${sec}`;
-                    if(!selectedSectionKeys.includes(secKey)) return;
-
-                    let subs = sectionConfigs[secKey] || [];
-                    let classStudents = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
-
-                    subs.forEach(sub => {
-                        if(classSubFilter !== 'ALL' && sub.toUpperCase() !== classSubFilter.toUpperCase()) return;
-
-                        let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(cls) && String(al.sec) === String(sec) && al.subject.toUpperCase() === sub.toUpperCase()));
-                        
-                        let teacherName = assignedTeacher ? assignedTeacher.name : 'Unassigned';
-                        let qpSetter = assignedTeacher ? (assignedTeacher.qpSetter || 'Self') : '-';
-                        let evaluator = assignedTeacher ? (assignedTeacher.evaluator || 'Self') : '-';
-
-                        if(qpSetter === 'Self') qpSetter = teacherName;
-                        if(evaluator === 'Self') evaluator = teacherName;
-
-                        let classSecTitle = `Class ${formatClass(cls)}-${sec}`;
-                        let examineeCount = classStudents.length;
-                        let qpCount = Math.ceil(examineeCount * 1.05);
-
-                        rowsFound++;
-                        totalCombinedExaminees += examineeCount;
-                        totalQpRequired += qpCount;
-
-                        let tr = document.createElement('tr');
-                        tr.className = "hover:bg-slate-50 border-b text-xs";
-                        tr.innerHTML = `
-                            <td class="px-3 py-2 font-bold text-indigo-900">${classSecTitle}</td>
-                            <td class="px-3 py-2 font-bold text-slate-800"><span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-100">${sub}</span></td>
-                            <td class="px-3 py-2 text-center font-semibold text-slate-700">${durationVal} | ${marksVal} Marks</td>
-                            <td class="px-3 py-2 text-center font-bold text-indigo-900 bg-indigo-50/30">${startTimeVal} to ${overTimeVal}</td>
-                            <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${examineeCount} Examinees</td>
-                            <td class="px-3 py-2 text-center font-bold text-amber-800 bg-amber-50/40">${qpCount} Papers</td>
-                            <td class="px-3 py-2 text-indigo-900 font-bold">👤 ${qpSetter}</td>
-                            <td class="px-3 py-2 text-slate-700">${evaluator}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
+                let totalExamineesForSlot = 0;
+                secList.forEach(sec => {
+                    let count = students.filter(s => String(s.class) === String(slot.cls) && String(s.section) === String(sec)).length;
+                    totalExamineesForSlot += count;
                 });
+
+                let qpDemand = Math.ceil(totalExamineesForSlot * 1.05);
+
+                totalCombinedExaminees += totalExamineesForSlot;
+                totalQpRequired += qpDemand;
+
+                let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(slot.cls) && al.subject.toUpperCase() === slot.subject.toUpperCase()));
+                
+                let teacherName = assignedTeacher ? assignedTeacher.name : 'Unassigned';
+                let qpSetter = assignedTeacher ? (assignedTeacher.qpSetter || 'Self') : '-';
+                let evaluator = assignedTeacher ? (assignedTeacher.evaluator || 'Self') : '-';
+
+                if(qpSetter === 'Self') qpSetter = teacherName;
+                if(evaluator === 'Self') evaluator = teacherName;
+
+                let tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b text-xs";
+                tr.innerHTML = `
+                    <td class="px-3 py-2 font-bold text-indigo-900">Class ${formatClass(slot.cls)} - Sec ${secList.join(', ')}</td>
+                    <td class="px-3 py-2 font-bold text-slate-800"><span class="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded border border-indigo-100">${slot.subject}</span></td>
+                    <td class="px-3 py-2 text-center font-semibold text-slate-700">${slot.duration} | ${slot.maxMarks} Marks</td>
+                    <td class="px-3 py-2 text-center font-bold text-indigo-900 bg-indigo-50/30">${slot.startTime} to ${slot.overTime}</td>
+                    <td class="px-3 py-2 text-center font-bold text-emerald-800 bg-emerald-50/40">${totalExamineesForSlot} Examinees</td>
+                    <td class="px-3 py-2 text-center font-bold text-amber-800 bg-amber-50/40">${qpDemand} Papers</td>
+                    <td class="px-3 py-2 text-indigo-900 font-bold">👤 ${qpSetter}</td>
+                    <td class="px-3 py-2 text-slate-700">${evaluator}</td>
+                `;
+                tbody.appendChild(tr);
             });
 
             if (quickSummaryElem) {
-                quickSummaryElem.textContent = `📊 Scope: ${rowsFound} Classes/Subs | ${totalCombinedExaminees} Examinees | ${totalQpRequired} QPs`;
+                quickSummaryElem.textContent = `📊 Scope: ${dayObj.paperSlots.length} Papers | ${totalCombinedExaminees} Examinees | ${totalQpRequired} QPs`;
             }
 
-            if(rowsFound === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-4 text-center text-slate-400 italic">No examination mapping scope selected for this day.</td></tr>`;
-            } else if(tfoot) {
+            if(tfoot) {
                 tfoot.innerHTML = `
                     <tr class="text-slate-900 text-xs">
                         <td colspan="4" class="px-3 py-2 text-right font-extrabold uppercase">Day Total Summary:</td>
