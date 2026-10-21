@@ -136,35 +136,44 @@
                 <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System & Password Settings</button>
             </div>
             
-            <!-- MODULE 1: SUBJECT MASTER SETUP -->
+            <!-- MODULE 1: DYNAMIC CLASS & SUBJECT MASTER SETUP -->
             <section id="sec-config" class="space-y-6">
-                <!-- Single Section Config Editor Card -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                     <div class="flex justify-between items-center border-b pb-4">
                         <div>
                             <h2 class="text-xl font-bold text-slate-900">⚙️ 1. Classwise Subject Mapping (Secondary)</h2>
-                            <p class="text-xs text-slate-500">Configure subjects class-wise and section-wise for Secondary Wing (Synced to Firebase).</p>
+                            <p class="text-xs text-slate-500">Add, edit, or delete classes, sections, and subject mapping (Synced to Firebase).</p>
                         </div>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
-                        <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-3 rounded border">
-                            <div class="flex items-center gap-3">
+                        <!-- Controls for Class/Section creation & deletion -->
+                        <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-3 rounded border shadow-sm">
+                            <div class="flex items-center gap-3 flex-wrap">
                                 <div>
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase">Select Class</label>
-                                    <select id="cfg-class" onchange="updateCfgSections(); loadSectionConfigDetails();" class="text-xs p-2 border rounded font-medium bg-white mt-1">
-                                        <option value="6">Class VI</option><option value="7">Class VII</option><option value="8">Class VIII</option><option value="9">Class IX</option><option value="10">Class X</option><option value="11" selected>Class XI</option><option value="12">Class XII</option>
-                                    </select>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select / Manage Class</label>
+                                    <div class="flex items-center gap-1">
+                                        <select id="cfg-class" onchange="updateCfgSections(); loadSectionConfigDetails();" class="text-xs p-2 border rounded font-semibold bg-white"></select>
+                                        <button type="button" onclick="promptAddNewClass()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-2 rounded border border-indigo-200" title="Create New Class">➕ Class</button>
+                                        <button type="button" onclick="promptDeleteCurrentClass()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-2 rounded border border-red-200" title="Delete Entire Class">🗑️</button>
+                                    </div>
                                 </div>
                                 <div>
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase">Select Section</label>
-                                    <select id="cfg-section" onchange="loadSectionConfigDetails()" class="text-xs p-2 border rounded font-medium bg-white mt-1"></select>
+                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select / Manage Section</label>
+                                    <div class="flex items-center gap-1">
+                                        <select id="cfg-section" onchange="loadSectionConfigDetails()" class="text-xs p-2 border rounded font-semibold bg-white"></select>
+                                        <button type="button" onclick="promptAddNewSection()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-2 rounded border border-indigo-200" title="Create New Section">➕ Section</button>
+                                        <button type="button" onclick="promptDeleteCurrentSection()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-2 py-2 rounded border border-red-200" title="Delete Selected Section">🗑️</button>
+                                    </div>
                                 </div>
                             </div>
-                            <button type="button" onclick="addNewSubjectField()" class="text-xs bg-emerald-600 text-white font-semibold px-3 py-2 rounded shadow-sm">➕ Add Subject</button>
+                            <button type="button" onclick="addNewSubjectField()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Subject</button>
                         </div>
+                        
                         <form onsubmit="saveSectionConfig(event)" class="space-y-4">
                             <div id="cfg-subjects-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
-                            <div class="flex justify-end pt-3 border-t"><button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-5 py-2.5 rounded shadow">💾 Save Section Configuration</button></div>
+                            <div class="flex justify-end pt-3 border-t">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-5 py-2.5 rounded shadow">💾 Save Section Configuration</button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -352,9 +361,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                         <div>
                             <label class="block text-xs font-medium text-slate-700 mb-1">Select Class</label>
-                            <select id="prin-query-class" onchange="updateQuerySections(); runCustomQuery();" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium">
-                                <option value="ALL">All Classes (VI–XII)</option><option value="6">Class VI</option><option value="7">Class VII</option><option value="8">Class VIII</option><option value="9">Class IX</option><option value="10">Class X</option><option value="11" selected>Class XI</option><option value="12">Class XII</option>
-                            </select>
+                            <select id="prin-query-class" onchange="updateQuerySections(); runCustomQuery();" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium"></select>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label>
@@ -427,9 +434,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                         <div>
                             <label class="block text-xs font-medium text-slate-700 mb-1">Select Class</label>
-                            <select id="query-class" onchange="updateQuerySections(); runCustomQuery();" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium">
-                                <option value="ALL">All Classes (VI–XII)</option><option value="6">Class VI</option><option value="7">Class VII</option><option value="8">Class VIII</option><option value="9">Class IX</option><option value="10">Class X</option><option value="11" selected>Class XI</option><option value="12">Class XII</option>
-                            </select>
+                            <select id="query-class" onchange="updateQuerySections(); runCustomQuery();" class="w-full text-xs p-2.5 border border-indigo-300 rounded bg-white font-medium"></select>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label>
@@ -540,7 +545,7 @@
             return cleaned.toUpperCase();
         }
         const ROMAN_MAP = { '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
-        function formatClass(cls) { return ROMAN_MAP[String(cls)] || cls; }
+        function formatClass(cls) { return ROMAN_MAP[String(cls)] || `Class ${cls}`; }
         
         let currentActiveRole = localStorage.getItem('vems_active_role') || 'public';
         let currentActiveTab = localStorage.getItem('vems_active_tab') || 'config';
@@ -591,6 +596,7 @@
                 const data = snapshot.val();
                 if (data) {
                     sectionConfigs = data;
+                    initCfgSections();
                     renderMasterSubjectDirectory();
                 }
             });
@@ -716,52 +722,169 @@
             switchTab('settings');
         }
 
-        // MODULE 1: SUBJECT SETUP & MASTER DIRECTORY
+        // MODULE 1: DYNAMIC CLASS & SUBJECT MAPPING SETUP
+        function getAllUniqueClasses() {
+            let clsSet = new Set();
+            Object.keys(sectionConfigs).forEach(k => {
+                let parts = k.split('-');
+                if(parts.length > 0) clsSet.add(parts[0]);
+            });
+            let arr = Array.from(clsSet);
+            arr.sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0));
+            return arr.length > 0 ? arr : ['6', '7', '8', '9', '10', '11', '12'];
+        }
+
+        function getAllSectionsForClass(cls) {
+            let secSet = new Set();
+            Object.keys(sectionConfigs).forEach(k => {
+                let parts = k.split('-');
+                if(parts[0] === String(cls)) secSet.add(parts[1]);
+            });
+            let arr = Array.from(secSet);
+            arr.sort();
+            return arr.length > 0 ? arr : ['A', 'B', 'C', 'D'];
+        }
+
         function initCfgSections() { 
+            const clsSel = document.getElementById('cfg-class');
+            if(!clsSel) return;
+            const currentSelectedClass = clsSel.value;
+            clsSel.innerHTML = '';
+            
+            const classesList = getAllUniqueClasses();
+            classesList.forEach(cls => {
+                let opt = document.createElement('option');
+                opt.value = cls;
+                opt.textContent = `Class ${formatClass(cls)}`;
+                clsSel.appendChild(opt);
+            });
+            if(currentSelectedClass && classesList.includes(currentSelectedClass)) {
+                clsSel.value = currentSelectedClass;
+            } else if(classesList.length > 0) {
+                clsSel.value = classesList[0];
+            }
             updateCfgSections(); 
             loadSectionConfigDetails(); 
             renderMasterSubjectDirectory();
         }
+
         function updateCfgSections() {
             const cls = document.getElementById('cfg-class').value;
             const secSel = document.getElementById('cfg-section');
+            if(!secSel || !cls) return;
+            const currentSelectedSec = secSel.value;
             secSel.innerHTML = '';
-            const isHigher = (cls === '11' || cls === '12');
-            (isHigher ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']).forEach(s => {
-                let opt = document.createElement('option'); opt.value = s; opt.textContent = `Section ${s}`;
+            
+            const sectionsList = getAllSectionsForClass(cls);
+            sectionsList.forEach(s => {
+                let opt = document.createElement('option'); 
+                opt.value = s; 
+                opt.textContent = `Section ${s}`;
                 secSel.appendChild(opt);
             });
+            if(currentSelectedSec && sectionsList.includes(currentSelectedSec)) {
+                secSel.value = currentSelectedSec;
+            } else if(sectionsList.length > 0) {
+                secSel.value = sectionsList[0];
+            }
             loadSectionConfigDetails();
         }
+
         function loadSectionConfigDetails() {
             const cls = document.getElementById('cfg-class').value;
             const sec = document.getElementById('cfg-section').value;
+            if(!cls || !sec) return;
             const key = `${cls}-${sec}`;
             let defaultSubs = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE'];
-            if(cls === '10') defaultSubs = ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
-            else if(cls === '9') defaultSubs = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
-            else if((cls === '11' || cls === '12') && sec === 'C') defaultSubs = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI'];
-            else if((cls === '11' || cls === '12') && (sec === 'D' || sec === 'E')) defaultSubs = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI'];
-            else if((cls === '11' || cls === '12') && (sec === 'A' || sec === 'B')) defaultSubs = ['PHYSICS', 'CHEMISTRY', 'ENGLISH', 'MATHS', 'BIOLOGY', 'C.S', 'HINDI CORE', 'AI'];
             renderConfigSubjectInputs(sectionConfigs[key] || defaultSubs);
         }
+
         function renderConfigSubjectInputs(subjects) {
             const container = document.getElementById('cfg-subjects-container');
+            if(!container) return;
             container.innerHTML = '';
             subjects.forEach((sub, idx) => {
                 const div = document.createElement('div');
                 div.className = "flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm";
-                div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${sub}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
+                div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${sub}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200" title="Delete Subject">🗑️</button>`;
                 container.appendChild(div);
             });
         }
+
         function addNewSubjectField() {
             const container = document.getElementById('cfg-subjects-container');
             const div = document.createElement('div');
             div.className = "flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm";
-            div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">New Sub</label><input type="text" value="SUBJECT" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
+            div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">New Sub</label><input type="text" value="SUBJECT" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200" title="Delete Subject">🗑️</button>`;
             container.appendChild(div);
         }
+
+        function promptAddNewClass() {
+            let newCls = prompt("Enter New Class Identifier (e.g. 5, 13, or custom string):");
+            if(!newCls) return;
+            newCls = newCls.trim().toUpperCase();
+            if(!newCls) return;
+            
+            let defaultKey = `${newCls}-A`;
+            if(!sectionConfigs[defaultKey]) {
+                sectionConfigs[defaultKey] = ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE'];
+                saveData();
+            }
+            initCfgSections();
+            document.getElementById('cfg-class').value = newCls;
+            updateCfgSections();
+            alert(`✅ Class ${formatClass(newCls)} created successfully with default Section A!`);
+        }
+
+        function promptAddNewSection() {
+            const cls = document.getElementById('cfg-class').value;
+            if(!cls) return;
+            let newSec = prompt(`Enter New Section Letter/Name for Class ${formatClass(cls)} (e.g. E, F, G):`);
+            if(!newSec) return;
+            newSec = newSec.trim().toUpperCase();
+            if(!newSec) return;
+
+            let key = `${cls}-${newSec}`;
+            if(!sectionConfigs[key]) {
+                sectionConfigs[key] = ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE'];
+                saveData();
+            }
+            updateCfgSections();
+            document.getElementById('cfg-section').value = newSec;
+            loadSectionConfigDetails();
+            alert(`✅ Section ${newSec} created successfully for Class ${formatClass(cls)}!`);
+        }
+
+        function promptDeleteCurrentSection() {
+            const cls = document.getElementById('cfg-class').value;
+            const sec = document.getElementById('cfg-section').value;
+            if(!cls || !sec) return;
+            const key = `${cls}-${sec}`;
+            
+            if(confirm(`⚠️ Are you sure you want to delete Section ${sec} from Class ${formatClass(cls)}? This will remove its subject mapping.`)) {
+                delete sectionConfigs[key];
+                saveData();
+                initCfgSections();
+                alert(`🗑️ Section ${sec} removed successfully!`);
+            }
+        }
+
+        function promptDeleteCurrentClass() {
+            const cls = document.getElementById('cfg-class').value;
+            if(!cls) return;
+            
+            if(confirm(`⚠️ Are you sure you want to delete ENTIRE Class ${formatClass(cls)} and all its sections?`)) {
+                Object.keys(sectionConfigs).forEach(k => {
+                    if(k.startsWith(`${cls}-`)) {
+                        delete sectionConfigs[k];
+                    }
+                });
+                saveData();
+                initCfgSections();
+                alert(`🗑️ Class ${formatClass(cls)} removed successfully!`);
+            }
+        }
+
         function saveSectionConfig(e) {
             e.preventDefault();
             const cls = document.getElementById('cfg-class').value;
@@ -770,7 +893,7 @@
             document.querySelectorAll('.cfg-sub-input').forEach(inp => { if(inp.value.trim()) subs.push(inp.value.trim().toUpperCase()); });
             sectionConfigs[`${cls}-${sec}`] = subs;
             saveData();
-            alert(`Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
+            alert(`✅ Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
             switchTab('config');
         }
 
@@ -781,11 +904,11 @@
             tbody.innerHTML = '';
 
             const searchTerm = (document.getElementById('master-subject-search')?.value || '').trim().toLowerCase();
-            let classesList = ['6', '7', '8', '9', '10', '11', '12'];
+            let classesList = getAllUniqueClasses();
             let foundCount = 0;
 
             classesList.forEach(cls => {
-                let sections = (cls === '11' || cls === '12') ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+                let sections = getAllSectionsForClass(cls);
                 sections.forEach(sec => {
                     let key = `${cls}-${sec}`;
                     let subs = sectionConfigs[key] || [];
@@ -834,16 +957,22 @@
         // MODULE 2: STUDENTS & CSV VALIDATION
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
+            if(!classSel) return;
             classSel.innerHTML = '';
-            for(let i=6; i<=12; i++) { classSel.innerHTML += `<option value="${i}">Class ${formatClass(i)}</option>`; }
-            classSel.value = '10';
+            const classesList = getAllUniqueClasses();
+            classesList.forEach(cls => {
+                classSel.innerHTML += `<option value="${cls}">Class ${formatClass(cls)}</option>`;
+            });
+            if(classesList.length > 0) classSel.value = classesList[0];
             handleClassChange();
         }
         function handleClassChange() {
             const cls = document.getElementById('filter-class').value;
             const secSel = document.getElementById('filter-section');
+            if(!secSel || !cls) return;
             secSel.innerHTML = '';
-            (cls === '11' || cls === '12' ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']).forEach(sec => {
+            const sectionsList = getAllSectionsForClass(cls);
+            sectionsList.forEach(sec => {
                 secSel.innerHTML += `<option value="${sec}">Section ${sec}</option>`;
             });
             updateStudentTableHeaders();
@@ -1126,11 +1255,18 @@
         function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self') {
             const container = document.getElementById('teaching-allotments-container');
             const div = document.createElement('div'); div.className = "grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded border teaching-row items-center";
+            
+            let classOptionsHtml = '';
+            const classesList = getAllUniqueClasses();
+            classesList.forEach(c => {
+                classOptionsHtml += `<option value="${c}" ${selCls==c?'selected':''}>Class ${formatClass(c)}</option>`;
+            });
+
             div.innerHTML = `
                 <div class="md:col-span-2">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase md:hidden">Class</label>
                     <select class="text-xs p-1.5 border rounded cls-sel bg-white font-medium w-full" onchange="updateRowSectionsAndSubjects(this)">
-                        <option value="6" ${selCls=='6'?'selected':''}>Class VI</option><option value="7" ${selCls=='7'?'selected':''}>Class VII</option><option value="8" ${selCls=='8'?'selected':''}>Class VIII</option><option value="9" ${selCls=='9'?'selected':''}>Class IX</option><option value="10" ${selCls=='10'?'selected':''}>Class X</option><option value="11" ${selCls=='11'?'selected':''}>Class XI</option><option value="12" ${selCls=='12'?'selected':''}>Class XII</option>
+                        ${classOptionsHtml}
                     </select>
                 </div>
                 <div class="md:col-span-2">
@@ -1157,7 +1293,8 @@
         }
         function updateRowSectionsAndSubjects(clsElem, preSec = null, preSub = null) {
             const row = clsElem.closest('.teaching-row'); const cls = clsElem.value; const secSel = row.querySelector('.sec-sel'); secSel.innerHTML = '';
-            (cls === '11' || cls === '12' ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']).forEach(s => {
+            const sectionsList = getAllSectionsForClass(cls);
+            sectionsList.forEach(s => {
                 secSel.innerHTML += `<option value="${s}" ${preSec==s?'selected':''}>Sec ${s}</option>`;
             });
             updateRowSubjects(secSel, preSub);
@@ -1288,9 +1425,9 @@
             if(!tbody) return;
             tbody.innerHTML = '';
             
-            let classesList = ['6', '7', '8', '9', '10', '11', '12'];
+            let classesList = getAllUniqueClasses();
             classesList.forEach(cls => {
-                let sections = (cls === '11' || cls === '12') ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+                let sections = getAllSectionsForClass(cls);
                 sections.forEach(sec => {
                     let key = `${cls}-${sec}`;
                     let facOptions = '<option value="">-- Select --</option>';
@@ -1308,7 +1445,7 @@
                 });
             });
             classesList.forEach(cls => {
-                let sections = (cls === '11' || cls === '12') ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+                let sections = getAllSectionsForClass(cls);
                 sections.forEach(sec => {
                     let key = `${cls}-${sec}`;
                     let currentData = classTeacherAssignments[key];
@@ -1321,9 +1458,9 @@
             });
         }
         function saveClassTeacherAssignments() {
-            let classesList = ['6', '7', '8', '9', '10', '11', '12'];
+            let classesList = getAllUniqueClasses();
             classesList.forEach(cls => {
-                let sections = (cls === '11' || cls === '12') ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+                let sections = getAllSectionsForClass(cls);
                 sections.forEach(sec => {
                     let key = `${cls}-${sec}`;
                     classTeacherAssignments[key] = {
