@@ -303,7 +303,7 @@
 
         // Active Exam, Saved Exams & Lifecycle State
         let isExamConfigOpen = false;
-        let activeExamId = null; // Tracks current unique exam session ID
+        let activeExamId = null;
         let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
             { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
             { id: 'Half Yearly', label: 'Half Yearly Examination' },
@@ -382,11 +382,7 @@
 
         function syncActiveExamDraftToVault() {
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
-            
-            if (!activeExamId) {
-                activeExamId = Date.now();
-            }
-
+            if (!activeExamId) activeExamId = Date.now();
             const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
             
             const examRecord = {
@@ -639,20 +635,11 @@
         }
 
         // =========================================================================
-        // 🚀 EXAM VAULT & FULLY FLEXIBLE HEADER WORKFLOW
+        // 🚀 EXAM VAULT & STREAMLINED EDIT/SAVE WORKFLOW
         // =========================================================================
 
-        function toggleExamCreationPanel() {
-            isExamConfigOpen = !isExamConfigOpen;
-            if (isExamConfigOpen && datesheetDays.length === 0) {
-                datesheetDays = [{ id: 1, dateStr: '2026-11-10', isCollapsed: false, saved: false }];
-            }
-            renderExamCreatorModule();
-        }
-
-        // CREATES A CLEAN BRAND NEW EXAM FRESH IN ACTIVE WORKSPACE
         function startNewExamSetup() {
-            activeExamId = Date.now(); // Generates a brand new unique session ID
+            activeExamId = Date.now();
             mainHeaderConfig = {
                 name: 'Periodic Test 1 (PT-1)',
                 customName: '',
@@ -669,11 +656,10 @@
             isExamConfigOpen = true;
 
             syncActiveExamDraftToVault();
-            alert("✨ New Exam Initialized as a separate record! Configure your header and datesheet below.");
             renderExamCreatorModule();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // SAVE / UPDATE MAIN EXAM HEADER (REMAINS FULLY FLEXIBLE)
         function saveMainHeaderConfig() {
             mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
             mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
@@ -687,11 +673,9 @@
             mainHeaderConfig.overTime = document.getElementById('exam-over-time')?.value || '11:30';
 
             syncActiveExamDraftToVault();
-            alert("✅ Main Examination Header Saved & Updated Successfully!");
-            renderExamCreatorModule();
+            alert("✅ Header Saved!");
         }
 
-        // DYNAMIC EXAM NAME SAVER & DROPDOWN UPDATER
         function saveCustomExamNameOption() {
             const val = document.getElementById('exam-name-custom')?.value?.trim();
             if (!val) {
@@ -711,14 +695,12 @@
             renderExamCreatorModule();
         }
 
-        // SAVE OR UPDATE INDIVIDUAL DAY SCOPE
         function saveOrUpdateDayConfig(dayId) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (dayObj) {
                 dayObj.saved = true;
                 dayObj.isCollapsed = true;
                 syncActiveExamDraftToVault();
-                alert(`✅ Scope for DAY ${dayId} Saved & Updated Successfully!`);
                 renderDatesheetDaysContainer();
             }
         }
@@ -732,12 +714,12 @@
             }
         }
 
-        // JUMP TO ANY CREATED EXAM IN THE VAULT & KEEP FULLY UNLOCKED FOR EDITING
+        // EDIT EXAM: AUTOMATICALLY OPENS WORKSPACE
         function loadArchivedExamToEdit(id) {
             const target = archivedExams.find(ex => ex.id === id);
             if (!target) return;
 
-            activeExamId = target.id; // Switch active editing ID to this record
+            activeExamId = target.id;
 
             if (target.headerSnapshot) {
                 mainHeaderConfig = JSON.parse(JSON.stringify(target.headerSnapshot));
@@ -750,11 +732,16 @@
             isExamConfigOpen = true;
 
             saveData();
-            alert(`📂 Loaded Exam Schedule: "${target.title}" into active workspace! All fields are fully flexible and editable.`);
+            renderExamCreatorModule();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // MINIMISE WORKSPACE
+        function minimizeActiveWorkspace() {
+            isExamConfigOpen = false;
             renderExamCreatorModule();
         }
 
-        // DELETE CREATED EXAM FROM VAULT
         function deleteArchivedExam(id) {
             if (confirm("⚠️ Are you sure you want to delete this exam record from vault?")) {
                 archivedExams = archivedExams.filter(ex => ex.id !== id);
@@ -764,18 +751,16 @@
             }
         }
 
+        // SAVE BUTTON: SAVES RECORD AND MINIMISES WORKSPACE
         function bindupAndSaveExamRecord() {
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
 
             if (datesheetDays.length === 0) {
-                alert("⚠️ Cannot bind-up an empty exam record! Add days to datesheet first.");
+                alert("⚠️ Cannot save an empty exam record! Add days to datesheet first.");
                 return;
             }
 
-            if (!activeExamId) {
-                activeExamId = Date.now();
-            }
-
+            if (!activeExamId) activeExamId = Date.now();
             const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
 
             const examRecord = {
@@ -797,14 +782,15 @@
                 archivedExams.push(examRecord);
             }
 
+            isExamConfigOpen = false; // MINIMISES WORKSPACE UPON SAVING
             saveData();
-            alert(`🎉 EXAM FULLY BOUND UP & SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
+            alert(`🎉 EXAM FULLY SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
             renderExamCreatorModule();
         }
 
         function getExamStatusBadge(ex) {
             if (ex.isDraft) {
-                return `<span class="bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📝 DRAFT / IN-PROGRESS</span>`;
+                return `<span class="bg-amber-950 text-amber-300 border border-amber-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full">📝 DRAFT</span>`;
             }
             const today = new Date().toISOString().split('T')[0];
             if (today >= ex.fromDate && today <= ex.toDate) {
@@ -913,40 +899,70 @@
                         </div>
                     </div>
 
-                    <!-- 🚀 FRESH AREA: CREATE NEW EXAM BUTTON & WORKSPACE TOGGLE -->
-                    <div class="flex items-center justify-between flex-wrap gap-3 bg-slate-50 p-4 rounded-xl border">
-                        <div class="space-y-0.5">
-                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wide">✨ Start New Exam Configuration</h3>
-                            <p class="text-[11px] text-slate-500">Initialize a fresh examination or open/hide your active workspace below.</p>
+                    <!-- 📚 CREATED EXAMINATIONS VAULT LIST (NOW PLACED ALWAYS OVERSIDE RIGHT AFTER EXAM IC MSG) -->
+                    <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md">
+                        <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
+                            <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-400">
+                                📚 Created Examinations Vault List (${archivedExams.length} Records)
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="startNewExamSetup()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3.5 py-1.5 rounded shadow-xs flex items-center gap-1">
+                                    <span>➕</span> Create New Exam
+                                </button>
+                                <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded border border-slate-700">Click [Edit] on any exam to open workspace</span>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button type="button" onclick="startNewExamSetup()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-xs transition flex items-center gap-1.5">
-                                <span>➕</span> Create New Exam
-                            </button>
-                            <button type="button" onclick="toggleExamCreationPanel()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-sm transition flex items-center gap-1.5">
-                                <span>🚀</span> ${isExamConfigOpen ? 'Close Active Workspace' : 'Open Active Workspace'}
-                            </button>
-                        </div>
+
+                        ${archivedExams.length === 0 ? `
+                            <p class="text-xs text-slate-400 italic py-2">No exam schedules created yet. Click 'Create New Exam' above to start!</p>
+                        ` : `
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left text-slate-200">
+                                    <thead class="bg-slate-800 uppercase font-semibold text-slate-300 border-b border-slate-700">
+                                        <tr>
+                                            <th class="px-3 py-2.5">Status</th>
+                                            <th class="px-3 py-2.5">Exam Title</th>
+                                            <th class="px-3 py-2.5">Schedule Duration</th>
+                                            <th class="px-3 py-2.5 text-center">Days</th>
+                                            <th class="px-3 py-2.5 text-right">Actions (Edit / Delete)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-800 bg-slate-900">
+                                        ${archivedExams.map((ex, index) => `
+                                            <tr class="hover:bg-slate-800/60 cursor-pointer" onclick="loadArchivedExamToEdit(${ex.id})">
+                                                <td class="px-3 py-2.5">${getExamStatusBadge(ex)}</td>
+                                                <td class="px-3 py-2.5 font-bold text-amber-300 underline">Exam-${index + 1}: ${ex.title}</td>
+                                                <td class="px-3 py-2.5 font-medium text-slate-300">${ex.fromDate} to ${ex.toDate}</td>
+                                                <td class="px-3 py-2.5 text-center text-slate-300 font-bold">${ex.totalDays} Days</td>
+                                                <td class="px-3 py-2.5 text-right space-x-1.5" onclick="event.stopPropagation()">
+                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-3 py-1 rounded shadow-xs">✏️ Edit</button>
+                                                    <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1 rounded">🗑️ Delete</button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `}
                     </div>
 
-                    <!-- 📋 MAIN EXAM CONFIGURATION PANEL (FRESH ACTIVE AREA) -->
+                    <!-- 📋 ACTIVE EXAM CONFIGURATION PANEL (AUTOMATICALLY EXPANDED UPON CLICKING EDIT OR CREATE NEW) -->
                     ${isExamConfigOpen ? `
                         <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
                             <div class="flex justify-between items-center border-b border-indigo-200 pb-2 flex-wrap gap-2">
                                 <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider">
                                     📋 1. Main Examination Header Configuration
                                 </h3>
-                                <div class="space-x-1.5">
+                                <div class="flex items-center gap-2">
                                     <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
                                         💾 Save Header
                                     </button>
-                                    <button type="button" onclick="saveMainHeaderConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded shadow-xs">
-                                        🔄 Update Header
+                                    <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded shadow-xs">
+                                        📁 Minimize 
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- UNLOCKED FIELDSET: FULL FLEXIBILITY TO SELECT EXAM NAME & DATES AT ANY TIME -->
                             <div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                     <div class="col-span-1 sm:col-span-2">
@@ -956,7 +972,6 @@
                                             <option value="Other" ${mainHeaderConfig.name === 'Other' ? 'selected' : ''}>Other (Update Manually)</option>
                                         </select>
                                         
-                                        <!-- DYNAMIC CUSTOM EXAM FEEDER -->
                                         <div id="exam-name-custom-container" class="mt-2.5 flex items-center gap-2 ${mainHeaderConfig.name === 'Other' ? '' : 'hidden'}">
                                             <input type="text" id="exam-name-custom" value="${mainHeaderConfig.customName}" placeholder="Enter new exam title..." class="flex-grow text-xs p-2 border rounded bg-white font-medium">
                                             <button type="button" onclick="saveCustomExamNameOption()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded shadow-xs whitespace-nowrap">
@@ -1016,7 +1031,7 @@
                             </div>
                         </div>
 
-                        <!-- DAYWISE DATESHEET BUILDER WITH STREAMLINED EDIT/SAVE/UPDATE CONTROLS -->
+                        <!-- DAYWISE DATESHEET BUILDER -->
                         <div class="space-y-4 pt-2">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-2">
                                 <div>
@@ -1043,50 +1058,17 @@
                                 </button>
                             </div>
                         </div>
-                    ` : ''}
 
-                    <!-- 📚 CREATED EXAMINATIONS VAULT TABLE (BELOW ACTIVE WORKSPACE) -->
-                    <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md mt-6">
-                        <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
-                            <h3 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-400">
-                                📚 Created Examinations Vault List (${archivedExams.length} Records)
-                            </h3>
-                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-1 rounded border border-slate-700">Click any exam to edit or update</span>
+                        <!-- SAVE & MINIMIZE WORKSPACE BUTTON -->
+                        <div class="pt-4 border-t flex justify-between items-center">
+                            <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-5 py-2.5 rounded-lg transition flex items-center gap-1.5">
+                                <span>📁</span> Minimize Workspace
+                            </button>
+                            <button type="button" onclick="bindupAndSaveExamRecord()" class="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-md transition flex items-center gap-2">
+                                <span>💾</span> Save Exam & Minimize
+                            </button>
                         </div>
-
-                        ${archivedExams.length === 0 ? `
-                            <p class="text-xs text-slate-400 italic py-2">No exam schedules created yet. Click 'Create New Exam' above to start!</p>
-                        ` : `
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-xs text-left text-slate-200">
-                                    <thead class="bg-slate-800 uppercase font-semibold text-slate-300 border-b border-slate-700">
-                                        <tr>
-                                            <th class="px-3 py-2.5">Status</th>
-                                            <th class="px-3 py-2.5">Exam Title</th>
-                                            <th class="px-3 py-2.5">Schedule Duration</th>
-                                            <th class="px-3 py-2.5 text-center">Days</th>
-                                            <th class="px-3 py-2.5 text-right">Actions (Edit / Update / Delete)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-800 bg-slate-900">
-                                        ${archivedExams.map((ex, index) => `
-                                            <tr class="hover:bg-slate-800/60 cursor-pointer" onclick="loadArchivedExamToEdit(${ex.id})">
-                                                <td class="px-3 py-2.5">${getExamStatusBadge(ex)}</td>
-                                                <td class="px-3 py-2.5 font-bold text-amber-300 underline">Exam-${index + 1}: ${ex.title}</td>
-                                                <td class="px-3 py-2.5 font-medium text-slate-300">${ex.fromDate} to ${ex.toDate}</td>
-                                                <td class="px-3 py-2.5 text-center text-slate-300 font-bold">${ex.totalDays} Days</td>
-                                                <td class="px-3 py-2.5 text-right space-x-1.5" onclick="event.stopPropagation()">
-                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">✏️ Edit</button>
-                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded shadow-xs">🔄 Update</button>
-                                                    <button type="button" onclick="deleteArchivedExam(${ex.id})" class="bg-red-800 hover:bg-red-700 text-white text-[11px] font-bold px-2 py-1 rounded">🗑️ Delete</button>
-                                                </td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        `}
-                    </div>
+                    ` : ''}
 
                     <!-- OPERATIONAL LIFECYCLE & TASK STATUS REPORTING HUBS -->
                     <div class="border-t pt-6 space-y-4">
@@ -1151,7 +1133,7 @@
                                     </p>
                                 </div>
                                 <button type="button" onclick="bindupAndSaveExamRecord()" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs py-2.5 rounded shadow-xs transition">
-                                    📦 Bind-Up & Save Full Record
+                                    📦 Save Full Record
                                 </button>
                             </div>
                         </div>
@@ -1222,7 +1204,7 @@
                 let dayCard = document.createElement('div');
                 dayCard.className = `border rounded-xl overflow-hidden shadow-xs transition ${dayObj.saved ? 'bg-slate-100 border-slate-400' : 'bg-slate-50 border-indigo-300'}`;
                 dayCard.innerHTML = `
-                    <!-- DAY HEADER BAR WITH EDIT, SAVE, UPDATE CONTROLS -->
+                    <!-- DAY HEADER BAR WITH EDIT / SAVE CONTROLS -->
                     <div onclick="toggleDayAccordion(${dayObj.id})" class="p-3.5 flex items-center justify-between cursor-pointer border-b border-slate-200 select-none ${dayObj.saved ? 'bg-slate-200/80' : 'bg-slate-100 hover:bg-indigo-50'}">
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
@@ -1236,13 +1218,10 @@
                             </span>
                             <input type="date" value="${dayObj.dateStr}" ${dayObj.saved ? 'disabled' : ''} onchange="dayObj.dateStr=this.value; syncActiveExamDraftToVault(); renderDatesheetDaysContainer();" class="text-xs p-1 border rounded bg-white font-medium">
                             
-                            <!-- STREAMLINED DAY BUTTONS: EDIT, SAVE, UPDATE -->
+                            <!-- STREAMLINED DAY BUTTONS: EDIT / SAVE -->
                             ${dayObj.saved ? `
-                                <button type="button" onclick="editDayConfig(${dayObj.id})" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-2.5 py-1 rounded shadow-xs">
+                                <button type="button" onclick="editDayConfig(${dayObj.id})" class="text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1 rounded shadow-xs">
                                     ✏️ Edit
-                                </button>
-                                <button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded shadow-xs">
-                                    🔄 Update
                                 </button>
                             ` : `
                                 <button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded shadow-xs">
