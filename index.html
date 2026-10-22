@@ -1638,7 +1638,8 @@
             [order.deadlineDate, order.deadlineTime] = deadlineAt ? deadlineAt.split('T') : ['', ''];
             order.submissionMethod = value('qp-order-method');
             order.submissionEmail = value('qp-order-email');
-            order.instructions = value('qp-order-instructions').split('\n').map(line => line.trim()).filter(Boolean);
+            order.instructions = [...document.querySelectorAll('.qp-instruction-input')]
+                .map(input => input.value.trim()).filter(Boolean);
             order.setters = {};
             getExamSubjectsListForVault(selectedPreExamVaultId, { setters: {} }).forEach(item => {
                 if (item.teacherId) order.setters[item.key] = { teacherId: item.teacherId, name: item.setterName, desig: item.desig };
@@ -1692,6 +1693,35 @@
             const saved = await saveData(['qpOfficeOrders', 'qpOfficeOrderSettings']);
             if (saved) renderExamCreatorModule();
             return saved;
+        }
+
+        function renumberQpInstructionRows() {
+            document.querySelectorAll('#qp-instructions-list .qp-instruction-row').forEach((row, index) => {
+                row.querySelector('.qp-instruction-number').textContent = `${index + 1}.`;
+            });
+        }
+
+        function addQpInstructionRow(text = '') {
+            const list = document.getElementById('qp-instructions-list');
+            if (!list) return;
+            const row = document.createElement('div');
+            row.className = 'qp-instruction-row flex items-start gap-2';
+            const number = document.createElement('span');
+            number.className = 'qp-instruction-number w-7 pt-2.5 text-right text-xs font-black text-indigo-900';
+            const input = document.createElement('textarea');
+            input.className = 'qp-instruction-input flex-1 min-h-[42px] border rounded-lg p-2.5 text-xs leading-5 bg-white';
+            input.rows = 1;
+            input.value = text;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'mt-1 bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-2 text-xs font-bold';
+            remove.textContent = '✕';
+            remove.title = 'Remove instruction';
+            remove.onclick = () => { row.remove(); renumberQpInstructionRows(); };
+            row.append(number, input, remove);
+            list.appendChild(row);
+            renumberQpInstructionRows();
+            input.focus();
         }
 
         async function issueAndGenerateQpOfficeOrderPdf() {
@@ -2095,9 +2125,10 @@
                                 </div>
                                 ${subjectsList.length ? '' : '<p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">No papers are mapped in this exam yet. Add class and subject papers to the exam datesheet first.</p>'}
                                 ${subjectsList.some(item => !item.teacherId) ? `<p class="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg p-3"><b>Setter mapping incomplete.</b> Add the faculty and their class-subject QP Setter assignments once in <b>3. Faculty Manager</b>. This order will then fill automatically; no entry is required here.${currentActiveRole === 'principal' ? ' <button type="button" onclick="closePreExamFullPageWorkspace(); switchTab(\'teachers\')" class="ml-2 underline font-bold">Open Faculty Manager</button>' : ' Ask the Principal to complete Faculty Manager.'}</p>` : ''}
-                                <label class="block text-xs font-bold text-slate-600">Instructions — one instruction per line
-                                    <textarea id="qp-order-instructions" rows="7" class="mt-1 w-full border rounded-lg p-3 text-xs leading-6">${escapeHtml(officeOrder.instructions.join('\n'))}</textarea>
-                                </label>
+                                <div>
+                                    <div class="flex items-center justify-between gap-2 mb-2"><label class="text-xs font-bold text-slate-600">Numbered instructions</label><button type="button" onclick="addQpInstructionRow()" class="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg px-3 py-1.5 text-xs font-bold">＋ Add Instruction</button></div>
+                                    <div id="qp-instructions-list" class="space-y-2">${officeOrder.instructions.map((instruction, index) => `<div class="qp-instruction-row flex items-start gap-2"><span class="qp-instruction-number w-7 pt-2.5 text-right text-xs font-black text-indigo-900">${index + 1}.</span><textarea rows="1" class="qp-instruction-input flex-1 min-h-[42px] border rounded-lg p-2.5 text-xs leading-5 bg-white">${escapeHtml(instruction)}</textarea><button type="button" onclick="this.closest('.qp-instruction-row').remove(); renumberQpInstructionRows()" title="Remove instruction" class="mt-1 bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-2 text-xs font-bold">✕</button></div>`).join('')}</div>
+                                </div>
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
                                     <p class="text-[11px] text-indigo-900"><b>Reusable instructions:</b> Edit the text above, then save it as the default for this and all future exam orders.</p>
                                     <button type="button" onclick="saveQpInstructionsAsDefault()" class="shrink-0 bg-indigo-800 hover:bg-indigo-900 text-white text-xs font-bold px-4 py-2 rounded-lg">🔄 Save & Set as Default</button>

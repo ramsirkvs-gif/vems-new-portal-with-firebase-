@@ -182,7 +182,11 @@ async function main() {
         await a.fill('#qp-order-deadline-at', '2026-11-04T15:30');
         await a.selectOption('#qp-order-method', "Email from the QP setter's personal secure email with Word file and PDF");
         await a.fill('#qp-order-email', 'examcell@example.test');
-        await a.fill('#qp-order-instructions', 'Use the approved blueprint.\nSubmit both Word and PDF files.');
+        const instructionInputs = a.locator('.qp-instruction-input');
+        await instructionInputs.first().fill('Use the approved blueprint.');
+        while (await instructionInputs.count() > 1) await instructionInputs.last().locator('xpath=..').locator('button').click();
+        await a.locator('button', { hasText: 'Add Instruction' }).click();
+        await instructionInputs.nth(1).fill('Submit both Word and PDF files.');
         await a.evaluate(() => saveQpInstructionsAsDefault());
         assert.deepEqual(data.qpOfficeOrderSettings.defaultInstructions, ['Use the approved blueprint.', 'Submit both Word and PDF files.']);
         assert.match(await a.locator('text=Auto-linked from Faculty Manager').first().textContent(), /Auto-linked/);
@@ -197,6 +201,8 @@ async function main() {
         assert.match(previewText, /Other Device Name/);
         assert.match(previewText, /examcell@example.test/);
         assert.match(previewText, /Word and PDF files/);
+        assert.match(previewText, /Use the approved blueprint/);
+        assert.doesNotMatch(previewText, /Prepare the question paper strictly/);
         await a.evaluate(() => closeQpOfficeOrderPreview());
         console.log('PASS: issued QP office order auto-links setters, syncs, and opens an in-app A4 preview');
 
