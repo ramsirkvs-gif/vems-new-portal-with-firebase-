@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VEMS - Vidyalaya Examination Management System (Master Edition)</title>
+    <title>VEMS - Vidyalaya Examination Management System (Firebase Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Firebase App & Realtime Database CDN SDKs -->
@@ -32,7 +32,7 @@
             }
             th, td {
                 border: 1px solid #333 !important;
-                padding: 6px 8px !important;
+                padding: 4px 6px !important;
             }
             th {
                 background-color: #f1f5f9 !important;
@@ -58,7 +58,7 @@
                         <span>📢</span> Public
                     </button>
                     <button type="button" onclick="switchPortalArea('principal')" id="btn-icon-prin" class="flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800 transition">
-                        <span>🔒👔</span> Principal (Master)
+                        <span>🔒👔</span> Principal (Master Access)
                     </button>
                     <button type="button" onclick="switchPortalArea('sec-ic')" id="btn-icon-sec" class="flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800 transition">
                         <span>🔒🎓</span> Sec IC (VI-XII)
@@ -257,7 +257,7 @@
         </div>
     </div>
 
-    <!-- COMPLETE SCRIPT ENGINE -->
+    <!-- SCRIPT ENGINE -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDBBQqXgZn9ixs1xpXIbVDspHKLLbpzxiE",
