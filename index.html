@@ -1669,9 +1669,8 @@
             return `${day}/${month}/${year}`;
         }
 
-        function buildQpSetterOfficeOrderHtml() {
+        function buildQpSetterOfficeOrderHtml(order = currentQpOfficeOrder()) {
             const currentExam = archivedExams.find(ex => ex.id === selectedPreExamVaultId) || { title: 'Examination' };
-            const order = currentQpOfficeOrder();
             const subjects = getExamSubjectsListForVault(selectedPreExamVaultId, order);
             return `
                 <!DOCTYPE html>
@@ -1681,25 +1680,34 @@
                     <style>
                         @page { size: A4; margin: 14mm; }
                         * { box-sizing: border-box; }
-                        body { font-family: Georgia, 'Times New Roman', serif; margin: 0; color: #111827; line-height: 1.45; background: white; }
-                        .letterhead { display: grid; grid-template-columns: 72px 1fr 72px; align-items: center; padding-bottom: 10px; border-bottom: 3px double #1e3a8a; text-align: center; }
-                        .seal { width: 58px; height: 58px; border: 2px solid #1e3a8a; border-radius: 50%; display:flex;align-items:center;justify-content:center;color:#1e3a8a;font-weight:bold;font-size:10px;line-height:1.15; }
+                        body { font-family: Georgia, 'Times New Roman', serif; margin: 0; color: #111827; line-height: 1.45; background: white; position:relative; }
+                        body:before { content:'KVS'; position:fixed; inset:35% 0 auto; text-align:center; font:700 130px Arial; color:rgba(30,58,138,.035); transform:rotate(-20deg); z-index:-1; }
+                        .page-top { height:7px; background:linear-gradient(90deg,#172554 0 72%,#d4a017 72%); margin-bottom:12px; }
+                        .letterhead { display: grid; grid-template-columns: 72px 1fr 72px; align-items: center; padding:0 5px 11px; border-bottom: 3px double #1e3a8a; text-align: center; }
+                        .seal { width: 60px; height: 60px; border: 2px solid #c08b16; outline:1px solid #1e3a8a; outline-offset:3px; border-radius: 50%; display:flex;align-items:center;justify-content:center;color:#172554;font-weight:bold;font-size:10px;line-height:1.15; }
                         .letterhead h1 { margin: 0; font-size: 20px; color: #172554; text-transform: uppercase; letter-spacing: .3px; }
                         .letterhead h2 { margin: 2px 0; font-size: 15px; text-transform: uppercase; }
                         .letterhead p { margin: 1px 0; font-size: 10px; }
-                        .confidential { margin: 9px auto 14px; width:max-content; border:1px solid #991b1b; color:#991b1b; padding:3px 12px; font:700 10px Arial,sans-serif; letter-spacing:1px; }
+                        .confidential { margin: 9px auto 14px; width:max-content; border:1px solid #991b1b; color:#991b1b; padding:3px 12px; font:700 10px Arial,sans-serif; letter-spacing:1.5px; }
                         .ref-no { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 20px; }
-                        .title { text-align: center; font-weight: bold; text-decoration: underline; font-size: 16px; margin-bottom: 20px; text-transform: uppercase; }
+                        .title { text-align: center; font-weight: bold; font-size: 16px; margin:0 auto 18px; text-transform: uppercase; color:#172554; border:1px solid #cbd5e1; border-left:5px solid #d4a017; padding:7px; background:#f8fafc; }
                         .content { font-size: 13px; text-align: justify; margin-bottom: 20px; }
                         .instructions { font-size: 12px; margin: 8px 0 22px; padding-left: 22px; }
                         table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 25px; }
                         th, td { border: 1px solid #333; padding: 8px; text-align: left; }
-                        th { background-color: #f1f5f9; text-transform: uppercase; }
+                        th { background-color: #172554; color:white; text-transform: uppercase; font:700 10px Arial,sans-serif; }
+                        tbody tr:nth-child(even) { background:#f8fafc; }
+                        .signatures { display:flex; justify-content:space-between; margin-top:55px; clear:both; }
+                        .signature { text-align:center; width:220px; border-top:1px solid #0f172a; padding-top:5px; font-weight:bold; font-size:13px; }
+                        .footer { margin-top:35px; padding-top:6px; border-top:1px solid #cbd5e1; text-align:center; color:#64748b; font:9px Arial,sans-serif; }
+                        @media screen { body { padding:14mm; max-width:210mm; min-height:297mm; margin:auto; box-shadow:0 6px 30px #64748b; } }
+                        @media print { .page-top { margin-top:0; } }
                         .sig-block { margin-top: 60px; float: right; text-align: center; width: 220px; }
                         .sig-line { border-top: 1px solid #0f172a; padding-top: 5px; font-weight: bold; font-size: 13px; }
                     </style>
                 </head>
                 <body>
+                    <div class="page-top"></div>
                     <div class="letterhead">
                         <div class="seal">भारत<br>सरकार</div>
                         <div><p>शिक्षा मंत्रालय, भारत सरकार</p><h1>${escapeHtml(order.schoolName)}</h1><h2>Examination Cell</h2><p>केन्द्रीय विद्यालय संगठन • Kendriya Vidyalaya Sangathan</p></div>
@@ -1730,8 +1738,8 @@
                                 <tr>
                                     <td style="text-align: center;">${idx + 1}</td>
                                     <td><b>Class ${escapeHtml(formatClass(item.cls))}</b> - ${escapeHtml(item.subject)}</td>
-                                    <td><b>${escapeHtml(item.setterName)}</b></td>
-                                    <td>${escapeHtml(item.desig)}</td>
+                                    <td><b>${escapeHtml(item.teacherId ? item.setterName : 'TO BE MAPPED')}</b></td>
+                                    <td>${escapeHtml(item.teacherId ? item.desig : '—')}</td>
                                     <td style="text-align: center; font-weight: bold;">${escapeHtml(formatOrderDate(order.deadlineDate))}<br>${escapeHtml(order.deadlineTime)}</td>
                                     <td></td>
                                 </tr>
@@ -1740,10 +1748,8 @@
                     </table>
                     <b style="font-size:13px;">Instructions to Question Paper Setters:</b>
                     <ol class="instructions">${order.instructions.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol>
-                    <div style="display:flex;justify-content:space-between;margin-top:55px;clear:both;">
-                        <div style="text-align:center;width:220px;border-top:1px solid #0f172a;padding-top:5px;font-weight:bold;font-size:13px;">Exam In-Charge</div>
-                        <div style="text-align:center;width:220px;border-top:1px solid #0f172a;padding-top:5px;font-weight:bold;font-size:13px;">Principal</div>
-                    </div>
+                    <div class="signatures"><div class="signature">Exam In-Charge<br><small>Examination Cell</small></div><div class="signature">Principal<br><small>Sign & School Stamp</small></div></div>
+                    <div class="footer">Computer-generated confidential office order • ${escapeHtml(order.schoolName)}</div>
                 </body>
                 </html>
             `;
@@ -1755,13 +1761,22 @@
                 alert('Issue the office order first. The final PDF will use the saved issued record.');
                 return;
             }
+            showQpOfficeOrderPreview(order, 'Issued Office Order');
+        }
+
+        function previewQpOfficeOrderDraft() {
+            const order = readQpOfficeOrderForm();
+            showQpOfficeOrderPreview(order, order.status === 'ISSUED' ? 'Office Order Preview' : 'Draft Office Order Preview');
+        }
+
+        function showQpOfficeOrderPreview(order, label) {
             closeQpOfficeOrderPreview();
             const modal = document.createElement('div');
             modal.id = 'qp-office-order-preview';
             modal.className = 'fixed inset-0 z-[100] bg-slate-950/80 p-3 md:p-6 flex flex-col';
-            modal.innerHTML = `<div class="max-w-5xl w-full mx-auto bg-slate-900 text-white rounded-t-xl px-4 py-3 flex items-center justify-between gap-3"><div><b>Office Order PDF Preview</b><p class="text-[11px] text-slate-300">Review the A4 page, then choose Print / Save as PDF.</p></div><div class="flex gap-2"><button type="button" onclick="printQpOfficeOrderPreview()" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">🖨️ Print / Save PDF</button><button type="button" onclick="closeQpOfficeOrderPreview()" class="bg-red-600 px-4 py-2 rounded-lg text-xs font-bold">✕ Close</button></div></div><iframe title="QP office order PDF preview" class="max-w-5xl w-full mx-auto flex-1 bg-white rounded-b-xl border-0"></iframe>`;
+            modal.innerHTML = `<div class="max-w-5xl w-full mx-auto bg-gradient-to-r from-indigo-950 to-slate-900 text-white rounded-t-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><b>${escapeHtml(label)}</b><p class="text-[11px] text-slate-300">A4 preview — click the green button and select Save as PDF.</p></div><div class="flex gap-2"><button type="button" onclick="printQpOfficeOrderPreview()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs font-bold">📄 Print / Save as PDF</button><button type="button" onclick="closeQpOfficeOrderPreview()" class="bg-red-600 px-4 py-2 rounded-lg text-xs font-bold">✕ Close</button></div></div><iframe title="QP office order PDF preview" class="max-w-5xl w-full mx-auto flex-1 bg-slate-200 rounded-b-xl border-0"></iframe>`;
             document.body.appendChild(modal);
-            modal.querySelector('iframe').srcdoc = buildQpSetterOfficeOrderHtml();
+            modal.querySelector('iframe').srcdoc = buildQpSetterOfficeOrderHtml(order);
         }
 
         function printQpOfficeOrderPreview() {
@@ -2046,7 +2061,7 @@
                                 </label>
                                 <div class="flex flex-wrap justify-end gap-2">
                                     <button type="button" onclick="saveQpOfficeOrder('DRAFT')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save Draft</button>
-                                    ${officeOrder.status === 'ISSUED' ? '<button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview Issued Order</button>' : ''}
+                                    <button type="button" onclick="previewQpOfficeOrderDraft()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview & PDF</button>
                                     <button type="button" onclick="issueAndGenerateQpOfficeOrderPdf()" ${subjectsList.length && !subjectsList.some(item => !item.teacherId) ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">✅ Issue & Preview PDF</button>
                                 </div>
                                 <p class="text-[11px] text-slate-500 text-right">The PDF preview opens inside the portal. Use <b>Print / Save PDF</b> after reviewing it.</p>
