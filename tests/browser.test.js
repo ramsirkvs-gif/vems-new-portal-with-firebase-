@@ -140,6 +140,18 @@ async function main() {
         await b.waitForFunction(() => sectionConfigs['10-A']?.includes('MATHS'));
         console.log('PASS: subject mappings synchronize');
 
+        assert.equal(await a.evaluate(() => getSectionStream('11', 'A')), 'Science');
+        assert.equal(await a.evaluate(() => getSectionStream('11', 'C')), 'Commerce');
+        assert.equal(await a.evaluate(() => getSectionStream('12', 'E')), 'Humanities');
+        await a.evaluate(() => previewSubjectDirectoryPDF());
+        assert.equal(await a.locator('#subject-directory-preview iframe').count(), 1);
+        await a.evaluate(() => document.getElementById('subject-directory-preview').remove());
+        await a.evaluate(() => publishSubjectDirectory());
+        await b.waitForFunction(() => publishedSubjectDirectories.current?.sections?.['10-A']?.includes('MATHS'));
+        await b.evaluate(() => { switchPortalArea('public'); renderPublicSubjectDirectory(); });
+        assert.match(await b.locator('#public-subject-directory-body').innerText(), /Class X-A/);
+        console.log('PASS: stream rules, Subject Mapping PDF, publish and public directory synchronize');
+
         await b.reload();
         await login(b, 'principal2@example.test');
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));

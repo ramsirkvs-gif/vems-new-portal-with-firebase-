@@ -2,9 +2,9 @@
 'use strict';
 const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'archivedExams',
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings',
-    'dateSheetInstructions', 'dateSheetSettings'];
+    'dateSheetInstructions', 'dateSheetSettings', 'publishedSubjectDirectories'];
 sharedNames.push('seatingRooms', 'seatingPlans');
-const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList'];
+const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList', 'publishedSubjectDirectories'];
 // Login identifiers only. Firebase stores and verifies each role's passcode.
 // Dedicated portal accounts are independent of the administrator’s personal account.
 const roleAccounts = Object.freeze({
@@ -68,7 +68,7 @@ function canEditSharedData(required = 'exam') {
 function sharedValue(name) {
     return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, archivedExams,
         examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings,
-        dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans })[name];
+        dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans, publishedSubjectDirectories })[name];
 }
 function acceptSharedValue(name, value) {
     switch (name) {
@@ -102,6 +102,7 @@ function acceptSharedValue(name, value) {
         case 'qpOfficeOrderSettings': qpOfficeOrderSettings = value; break;
         case 'dateSheetInstructions': dateSheetInstructions = value; break;
         case 'dateSheetSettings': dateSheetSettings = value; break;
+        case 'publishedSubjectDirectories': publishedSubjectDirectories = value; renderPublicSubjectDirectory(); break;
         case 'seatingRooms': seatingRooms = value; break;
         case 'seatingPlans': seatingPlans = value; break;
     }
@@ -247,7 +248,7 @@ function clearStaffState() {
     if (roleSubscription) { roleSubscription.ref.off('value', roleSubscription.listener); roleSubscription = null; }
     authorizedRole = null;
     currentActiveRole = 'public';
-    sharedNames.forEach(name => acceptSharedValue(name, {}));
+    sharedNames.filter(name => name !== 'publishedSubjectDirectories').forEach(name => acceptSharedValue(name, {}));
     Object.keys(editorBaselines).forEach(key => { editorBaselines[key] = null; });
     activeExamId = null;
     selectedPreExamVaultId = null;
@@ -338,6 +339,10 @@ async function importLegacyBrowserData() {
 function initializeSharedApp() {
     activateArea('public');
     if (!db) { showSyncError('Firebase could not load. Check access to www.gstatic.com and reload the page.'); showSyncStatus(); return; }
+    db.ref('publishedSubjectDirectories').on('value', snapshot => {
+        publishedSubjectDirectories = snapshot.val() || {};
+        renderPublicSubjectDirectory();
+    }, () => { publishedSubjectDirectories = {}; renderPublicSubjectDirectory(); });
     firebase.auth().onAuthStateChanged(user => {
         const generation = ++authGeneration;
         clearStaffState();

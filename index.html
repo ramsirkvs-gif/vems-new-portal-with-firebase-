@@ -128,6 +128,23 @@
                         </ul>
                     </div>
                 </div>
+                <div class="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-indigo-950">📚 Published Subject Directory (Secondary)</h3>
+                            <p class="text-xs text-slate-500">Search the latest class and section subject mapping published by the Examination Cell.</p>
+                        </div>
+                        <div class="flex gap-2 no-print">
+                            <input id="public-subject-search" oninput="renderPublicSubjectDirectory()" placeholder="Search class, section or subject" class="w-56 max-w-full text-xs p-2 border rounded">
+                            <button type="button" onclick="printPublishedSubjectDirectory()" class="text-xs bg-indigo-700 text-white px-3 py-2 rounded">PDF / Print</button>
+                            <button type="button" onclick="sharePublishedSubjectDirectory()" class="text-xs bg-emerald-700 text-white px-3 py-2 rounded">Share</button>
+                        </div>
+                    </div>
+                    <div class="max-h-56 overflow-y-auto border rounded">
+                        <table class="w-full text-xs"><thead class="sticky top-0 bg-indigo-950 text-white"><tr><th class="p-2 text-left">Class / Section</th><th class="p-2 text-left">Stream</th><th class="p-2 text-left">Subjects</th></tr></thead><tbody id="public-subject-directory-body"><tr><td colspan="3" class="p-4 text-center text-slate-400">No subject directory has been published.</td></tr></tbody></table>
+                    </div>
+                    <p id="public-subject-published-at" class="text-[11px] text-slate-500"></p>
+                </div>
             </div>
         </div>
 
@@ -135,9 +152,9 @@
         <div id="area-principal" class="hidden space-y-6">
             <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
                 <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping</button>
-                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV</button>
-                <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager</button>
-                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam & Lifecycle Hub</button>
+                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV (Secondary)</button>
+                <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager (Secondary)</button>
+                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam & Lifecycle Hub (Secondary)</button>
                 <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System & Password Settings</button>
             </div>
             
@@ -162,7 +179,11 @@
                                     <select id="cfg-section" onchange="loadSectionConfigDetails()" class="text-xs p-2 border rounded font-semibold bg-white"></select>
                                 </div>
                             </div>
-                            <button type="button" onclick="addNewSubjectField()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Subject</button>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="addClassSection()" class="text-xs bg-sky-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Class / Section</button>
+                                <button type="button" onclick="deleteClassSection()" class="text-xs bg-red-600 text-white font-semibold px-3.5 py-2 rounded shadow-sm">🗑 Delete Section</button>
+                                <button type="button" onclick="addNewSubjectField()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Subject</button>
+                            </div>
                         </div>
                         
                         <form onsubmit="saveSectionConfig(event)" class="space-y-4">
@@ -182,8 +203,10 @@
                             </h3>
                             <p class="text-xs text-slate-500">Live view and search of all configured subject schemes across the secondary wing.</p>
                         </div>
-                        <div class="w-full md:w-80">
+                        <div class="flex flex-wrap gap-2 w-full md:w-auto">
                             <input type="text" id="master-subject-search" oninput="renderMasterSubjectDirectory()" placeholder="🔍 Search Class or Subject..." class="w-full text-xs p-2.5 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm">
+                            <button type="button" onclick="previewSubjectDirectoryPDF()" class="text-xs bg-rose-700 text-white px-3 py-2 rounded">🖨 PDF Preview</button>
+                            <button type="button" onclick="publishSubjectDirectory()" class="text-xs bg-emerald-700 text-white px-3 py-2 rounded">📢 Publish to Public View</button>
                         </div>
                     </div>
                     
@@ -207,11 +230,10 @@
             <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden print:p-0 print:border-none">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4 no-print">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV (Cloud Synced)</h2>
+                        <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV (Secondary · Cloud Synced)</h2>
                         <p class="text-xs text-slate-500">Manage student enrollments and upload verified CSV sheets directly to Firebase.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <button type="button" onclick="downloadCSVTemplate()" class="bg-slate-600 text-white text-xs font-medium px-3 py-2 rounded">📑 Template</button>
                         <button type="button" onclick="downloadClassCSV()" class="bg-emerald-600 text-white text-xs font-medium px-3 py-2 rounded">📥 Download CSV</button>
                         <label class="bg-sky-600 text-white text-xs font-medium px-3 py-2 rounded cursor-pointer">📤 Upload CSV<input type="file" id="csv-file-input" accept=".csv" onchange="uploadCSV(event)" class="hidden"></label>
                         <button type="button" onclick="generateStudentPDFReport()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded flex items-center gap-1 shadow">
@@ -248,7 +270,7 @@
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
                 <div class="space-y-6">
                     <div class="border-b pb-4">
-                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager & Exam Duty Allotments</h2>
+                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager & Exam Duty Allotments (Secondary)</h2>
                         <p class="text-xs text-slate-500">Manage faculty profiles, teaching workloads, and exam responsibilities in one place.</p>
                     </div>
                     <!-- FACULTY ENTRY FORM -->
@@ -471,6 +493,7 @@
         ['11-D', '11-E', '12-D', '12-E'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI']; });
         
         let sectionConfigs = {};
+        let publishedSubjectDirectories = {};
         let students = [];
         let teachers = [];
         let classTeacherAssignments = {};
@@ -619,7 +642,6 @@
                 let parts = k.split('-');
                 if(parts.length > 0) clsSet.add(parts[0]);
             });
-            for (let cls = 1; cls <= 12; cls++) clsSet.add(String(cls));
             let arr = Array.from(clsSet);
             arr.sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0));
             return arr.length > 0 ? arr : ['6', '7', '8', '9', '10', '11', '12'];
@@ -648,6 +670,56 @@
             arr.sort();
             return arr.length ? arr : (Number(cls) <= 2 ? ['ENGLISH', 'HINDI', 'MATHS'] : Number(cls) <= 5 ? ['ENGLISH', 'HINDI', 'MATHS', 'EVS'] : ['ENGLISH']);
         }
+
+        function getSectionStream(cls, sec) {
+            if (!['11', '12'].includes(String(cls))) return 'General';
+            if (['A', 'B'].includes(String(sec).toUpperCase())) return 'Science';
+            if (String(sec).toUpperCase() === 'C') return 'Commerce';
+            if (['D', 'E'].includes(String(sec).toUpperCase())) return 'Humanities';
+            return 'General';
+        }
+
+        async function addClassSection() {
+            const cls = (prompt('Enter class number (1 to 12):') || '').trim();
+            if (!/^(?:[1-9]|1[0-2])$/.test(cls)) { if (cls) alert('Enter a class number from 1 to 12.'); return; }
+            const sec = (prompt(`Enter section for Class ${formatClass(cls)} (for example A):`) || '').trim().toUpperCase();
+            if (!/^[A-Z][A-Z0-9]?$/.test(sec)) { if (sec) alert('Enter a valid section such as A, B or C.'); return; }
+            const key = `${cls}-${sec}`;
+            if (sectionConfigs[key]) { alert(`Class ${formatClass(cls)} - Section ${sec} already exists.`); jumpToEditConfig(cls, sec); return; }
+            sectionConfigs[key] = Number(cls) <= 2 ? ['ENGLISH', 'HINDI', 'MATHS'] : Number(cls) <= 5 ? ['ENGLISH', 'HINDI', 'MATHS', 'EVS'] : ['ENGLISH'];
+            if (await saveData(['sectionConfigs'])) { initCfgSections(); document.getElementById('cfg-class').value=cls; updateCfgSections(); document.getElementById('cfg-section').value=sec; loadSectionConfigDetails(); alert('Class and section added. You can now edit its subjects.'); }
+        }
+
+        async function deleteClassSection() {
+            const cls=document.getElementById('cfg-class').value, sec=document.getElementById('cfg-section').value, key=`${cls}-${sec}`;
+            const reasons=[];
+            if (Object.keys(studentRecords?.[cls]?.[sec] || {}).length) reasons.push('student records');
+            if (classTeacherAssignments[key]) reasons.push('class-teacher assignments');
+            if (teachers.some(t => (t.allotments || []).some(a => String(a.cls)===cls && String(a.sec)===sec))) reasons.push('faculty allotments');
+            if (archivedExams.some(ex => (ex.datesheetSnapshot || []).some(day => (day.paperSlots || []).some(slot => String(slot.cls)===cls && (slot.selectedSections || []).includes(sec))))) reasons.push('saved examinations');
+            if (reasons.length) { alert(`Cannot delete Class ${formatClass(cls)}-${sec}. First remove its ${reasons.join(', ')}.`); return; }
+            if (!confirm(`Delete Class ${formatClass(cls)} - Section ${sec} and its subject mapping?`)) return;
+            delete sectionConfigs[key];
+            if (await saveData(['sectionConfigs'])) { editorBaselines.section=null; initCfgSections(); renderMasterSubjectDirectory(); }
+        }
+
+        function subjectDirectoryRows(source=sectionConfigs) {
+            return Object.keys(source || {}).sort((a,b) => { const [ac,as]=a.split('-'),[bc,bs]=b.split('-'); return Number(ac)-Number(bc)||as.localeCompare(bs); }).map(key => { const [cls,sec]=key.split('-'); const value=source[key]; return { cls, sec, stream:value?.stream || getSectionStream(cls,sec), subjects:Array.isArray(value)?value:(value?.subjects || []) }; }).filter(row=>row.subjects.length);
+        }
+
+        function buildSubjectDirectoryHtml(source=sectionConfigs, publishedAt='') {
+            const rows=subjectDirectoryRows(source);
+            return `<!doctype html><html><head><title>Secondary Subject Directory</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:Arial;color:#172554}.head{text-align:center;border-bottom:3px double #172554;padding-bottom:7px}.head h1{font-size:18px;margin:0}.head h2{font-size:13px;margin:3px}table{width:100%;border-collapse:collapse;font-size:10px;margin-top:12px}th{background:#172554;color:white}th,td{border:1px solid #94a3b8;padding:7px;text-align:left}tbody tr:nth-child(even){background:#f8fafc}.meta{text-align:center;font-size:10px;margin-top:5px}.sign{margin-top:35px;text-align:right;font-size:11px;font-weight:bold}@media screen{body{padding:12mm;max-width:210mm;margin:auto;box-shadow:0 6px 30px #64748b}}</style></head><body><div class="head"><h1>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h1><h2>EXAMINATION CELL — SUBJECT MAPPING (SECONDARY)</h2></div><div class="meta">Session 2026–27${publishedAt ? ` • Published ${escapeHtml(new Date(publishedAt).toLocaleString('en-IN'))}` : ''}</div><table><thead><tr><th>S.No.</th><th>Class / Section</th><th>Stream</th><th>Configured Subjects</th></tr></thead><tbody>${rows.map((r,i)=>`<tr><td>${i+1}</td><td><b>Class ${escapeHtml(formatClass(r.cls))}-${escapeHtml(r.sec)}</b></td><td>${escapeHtml(r.stream)}</td><td>${escapeHtml(r.subjects.join(', '))}</td></tr>`).join('')}</tbody></table><div class="sign">Exam In-Charge &nbsp;&nbsp;&nbsp;&nbsp; Principal</div></body></html>`;
+        }
+
+        function showSubjectDirectoryPreview(html, title='Subject Mapping PDF Preview') {
+            document.getElementById('subject-directory-preview')?.remove(); const modal=document.createElement('div'); modal.id='subject-directory-preview'; modal.className='fixed inset-0 z-[100] bg-slate-950/80 p-3 md:p-6 flex flex-col'; modal.innerHTML=`<div class="max-w-5xl w-full mx-auto bg-indigo-950 text-white rounded-t-xl p-3 flex justify-between items-center"><b>${escapeHtml(title)}</b><div class="flex gap-2"><button type="button" onclick="document.querySelector('#subject-directory-preview iframe').contentWindow.print()" class="bg-emerald-600 px-4 py-2 rounded text-xs font-bold">Print / Save PDF</button><button type="button" onclick="document.getElementById('subject-directory-preview').remove()" class="bg-red-600 px-4 py-2 rounded text-xs font-bold">Close</button></div></div><iframe title="Subject directory PDF preview" class="max-w-5xl w-full mx-auto flex-1 bg-white rounded-b-xl"></iframe>`; document.body.appendChild(modal); modal.querySelector('iframe').srcdoc=html;
+        }
+        function previewSubjectDirectoryPDF(){ showSubjectDirectoryPreview(buildSubjectDirectoryHtml()); }
+        function printPublishedSubjectDirectory(){ const current=publishedSubjectDirectories.current; if(!current?.sections){alert('No subject directory has been published yet.');return;} showSubjectDirectoryPreview(buildSubjectDirectoryHtml(current.sections,current.publishedAt),'Published Subject Directory'); }
+        async function publishSubjectDirectory(){ if(!subjectDirectoryRows().length){alert('Add and save subject mappings before publishing.');return;} publishedSubjectDirectories={current:{publishedAt:new Date().toISOString(),publishedBy:authorizedRole,sections:cloneData(sectionConfigs)}}; if(await saveData(['publishedSubjectDirectories'])){renderPublicSubjectDirectory();alert('Subject directory published to the Public view.');} }
+        function renderPublicSubjectDirectory(){ const body=document.getElementById('public-subject-directory-body'); if(!body)return; const current=publishedSubjectDirectories.current, term=(document.getElementById('public-subject-search')?.value||'').toLowerCase(); const rows=subjectDirectoryRows(current?.sections||{}).filter(r=>`${formatClass(r.cls)} ${r.sec} ${r.stream} ${r.subjects.join(' ')}`.toLowerCase().includes(term)); body.innerHTML=rows.length?rows.map(r=>`<tr class="border-b"><td class="p-2 font-bold">Class ${escapeHtml(formatClass(r.cls))}-${escapeHtml(r.sec)}</td><td class="p-2">${escapeHtml(r.stream)}</td><td class="p-2">${escapeHtml(r.subjects.join(', '))}</td></tr>`).join(''):`<tr><td colspan="3" class="p-4 text-center text-slate-400">${current?'No matching mapping.':'No subject directory has been published.'}</td></tr>`; document.getElementById('public-subject-published-at').textContent=current?.publishedAt?`Published: ${new Date(current.publishedAt).toLocaleString('en-IN')}`:''; }
+        async function sharePublishedSubjectDirectory(){ if(!publishedSubjectDirectories.current){alert('No subject directory has been published yet.');return;} const data={title:'Secondary Subject Directory',text:'Published subject mapping — PM SHRI KV No. 1 Itanagar',url:location.href}; if(navigator.share){try{await navigator.share(data);}catch(error){if(error.name!=='AbortError')alert('Sharing is not supported on this device.');}}else{await navigator.clipboard.writeText(location.href);alert('Public portal link copied.');} }
 
         // =========================================================================
         // MODULE 1: SUBJECT SETUP & MASTER DIRECTORY
@@ -825,6 +897,8 @@
             const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
             const countBadge = document.getElementById('student-count-badge');
             if(countBadge) countBadge.textContent = `Total: ${filtered.length}`;
+            const streamBadge = document.getElementById('stream-indicator');
+            if(streamBadge) streamBadge.textContent = getSectionStream(cls, sec);
             const activeSubs = sectionConfigs[`${cls}-${sec}`] || [];
             const tbody = document.getElementById('student-table-body');
             if(!tbody) return;
@@ -950,17 +1024,28 @@
                 const uploadedClean = uploadedSubs.map(s => s.trim().toUpperCase());
                 let isHeaderMatch = expectedClean.length === uploadedClean.length && expectedClean.every((sub, i) => sub === uploadedClean[i]);
                 if (!isHeaderMatch) {
-                    alert(`❌ CSV Subject Header Mismatch Error!\n\nExpected Headers for Class ${formatClass(cls)} - Sec ${sec}:\n${expectedClean.join(', ')}\n\nUploaded CSV Headers:\n${uploadedClean.join(', ')}\n\nUpload Aborted! Please download the official CSV template for this section.`);
+                    alert(`❌ CSV Subject Header Mismatch Error!\n\nExpected Headers for Class ${formatClass(cls)} - Sec ${sec}:\n${expectedClean.join(', ')}\n\nUploaded CSV Headers:\n${uploadedClean.join(', ')}\n\nUpload Aborted. Use Download CSV for the current section structure, then update its student rows.`);
                     event.target.value = '';
                     return;
                 }
                 let parsedRows = [];
+                const seenRolls = new Set();
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if(!line) continue;
                     
                     const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                     if (cols.length >= 3) {
+                        const expectedSno = parsedRows.length + 1;
+                        if (!/^\d+$/.test(cols[0]) || Number(cols[0]) !== expectedSno) {
+                            alert(`❌ CSV serial-number error at data row ${i}. S.No must be numeric and continue in order. Expected ${expectedSno}, found "${cols[0] || 'blank'}".`); event.target.value=''; return;
+                        }
+                        if (!/^\d+$/.test(cols[1]) || Number(cols[1]) < 1) {
+                            alert(`❌ CSV roll-number error at data row ${i}. Roll No must contain digits only and be greater than zero.`); event.target.value=''; return;
+                        }
+                        if (seenRolls.has(Number(cols[1]))) { alert(`❌ Duplicate Roll No ${cols[1]} found at data row ${i}. Upload stopped.`); event.target.value=''; return; }
+                        if (!cols[2]) { alert(`❌ Student name is blank at data row ${i}. Upload stopped.`); event.target.value=''; return; }
+                        seenRolls.add(Number(cols[1]));
                         let studentMappedSubs = [];
                         for (let subIdx = 0; subIdx < expectedClean.length; subIdx++) {
                             let val = cols[3 + subIdx] ? cols[3 + subIdx].trim().toUpperCase() : '-';
@@ -976,8 +1061,8 @@
                             }
                         }
                         parsedRows.push({
-                            sno: parseInt(cols[0]) || (parsedRows.length + 1),
-                            roll: parseInt(cols[1]) || 0,
+                            sno: Number(cols[0]),
+                            roll: Number(cols[1]),
                             name: cols[2],
                             class: cls,
                             section: sec,
@@ -1962,8 +2047,8 @@
                 </head>
                 <body>
                     <div class="header">
-                        <h2>KENDRIYA VIDYALAYA EXAMINATION CELL</h2>
-                        <p style="margin:4px 0 0 0; font-weight:bold;">CONFIDENTIAL CLEARANCE & RECEIVING "OK REPORT"</p>
+                        <h2>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h2>
+                        <p style="margin:4px 0 0 0; font-weight:bold;">EXAMINATION CELL — CONFIDENTIAL CLEARANCE & RECEIVING "OK REPORT"</p>
                     </div>
                     <div class="box">✅ CERTIFIED: 100% QUESTION PAPERS & MARKING SCHEMES RECEIVED IN SEALED VAULT</div>
                     <p style="font-size: 13px;"><b>Exam Title:</b> ${escapeHtml(currentExam.title)} | <b>Clearance Date:</b> ${new Date().toLocaleDateString('en-IN')}</p>
@@ -2023,8 +2108,10 @@
                     </tr>
                 `;
             }).join('');
-            let totEnrolled = subjectsList.length * 35;
-            let totBuffer = subjectsList.length * 2;
+            let totEnrolled = subjectsList.reduce((total, q) => total + students.filter(student => String(student.class) === String(q.cls)
+                && (!q.sections?.length || q.sections.includes(String(student.section)))).length, 0);
+            let totBuffer = subjectsList.reduce((total, q) => { const count=students.filter(student => String(student.class) === String(q.cls)
+                && (!q.sections?.length || q.sections.includes(String(student.section)))).length; return total + Math.ceil(count * 0.05); }, 0);
             let totFinal = totEnrolled + totBuffer;
             printWin.document.write(`
                 <!DOCTYPE html>
@@ -2041,7 +2128,8 @@
                 </head>
                 <body>
                     <div class="header">
-                        <h2>KENDRIYA VIDYALAYA EXAMINATION CELL</h2>
+                        <h2>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h2>
+                        <p style="margin:4px 0 0;font-weight:bold;">EXAMINATION CELL</p>
                         <p>CONFIDENTIAL QUESTION PAPER PRINTING DEMAND INDENT SHEET</p>
                     </div>
                     <table>
