@@ -180,6 +180,8 @@ async function main() {
 
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
         await a.fill('#qp-order-deadline-at', '2026-11-04T15:30');
+        await a.selectOption('#qp-order-method', "Email from the QP setter's personal secure email with Word file and PDF");
+        await a.fill('#qp-order-email', 'examcell@example.test');
         assert.match(await a.locator('text=Auto-linked from Faculty Manager').first().textContent(), /Auto-linked/);
         await a.evaluate(() => saveQpOfficeOrder('ISSUED'));
         await b.waitForFunction(() => qpOfficeOrders['100']?.status === 'ISSUED');
@@ -190,6 +192,8 @@ async function main() {
         const previewText = await a.locator('#qp-office-order-preview iframe').contentFrame().locator('body').textContent();
         assert.match(previewText, /PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR/);
         assert.match(previewText, /Other Device Name/);
+        assert.match(previewText, /examcell@example.test/);
+        assert.match(previewText, /Word and PDF files/);
         await a.evaluate(() => closeQpOfficeOrderPreview());
         console.log('PASS: issued QP office order auto-links setters, syncs, and opens an in-app A4 preview');
 

@@ -1616,6 +1616,7 @@
                 deadlineDate: saved.deadlineDate || qpSubmissionDeadlines[String(examId)] || suggestedDeadline,
                 deadlineTime: saved.deadlineTime || '16:00',
                 submissionMethod: saved.submissionMethod || 'Sealed confidential envelope to the Examination Cell',
+                submissionEmail: saved.submissionEmail || '',
                 instructions: Array.isArray(saved.instructions) ? saved.instructions : defaultQpSetterInstructions,
                 setters: saved.setters || {},
                 status: saved.status || 'DRAFT',
@@ -1633,6 +1634,7 @@
             const deadlineAt = value('qp-order-deadline-at');
             [order.deadlineDate, order.deadlineTime] = deadlineAt ? deadlineAt.split('T') : ['', ''];
             order.submissionMethod = value('qp-order-method');
+            order.submissionEmail = value('qp-order-email');
             order.instructions = value('qp-order-instructions').split('\n').map(line => line.trim()).filter(Boolean);
             order.setters = {};
             getExamSubjectsListForVault(selectedPreExamVaultId, { setters: {} }).forEach(item => {
@@ -1650,6 +1652,10 @@
             }
             if (!order.instructions.length) {
                 alert('Please keep at least one instruction for the question paper setters.');
+                return false;
+            }
+            if (order.submissionMethod.startsWith('Email') && !order.submissionEmail) {
+                alert('Please enter the Exam Cell receiving email address.');
                 return false;
             }
             const unmapped = getExamSubjectsListForVault(selectedPreExamVaultId, order).filter(item => !item.teacherId);
@@ -1680,6 +1686,9 @@
         function buildQpSetterOfficeOrderHtml(order = currentQpOfficeOrder()) {
             const currentExam = archivedExams.find(ex => ex.id === selectedPreExamVaultId) || { title: 'Examination' };
             const subjects = getExamSubjectsListForVault(selectedPreExamVaultId, order);
+            const submissionText = order.submissionMethod.startsWith('Email')
+                ? `by email from the QP setter's personal secure email to ${order.submissionEmail || '[Exam Cell receiving email]'}, attaching both editable Word and PDF files`
+                : 'in a sealed confidential envelope to the Examination Cell';
             return `
                 <!DOCTYPE html>
                 <html>
@@ -1725,7 +1734,7 @@
                     </div>
                     <div class="title">OFFICE ORDER — ${escapeHtml(currentExam.title)}</div>
                     <div class="content">
-                        The following faculty members are hereby appointed as Question Paper Setters for <b>${escapeHtml(currentExam.title)}</b>. They shall submit the question papers, complete answer keys and marking schemes by <b>${escapeHtml(formatOrderDate(order.deadlineDate))} at ${escapeHtml(order.deadlineTime)}</b> through <b>${escapeHtml(order.submissionMethod)}</b>.
+                        The following faculty members are hereby appointed as Question Paper Setters for <b>${escapeHtml(currentExam.title)}</b>. They shall submit the question papers, complete answer keys and marking schemes by <b>${escapeHtml(formatOrderDate(order.deadlineDate))} at ${escapeHtml(order.deadlineTime)}</b> <b>${escapeHtml(submissionText)}</b>.
                     </div>
                     <table>
                         <thead>
@@ -2044,8 +2053,14 @@
                                     <label class="md:col-span-2 text-xs font-bold text-slate-600">Last date and time of submission
                                         <input id="qp-order-deadline-at" type="datetime-local" required value="${escapeHtml(officeOrder.deadlineDate && officeOrder.deadlineTime ? `${officeOrder.deadlineDate}T${officeOrder.deadlineTime}` : '')}" class="mt-1 w-full border-2 border-amber-300 rounded-lg p-2.5 text-xs font-bold bg-amber-50 text-amber-950">
                                     </label>
-                                    <label class="md:col-span-2 text-xs font-bold text-slate-600">Submission method/place
-                                        <input id="qp-order-method" value="${escapeHtml(officeOrder.submissionMethod)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs">
+                                    <label class="md:col-span-2 text-xs font-bold text-slate-600">Submission method
+                                        <select id="qp-order-method" onchange="document.getElementById('qp-order-email-wrap').classList.toggle('hidden', !this.value.startsWith('Email'))" class="mt-1 w-full border rounded-lg p-2.5 text-xs font-semibold bg-white">
+                                            <option value="Sealed confidential envelope to the Examination Cell" ${officeOrder.submissionMethod === 'Sealed confidential envelope to the Examination Cell' ? 'selected' : ''}>Sealed confidential envelope to the Examination Cell</option>
+                                            <option value="Email from the QP setter's personal secure email with Word file and PDF" ${officeOrder.submissionMethod.startsWith('Email') ? 'selected' : ''}>Email from personal secure email — Word file & PDF</option>
+                                        </select>
+                                    </label>
+                                    <label id="qp-order-email-wrap" class="md:col-span-2 text-xs font-bold text-slate-600 ${officeOrder.submissionMethod.startsWith('Email') ? '' : 'hidden'}">Exam Cell receiving email
+                                        <input id="qp-order-email" type="email" value="${escapeHtml(officeOrder.submissionEmail)}" placeholder="Enter the official receiving email" class="mt-1 w-full border rounded-lg p-2.5 text-xs bg-indigo-50">
                                     </label>
                                 </div>
                                 <div class="overflow-x-auto border rounded-xl">
