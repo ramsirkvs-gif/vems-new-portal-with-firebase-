@@ -291,7 +291,6 @@
         let activeExamId = null;
         let isPreExamFullPageOpen = false;
         let activePreExamSubTab = 'office-order'; 
-        let selectedPreExamVaultId = null;
         let qpSubmissionDeadline = '2026-11-05';
 
         let officeOrderDirectives = JSON.parse(localStorage.getItem('vems_office_order_directives')) || [
@@ -312,6 +311,7 @@
         let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
 
         function initFirebaseListeners() {
+            // Real-time listener for students
             db.ref('students').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -323,10 +323,14 @@
                             });
                         });
                     });
+                } else {
+                    students = [];
                 }
                 filterStudents();
                 renderExamCreatorModule();
             });
+
+            // Real-time listener for section configurations
             db.ref('sectionConfigs').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -334,6 +338,26 @@
                     localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
                     initCfgSections();
                     renderMasterSubjectDirectory();
+                }
+            });
+
+            // Real-time listener for office order directives
+            db.ref('officeOrderDirectives').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && Array.isArray(data)) {
+                    officeOrderDirectives = data;
+                    localStorage.setItem('vems_office_order_directives', JSON.stringify(officeOrderDirectives));
+                    renderExamCreatorModule();
+                }
+            });
+
+            // Real-time listener for office order signatures & e-Signs
+            db.ref('officeOrderSignatures').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && typeof data === 'object') {
+                    officeOrderSignatures = data;
+                    localStorage.setItem('vems_office_order_signatures', JSON.stringify(officeOrderSignatures));
+                    renderExamCreatorModule();
                 }
             });
         }
@@ -351,10 +375,12 @@
             localStorage.setItem('vems_office_order_directives', JSON.stringify(officeOrderDirectives));
             localStorage.setItem('vems_office_order_signatures', JSON.stringify(officeOrderSignatures));
             localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
+            
             db.ref('sectionConfigs').set(sectionConfigs);
             db.ref('officeOrderDirectives').set(officeOrderDirectives);
             db.ref('officeOrderSignatures').set(officeOrderSignatures);
             db.ref('archivedExams').set(archivedExams);
+            
             renderMasterSubjectDirectory();
             renderExamCreatorModule();
         }
@@ -538,14 +564,17 @@
             const sec = document.getElementById('filter-section')?.value;
             if(!cls || !sec) return;
             const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
-            document.getElementById('student-count-badge').textContent = `Total: ${filtered.length}`;
+            const countBadge = document.getElementById('student-count-badge');
+            if(countBadge) countBadge.textContent = `Total: ${filtered.length}`;
             
             const subs = sectionConfigs[`${cls}-${sec}`] || [];
             let headerHtml = `<th class="px-2 py-3 text-center">S.No</th><th class="px-2 py-3">Roll</th><th class="px-3 py-3">Student Name</th>`;
             subs.forEach(sub => headerHtml += `<th class="px-2 py-3 bg-indigo-50/50">${sub}</th>`);
-            document.getElementById('student-table-header-row').innerHTML = headerHtml;
+            const headerRow = document.getElementById('student-table-header-row');
+            if(headerRow) headerRow.innerHTML = headerHtml;
             
             const tbody = document.getElementById('student-table-body');
+            if(!tbody) return;
             tbody.innerHTML = '';
             filtered.forEach((s, idx) => {
                 let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${s.sno || (idx + 1)}</td><td class="px-2 py-3 font-bold">${s.roll}</td><td class="px-3 py-3 font-semibold">${s.name}</td>`;
@@ -592,7 +621,6 @@
                 const text = e.target.result.replace(/\r/g, '');
                 const lines = text.split('\n');
                 if (lines.length === 0 || !lines[0].trim()) { alert("Empty CSV"); return; }
-                const headerCols = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim().toUpperCase());
                 let parsedRows = [];
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
