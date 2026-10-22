@@ -244,7 +244,9 @@ async function main() {
             switchPreExamSubTab('seating');
         });
         assert.equal(await a.evaluate(() => seatingCandidates(archivedExams.find(ex=>ex.id===100),'2026-11-01').candidates.length), 2, 'inactive student must be excluded from seating');
-        await a.evaluate(() => { switchTab('students'); toggleStudentStatusPanel(true); document.getElementById('student-status-search').value='Transferred Student'; renderStudentStatusSearch(); });
+        await a.evaluate(() => { switchTab('students'); showInactiveStudents(); });
+        assert.match(await a.locator('#inactive-students-button').textContent(), /\(1\)/);
+        assert.equal(await a.locator('#student-status-filter').inputValue(), 'inactive');
         assert.match(await a.locator('#student-status-results').innerText(), /INACTIVE/);
         await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); switchPreExamSubTab('seating'); });
         await a.locator('.seating-room-check[value="classroom-10-A"]').check();

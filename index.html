@@ -250,6 +250,7 @@
                         <button type="button" onclick="downloadClassCSV()" class="bg-emerald-600 text-white text-xs font-medium px-3 py-2 rounded">📥 Download CSV</button>
                         <label class="bg-sky-600 text-white text-xs font-medium px-3 py-2 rounded cursor-pointer">📤 Upload CSV<input type="file" id="csv-file-input" accept=".csv" onchange="uploadCSV(event)" class="hidden"></label>
                         <button type="button" onclick="toggleStudentStatusPanel()" class="bg-amber-600 text-white text-xs font-medium px-3 py-2 rounded">🔎 Search / Deactivate</button>
+                        <button id="inactive-students-button" type="button" onclick="showInactiveStudents()" class="bg-slate-700 text-white text-xs font-medium px-3 py-2 rounded">⛔ Inactive Students (0)</button>
                         <button type="button" onclick="generateStudentPDFReport()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded flex items-center gap-1 shadow">
                             <span>🖨️</span> PDF / Print Report
                         </button>
@@ -938,6 +939,22 @@
             if(open){ studentDeactivationTarget=null; renderStudentStatusSearch(); setTimeout(()=>document.getElementById('student-status-search')?.focus(),0); }
         }
 
+        function updateInactiveStudentsButton() {
+            const button=document.getElementById('inactive-students-button');
+            if(button) button.textContent=`⛔ Inactive Students (${students.filter(student=>!isStudentActive(student)).length})`;
+        }
+
+        function showInactiveStudents() {
+            const panel=document.getElementById('student-status-panel');
+            panel?.classList.remove('hidden');
+            studentDeactivationTarget=null;
+            const filter=document.getElementById('student-status-filter'), search=document.getElementById('student-status-search');
+            if(filter) filter.value='inactive';
+            if(search) search.value='';
+            renderStudentStatusSearch();
+            panel?.scrollIntoView({behavior:'smooth',block:'nearest'});
+        }
+
         function renderStudentStatusSearch() {
             const body=document.getElementById('student-status-results'); if(!body)return;
             const term=(document.getElementById('student-status-search')?.value||'').trim().toLowerCase();
@@ -982,6 +999,7 @@
             if(countBadge) countBadge.textContent = `Active: ${activeCount}${inactiveCount?` · Inactive: ${inactiveCount}`:''}`;
             const streamBadge = document.getElementById('stream-indicator');
             if(streamBadge) streamBadge.textContent = getSectionStream(cls, sec);
+            updateInactiveStudentsButton();
             const activeSubs = sectionConfigs[`${cls}-${sec}`] || [];
             const tbody = document.getElementById('student-table-body');
             if(!tbody) return;
