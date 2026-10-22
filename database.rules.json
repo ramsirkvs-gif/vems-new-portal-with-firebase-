@@ -59,6 +59,14 @@
     "dateSheetSettings": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
       ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+    },
+    "seatingRooms": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+    },
+    "seatingPlans": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
     }
   }
 }

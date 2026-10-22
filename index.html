@@ -498,6 +498,9 @@
             'Electronic devices and unfair means are strictly prohibited.',
             'Follow the instructions of the invigilator and verify the question paper before writing.'
         ];
+        let seatingRooms = {};
+        let seatingPlans = {};
+        let selectedSeatingDate = null;
 
         const defaultQpSetterInstructions = [
             'Prepare the question paper strictly according to the prescribed syllabus, blueprint and approved marks distribution.',
@@ -2121,9 +2124,134 @@
                 && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section)))).length;
         }
 
+        function seatingRoomList() {
+            const saved = Object.values(seatingRooms || {});
+            const inferred = Object.keys(sectionConfigs).map(key => ({ id: `classroom-${key}`, name: `Classroom ${key}`, rows: 5, desksPerRow: 4, inferred: true }));
+            return [...saved, ...inferred.filter(room => !saved.some(item => item.id === room.id))];
+        }
+
+        function seatingCandidates(exam, date) {
+            const day = (exam.datesheetSnapshot || []).find(item => item.dateStr === date);
+            const slots = day?.paperSlots || [];
+            const repeated = new Set();
+            const seenPapers = new Set();
+            slots.forEach(slot => { const key = `${slot.cls}|${String(slot.subject).toUpperCase()}`; if (seenPapers.has(key)) repeated.add(key); seenPapers.add(key); });
+            if (repeated.size) return { error: `Same class and same subject is repeated on ${formatDateWithDay(date)}: ${[...repeated].join(', ')}`, candidates: [] };
+            const result = [];
+            const seenStudents = new Set();
+            slots.forEach(slot => students.filter(student => String(student.class) === String(slot.cls)
+                && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section)))).forEach(student => {
+                    const id = String(student.id ?? `${student.class}-${student.section}-${student.roll}`);
+                    if (seenStudents.has(id)) return;
+                    seenStudents.add(id);
+                    result.push({ studentId: id, name: student.name, cls: String(student.class), section: String(student.section), roll: student.roll, subject: slot.subject });
+                }));
+            return { error: '', candidates: result };
+        }
+
+        function interleaveSeatingCandidates(candidates) {
+            const groups = {};
+            candidates.forEach(student => (groups[`${student.cls}-${student.section}`] ||= []).push(student));
+            Object.values(groups).forEach(group => group.sort((a,b) => Number(a.roll) - Number(b.roll)));
+            const result = [], queues = Object.values(groups);
+            while (queues.some(queue => queue.length)) queues.forEach(queue => { if (queue.length) result.push(queue.shift()); });
+            return result;
+        }
+
+        async function addSeatingRoom() {
+            const name = prompt('Enter the new room / examination area name or number:');
+            if (!name?.trim()) return;
+            const rows = Number(prompt('Number of desk rows:', '5'));
+            const desksPerRow = Number(prompt('Number of desks in each row:', '4'));
+            if (!Number.isInteger(rows) || !Number.isInteger(desksPerRow) || rows < 1 || desksPerRow < 1) { alert('Enter valid room rows and desks per row.'); return; }
+            const id = `room-${newRecordId()}`;
+            seatingRooms[id] = { id, name: name.trim(), rows, desksPerRow };
+            if (await saveData(['seatingRooms'])) renderExamCreatorModule();
+        }
+
+        async function generateAutomaticSeating() {
+            const exam = archivedExams.find(item => item.id === selectedPreExamVaultId);
+            const date = document.getElementById('seating-date')?.value;
+            const method = document.getElementById('seating-method')?.value || 'mixed';
+            const roomIds = [...document.querySelectorAll('.seating-room-check:checked')].map(input => input.value);
+            if (!exam || !date) return;
+            const source = seatingCandidates(exam, date);
+            if (source.error) { alert(source.error); return; }
+            if (!source.candidates.length) { alert('No matching students were found in Student Master for this date.'); return; }
+            if (!roomIds.length) { alert('Select at least one room or add a new examination area.'); return; }
+            const rooms = seatingRoomList().filter(room => roomIds.includes(room.id));
+            const capacity = rooms.reduce((sum, room) => sum + room.rows * room.desksPerRow * 2, 0);
+            if (capacity < source.candidates.length) { alert(`Room capacity shortage: ${source.candidates.length} students require seats, but selected rooms have only ${capacity}.`); return; }
+            let candidates = method === 'mixed' ? interleaveSeatingCandidates(source.candidates) : [...source.candidates].sort((a,b) => a.cls.localeCompare(b.cls, undefined, {numeric:true}) || a.section.localeCompare(b.section) || Number(a.roll)-Number(b.roll));
+            const assignments = [];
+            let index = 0;
+            rooms.forEach(room => { for (let desk=1; desk<=room.rows*room.desksPerRow && index<candidates.length; desk++) for (const seat of ['A','B']) if (index<candidates.length) assignments.push({ ...candidates[index++], roomId: room.id, roomName: room.name, desk, seat }); });
+            const ids = assignments.map(item => item.studentId);
+            if (new Set(ids).size !== ids.length || assignments.length !== source.candidates.length) { alert('Seating validation failed: a student is duplicated or left out. Please regenerate.'); return; }
+            seatingPlans[String(selectedPreExamVaultId)] ||= {};
+            seatingPlans[String(selectedPreExamVaultId)][date] = { date, method, roomIds, rooms, assignments, updatedAt: new Date().toISOString() };
+            if (await saveData(['seatingPlans'])) renderExamCreatorModule();
+        }
+
+        function seatingPlanFor(examId, date) { return seatingPlans[String(examId)]?.[date] || null; }
+
+        async function removeSeatingStudent(studentId) {
+            const plan = seatingPlanFor(selectedPreExamVaultId, selectedSeatingDate);
+            if (!plan) return;
+            plan.assignments = plan.assignments.filter(item => item.studentId !== String(studentId));
+            if (await saveData(['seatingPlans'])) renderExamCreatorModule();
+        }
+
+        async function manuallyPlaceSeatingStudent() {
+            const plan = seatingPlanFor(selectedPreExamVaultId, selectedSeatingDate);
+            const studentId = document.getElementById('manual-seat-student')?.value;
+            const roomId = document.getElementById('manual-seat-room')?.value;
+            const desk = Number(document.getElementById('manual-seat-desk')?.value);
+            const seat = document.getElementById('manual-seat-position')?.value;
+            const exam = archivedExams.find(item => item.id === selectedPreExamVaultId);
+            const student = seatingCandidates(exam, selectedSeatingDate).candidates.find(item => item.studentId === studentId);
+            const room = plan?.rooms.find(item => item.id === roomId);
+            if (!plan || !student || !room || desk < 1 || desk > room.rows * room.desksPerRow) { alert('Select a valid student, room and desk.'); return; }
+            if (plan.assignments.some(item => item.studentId === studentId)) { alert('This student is already allotted.'); return; }
+            if (plan.assignments.some(item => item.roomId === roomId && item.desk === desk && item.seat === seat)) { alert('That desk seat is already occupied.'); return; }
+            plan.assignments.push({ ...student, roomId, roomName: room.name, desk, seat });
+            if (await saveData(['seatingPlans'])) renderExamCreatorModule();
+        }
+
+        function seatingDeskDiagrams(plan) {
+            if (!plan) return '<p class="text-sm text-slate-500">Generate or save a seating plan to view desk diagrams.</p>';
+            return plan.rooms.map(room => { const assigned = plan.assignments.filter(item => item.roomId === room.id); return `<div class="border rounded-xl p-4 space-y-3 bg-white"><h4 class="font-black text-indigo-950">🚪 ${escapeHtml(room.name)} <span class="text-xs font-normal text-slate-500">(${assigned.length} students)</span></h4><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">${Array.from({length:room.rows*room.desksPerRow},(_,i) => { const desk=i+1, seats=assigned.filter(item=>item.desk===desk); return `<div class="border-2 border-indigo-200 rounded-lg bg-indigo-50/50 p-2 min-h-[86px]"><div class="text-[10px] font-black text-indigo-900 border-b mb-1">DESK ${desk}</div>${['A','B'].map(seat => { const student=seats.find(item=>item.seat===seat); return `<div class="text-[10px] py-0.5"><b>${seat}:</b> ${student ? `${escapeHtml(student.name)} <button type="button" onclick="removeSeatingStudent(${jsArg(student.studentId)})" class="text-red-600 font-bold">✕</button><br><span class="text-slate-500">${escapeHtml(formatClass(student.cls))}-${escapeHtml(student.section)} · Roll ${escapeHtml(student.roll)}</span>` : '<span class="text-slate-400">Vacant</span>'}</div>`; }).join('')}</div>`; }).join('')}</div></div>`; }).join('');
+        }
+
         function renderSeatingOverview(exam) {
-            const rows = (exam.datesheetSnapshot || []).flatMap(day => (day.paperSlots || []).map(slot => ({ day, slot, count: examSlotCandidateCount(slot) })));
-            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">🪑 Seating Arrangement Planner</h3><p class="text-xs text-slate-500">Candidates are calculated automatically from Student Master for the classes and sections scheduled on each exam day.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Class / Sections</th><th class="p-3 text-left">Paper</th><th class="p-3 text-center">Candidates</th><th class="p-3 text-left">Room Allocation</th></tr></thead><tbody class="divide-y">${rows.map(({day,slot,count}) => `<tr><td class="p-3 font-bold">${escapeHtml(formatDateWithDay(day.dateStr))}</td><td class="p-3">Class ${escapeHtml(formatClass(slot.cls))} (${escapeHtml((slot.selectedSections || []).join(', ') || 'All')})</td><td class="p-3 font-bold">${escapeHtml(slot.subject)}</td><td class="p-3 text-center font-black">${count}</td><td class="p-3 text-amber-700 font-bold">Room setup required</td></tr>`).join('') || '<tr><td colspan="5" class="p-5 text-center text-slate-500">No scheduled papers found.</td></tr>'}</tbody></table></div></div>`;
+            const dates = [...new Set((exam.datesheetSnapshot || []).map(day => day.dateStr))].sort();
+            if (!dates.includes(selectedSeatingDate)) selectedSeatingDate = dates[0] || '';
+            const selectedDate = selectedSeatingDate;
+            const plan = seatingPlanFor(exam.id, selectedDate);
+            const rooms = seatingRoomList();
+            const unallotted = plan ? seatingCandidates(exam, selectedDate).candidates.filter(student => !plan.assignments.some(item => item.studentId === student.studentId)) : [];
+            return `<div class="space-y-5"><div class="bg-white rounded-xl border p-5 space-y-4"><div class="flex justify-between gap-3 flex-wrap"><div><h3 class="font-bold text-indigo-950">🪑 Seating Arrangement Workspace</h3><p class="text-xs text-slate-500">Exam schedule, students and classroom mappings load automatically.</p></div><button type="button" onclick="addSeatingRoom()" class="bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg">＋ Add New Room / Area</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><label class="text-xs font-bold">Exam date<select id="seating-date" onchange="selectedSeatingDate=this.value; renderExamCreatorModule()" class="mt-1 w-full border rounded p-2 bg-white">${dates.map(date=>`<option value="${date}" ${date===selectedDate?'selected':''}>${escapeHtml(formatDateWithDay(date))}</option>`).join('')}</select></label><label class="text-xs font-bold">Automatic allotment method<select id="seating-method" class="mt-1 w-full border rounded p-2 bg-white"><option value="mixed">Mixed classes — alternate allocation</option><option value="sequential">Class / section / roll sequence</option></select></label><div class="flex items-end"><button type="button" onclick="generateAutomaticSeating()" class="w-full bg-emerald-700 text-white text-xs font-bold p-2.5 rounded-lg">⚡ Generate & Save Seating</button></div></div><div><p class="text-xs font-bold mb-2">Select rooms (two students per desk)</p><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${rooms.map(room=>`<label class="border rounded-lg p-2 text-xs bg-slate-50"><input type="checkbox" class="seating-room-check mr-1" value="${escapeHtml(room.id)}" ${plan?.roomIds?.includes(room.id)?'checked':''}> <b>${escapeHtml(room.name)}</b><br><span class="text-slate-500">${room.rows*room.desksPerRow} desks · ${room.rows*room.desksPerRow*2} seats</span></label>`).join('')}</div></div></div>${plan ? `<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3"><h4 class="font-bold text-amber-900">Manual Allotment (${unallotted.length} unallotted)</h4><div class="grid grid-cols-1 md:grid-cols-5 gap-2"><select id="manual-seat-student" class="border rounded p-2 text-xs"><option value="">Select unallotted student</option>${unallotted.map(s=>`<option value="${escapeHtml(s.studentId)}">${escapeHtml(s.name)} — ${escapeHtml(formatClass(s.cls))}-${escapeHtml(s.section)} Roll ${escapeHtml(s.roll)}</option>`).join('')}</select><select id="manual-seat-room" class="border rounded p-2 text-xs">${plan.rooms.map(r=>`<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)}</option>`).join('')}</select><input id="manual-seat-desk" type="number" min="1" value="1" class="border rounded p-2 text-xs" placeholder="Desk"><select id="manual-seat-position" class="border rounded p-2 text-xs"><option>A</option><option>B</option></select><button type="button" onclick="manuallyPlaceSeatingStudent()" class="bg-amber-700 text-white rounded p-2 text-xs font-bold">Place Student</button></div></div>` : ''}<div class="space-y-4">${seatingDeskDiagrams(plan)}</div>${plan ? `<div class="bg-white border rounded-xl p-4 flex flex-wrap justify-end gap-2"><button type="button" onclick="previewSeatingPdf('common')" class="bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Common Display</button><button type="button" onclick="previewSeatingPdf('room')" class="bg-sky-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Room-wise</button><button type="button" onclick="previewSeatingPdf('class')" class="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Class Teacher-wise</button></div>` : ''}</div>`;
+        }
+
+        function previewSeatingPdf(type) {
+            const exam = archivedExams.find(item => item.id === selectedPreExamVaultId);
+            const plan = seatingPlanFor(selectedPreExamVaultId, selectedSeatingDate);
+            if (!exam || !plan) return;
+            let title = 'Complete Seating Display', body = '';
+            if (type === 'common') {
+                body = `<table><thead><tr><th>Room</th><th>Students</th><th>Classes / Sections</th><th>Roll Numbers</th></tr></thead><tbody>${plan.rooms.map(room => { const list=plan.assignments.filter(a=>a.roomId===room.id); return `<tr><td><b>${escapeHtml(room.name)}</b></td><td>${list.length}</td><td>${escapeHtml([...new Set(list.map(a=>`${formatClass(a.cls)}-${a.section}`))].join(', '))}</td><td>${escapeHtml(list.map(a=>a.roll).join(', '))}</td></tr>`; }).join('')}</tbody></table>`;
+            } else if (type === 'room') {
+                title = 'Room-wise Seating Plan';
+                body = plan.rooms.map(room => `<h3>${escapeHtml(room.name)}</h3><table><thead><tr><th>Desk</th><th>Seat</th><th>Student</th><th>Class / Section</th><th>Roll</th></tr></thead><tbody>${plan.assignments.filter(a=>a.roomId===room.id).sort((a,b)=>a.desk-b.desk||a.seat.localeCompare(b.seat)).map(a=>`<tr><td>${a.desk}</td><td>${a.seat}</td><td><b>${escapeHtml(a.name)}</b></td><td>${escapeHtml(formatClass(a.cls))}-${escapeHtml(a.section)}</td><td>${escapeHtml(a.roll)}</td></tr>`).join('')}</tbody></table>`).join('');
+            } else {
+                title = 'Class Teacher-wise Advance Seating Information';
+                const groups = {};
+                plan.assignments.forEach(a => (groups[`${a.cls}-${a.section}`] ||= []).push(a));
+                body = Object.entries(groups).sort().map(([group,list]) => `<h3>Class ${escapeHtml(formatClass(group.split('-')[0]))}-${escapeHtml(group.split('-')[1])}</h3><table><thead><tr><th>Roll</th><th>Student</th><th>Room</th><th>Desk / Seat</th></tr></thead><tbody>${list.sort((a,b)=>Number(a.roll)-Number(b.roll)).map(a=>`<tr><td>${escapeHtml(a.roll)}</td><td><b>${escapeHtml(a.name)}</b></td><td>${escapeHtml(a.roomName)}</td><td>${a.desk}-${a.seat}</td></tr>`).join('')}</tbody></table>`).join('');
+            }
+            const html = `<!doctype html><html><head><title>${title}</title><style>@page{size:A4;margin:12mm}body{font-family:Arial;color:#172554}.head{text-align:center;border-bottom:3px double #172554}.head h1{font-size:18px;margin:0}.head h2{font-size:13px}h3{background:#eef2ff;padding:6px;margin:12px 0 4px}table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:10px}th{background:#172554;color:white}th,td{border:1px solid #94a3b8;padding:6px}.meta{text-align:center;font-size:11px;margin:8px}@media screen{body{padding:12mm;max-width:210mm;margin:auto;box-shadow:0 6px 30px #64748b}}</style></head><body><div class="head"><h1>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h1><h2>${title}</h2></div><div class="meta"><b>${escapeHtml(exam.title)}</b> • ${escapeHtml(formatDateWithDay(plan.date))}</div>${body}</body></html>`;
+            document.getElementById('seating-pdf-preview')?.remove();
+            const modal=document.createElement('div'); modal.id='seating-pdf-preview'; modal.className='fixed inset-0 z-[100] bg-slate-950/80 p-3 md:p-6 flex flex-col'; modal.innerHTML=`<div class="max-w-5xl w-full mx-auto bg-indigo-950 text-white rounded-t-xl p-3 flex justify-between items-center"><b>${escapeHtml(title)}</b><div class="flex gap-2"><button onclick="document.querySelector('#seating-pdf-preview iframe').contentWindow.print()" class="bg-emerald-600 px-4 py-2 rounded text-xs font-bold">Print / Save PDF</button><button onclick="document.getElementById('seating-pdf-preview').remove()" class="bg-red-600 px-4 py-2 rounded text-xs font-bold">Close</button></div></div><iframe class="max-w-5xl w-full mx-auto flex-1 bg-white rounded-b-xl"></iframe>`; document.body.appendChild(modal); modal.querySelector('iframe').srcdoc=html;
         }
 
         function renderInvigilationOverview(exam) {

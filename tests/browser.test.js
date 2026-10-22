@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -206,6 +206,24 @@ async function main() {
         assert.notEqual(await a.evaluate(() => qpRecordKey(100, '10', 'SCIENCE')), await a.evaluate(() => qpRecordKey(200, '10', 'SCIENCE')));
         console.log('PASS: exam-scoped QP submission, printing, and deadlines synchronize');
 
+        await a.evaluate(async () => {
+            studentRecords = { '10': { A: {
+                seat1: { id: 'seat1', class: '10', section: 'A', roll: 1, name: 'Seat Student One' },
+                seat2: { id: 'seat2', class: '10', section: 'A', roll: 2, name: 'Seat Student Two' }
+            } } };
+            await saveData(['students']);
+            switchPreExamSubTab('seating');
+        });
+        await a.locator('.seating-room-check[value="classroom-10-A"]').check();
+        await a.locator('button', { hasText: 'Generate & Save Seating' }).click();
+        await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
+        assert.deepEqual(data.seatingPlans['100']['2026-11-01'].assignments.map(item => `${item.desk}${item.seat}`), ['1A', '1B']);
+        await a.locator('button', { hasText: 'PDF: Room-wise' }).click();
+        const seatingPdfText = await a.locator('#seating-pdf-preview iframe').contentFrame().locator('body').textContent();
+        assert.match(seatingPdfText, /Seat Student One/);
+        await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
+        console.log('PASS: seating auto-allots two students per desk and generates room-wise PDF');
+
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
         await a.fill('#qp-order-deadline-at', '2026-11-04T15:30');
@@ -355,7 +373,7 @@ async function main() {
         assert.equal(await secondary.locator('#area-sec-ic').isVisible(), false);
         console.log('PASS: role revocation clears staff data and closes the workspace');
         assert.deepEqual(failures, [], `Unexpected browser errors: ${failures.join('; ')}`);
-        console.log('Browser integration: 18 scenarios passed (Firebase contract double; no live writes).');
+        console.log('Browser integration: 19 scenarios passed (Firebase contract double; no live writes).');
     } finally {
         await browser.close();
         await new Promise(resolve => server.close(resolve));
