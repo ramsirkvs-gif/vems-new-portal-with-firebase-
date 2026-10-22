@@ -458,13 +458,15 @@
         let isExamConfigOpen = false;
         let activeExamId = null;
         let isPreExamFullPageOpen = false;
-        let activePreExamSubTab = 'qp-setters';
+        
+        // UPDATED TAB SEQUENCE STATES:
+        // 'office-order' (1) -> 'datesheet-orders' (2) -> 'qp-submissions' (3) -> 'qp-printing' (4)
+        let activePreExamSubTab = 'office-order'; 
         let selectedPreExamVaultId = null;
         let qpSubmissionDeadline = '2026-11-05';
         let qpSubmissionsTracker = JSON.parse(localStorage.getItem('vems_qp_submissions_tracker')) || {};
         let qpPrintingTracker = JSON.parse(localStorage.getItem('vems_qp_printing_tracker')) || {};
         
-        // INTERACTIVE MANUALLY EDITABLE DRAFT STATE (ITEMS 3 & 4)
         let qpPrintingDemandDraft = JSON.parse(localStorage.getItem('vems_qp_demand_draft')) || {};
         let vaultOkReportDraft = JSON.parse(localStorage.getItem('vems_vault_ok_report_draft')) || {
             sealSeries: 'KV/EXAM/SEAL/2026/001 - 018',
@@ -895,7 +897,6 @@
             saveData();
         }
 
-        // INTERACTIVE MANUAL DRAFT HANDLERS (ITEMS 3 & 4)
         function updateQpDemandDraftField(key, field, val) {
             if (!qpPrintingDemandDraft[key]) {
                 qpPrintingDemandDraft[key] = { strengthOverride: null, bufferPercent: 5, notes: '' };
@@ -919,9 +920,9 @@
             let targetExam = archivedExams.find(ex => ex.id === vaultId);
             if (!targetExam || !targetExam.datesheetSnapshot) {
                 return [
-                    { key: '10-SCIENCE', cls: '10', subject: 'SCIENCE', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS' },
-                    { key: '10-MATHS', cls: '10', subject: 'MATHEMATICS', setterName: 'Smt. Anita Sharma', desig: 'TGT MATHS' },
-                    { key: '12-PHYSICS', cls: '12', subject: 'PHYSICS', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS' }
+                    { key: '10-SCIENCE', cls: '10', subject: 'SCIENCE', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', duration: '3 Hours', maxMarks: 80 },
+                    { key: '10-MATHS', cls: '10', subject: 'MATHEMATICS', setterName: 'Smt. Anita Sharma', desig: 'TGT MATHS', duration: '3 Hours', maxMarks: 80 },
+                    { key: '12-PHYSICS', cls: '12', subject: 'PHYSICS', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', duration: '3 Hours', maxMarks: 70 }
                 ];
             }
             let result = [];
@@ -936,7 +937,9 @@
                                 cls: slot.cls,
                                 subject: slot.subject,
                                 setterName: assignedTeacher ? assignedTeacher.name : 'Subject Faculty',
-                                desig: assignedTeacher ? assignedTeacher.desig : 'TGT/PGT'
+                                desig: assignedTeacher ? assignedTeacher.desig : 'TGT/PGT',
+                                duration: slot.duration || '3 Hours',
+                                maxMarks: slot.maxMarks || 80
                             });
                         }
                     });
@@ -957,7 +960,7 @@
         }
 
         // =========================================================================
-        // 🖥️ FULL-PAGE WORKSPACE CANVAS (INTERACTIVE DRAFT & PREVIEW MODE)
+        // 🖥️ FULL-PAGE WORKSPACE CANVAS (UPDATED SERIAL SEQUENCE & AUTO DATA CAPTURE)
         // =========================================================================
         function renderFullPagePreExamWorkstation() {
             const currentExamList = archivedExams.length > 0 ? archivedExams : [{ id: 1, title: 'Periodic Test 1 (PT-1)', fromDate: '2026-10-21', toDate: '2026-10-21', totalDays: 1 }];
@@ -970,6 +973,7 @@
                 if (rec && rec.qpReceived && rec.answerKeyReceived) totalSubmittedCount++;
             });
             let isAllOk = totalSubjects > 0 && totalSubmittedCount === totalSubjects;
+
             return `
                 <div class="space-y-6">
                     <!-- FULL PAGE HEADER BAR -->
@@ -995,21 +999,136 @@
                         </div>
                     </div>
 
-                    <!-- WORKSPACE SUB-NAVIGATION TABS -->
+                    <!-- WORKSPACE SUB-NAVIGATION TABS (UPDATED EXACT SERIAL NUMBERS) -->
                     <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-2 flex overflow-x-auto gap-2">
-                        <button type="button" onclick="switchPreExamSubTab('qp-setters')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'qp-setters' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
-                            <span>📝</span> 1. QP Setters Office Order & Submission Tick Record
+                        <button type="button" onclick="switchPreExamSubTab('office-order')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'office-order' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
+                            <span>📄</span> 1. Office Order to QP Setters
                         </button>
                         <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
-                            <span>📜</span> 2. Official Datesheet Office Orders (Teachers & Students)
+                            <span>📜</span> 2. Datesheet Office Orders (Teachers & Students)
+                        </button>
+                        <button type="button" onclick="switchPreExamSubTab('qp-submissions')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'qp-submissions' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
+                            <span>📝</span> 3. QP Submissions Tick Record & Vault OK Report
                         </button>
                         <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
-                            <span>🖨️</span> 3. QP Printing Demand (+5%) & Progress Tracker
+                            <span>🖨️</span> 4. QP Printing Demand (+5%) & Progress Tracker
                         </button>
                     </div>
 
-                    <!-- SUB-TAB 1: QUESTION PAPER SETTERS & ITEM 4 VAULT OK REPORT (INTERACTIVE PREVIEW) -->
-                    ${activePreExamSubTab === 'qp-setters' ? `
+                    <!-- SUB-TAB 1: OFFICE ORDER TO QP SETTERS (AUTO-CAPTURED DEFAULT DATA FROM EXAM CREATOR) -->
+                    ${activePreExamSubTab === 'office-order' ? `
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                            <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
+                                <div>
+                                    <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
+                                        <span>📄</span> 1. Office Order Directive Sheet for Question Paper Setters
+                                    </h3>
+                                    <p class="text-xs text-slate-500">Auto-populates default examination data, dates, and appointed subject setters directly from Exam Creator & Faculty Manager.</p>
+                                </div>
+                                <span class="text-xs font-bold bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full border border-indigo-300">⚡ DEFAULT DATA AUTO-CAPTURED</span>
+                            </div>
+
+                            <!-- LIVE EDITABLE DRAFT CANVAS FOR OFFICE ORDER -->
+                            <div class="bg-slate-50 border-2 border-indigo-200 rounded-2xl p-6 space-y-6 shadow-xs">
+                                <div class="text-center border-b-2 border-slate-800 pb-3 space-y-1">
+                                    <h2 class="text-lg font-black uppercase text-indigo-950 tracking-wide">KENDRIYA VIDYALAYA EXAMINATION CELL</h2>
+                                    <p class="text-xs font-bold text-slate-700">CONFIDENTIAL OFFICE ORDER & DIRECTIVE FOR QUESTION PAPER SETTERS</p>
+                                    <div class="flex justify-between text-xs font-semibold text-slate-600 pt-2 px-2">
+                                        <span>Ref No: F.KV/EXAM/${selectedExam.title.replace(/\s+/g, '_')}/2026-27</span>
+                                        <span>Date: ${new Date().toLocaleDateString('en-IN')}</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-indigo-50/70 p-4 rounded-xl border border-indigo-200 space-y-2">
+                                    <h4 class="text-xs font-bold text-indigo-950 uppercase">📌 Captured Examination Context</h4>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                                        <div><strong>Exam Title:</strong> <span class="text-indigo-900 font-bold">${selectedExam.title}</span></div>
+                                        <div><strong>Exam Schedule:</strong> <span class="text-indigo-900 font-bold">${selectedExam.fromDate} to ${selectedExam.toDate}</span></div>
+                                        <div><strong>Submission Deadline:</strong> <input type="date" value="${qpSubmissionDeadline}" onchange="qpSubmissionDeadline=this.value; renderExamCreatorModule();" class="text-xs font-bold p-1 border rounded bg-white text-indigo-900"></div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <h4 class="text-xs font-bold text-slate-900 uppercase">📋 Mapped Subject Setters List (Captured from Exam Creator & Faculty Roster)</h4>
+                                    <div class="overflow-x-auto border rounded-xl shadow-2xs bg-white">
+                                        <table class="w-full text-xs text-left text-slate-700">
+                                            <thead class="bg-indigo-900 text-white uppercase font-semibold">
+                                                <tr>
+                                                    <th class="p-2.5 text-center w-12">S.N</th>
+                                                    <th class="p-2.5">Class & Subject</th>
+                                                    <th class="p-2.5">Appointed QP Setter</th>
+                                                    <th class="p-2.5">Designation</th>
+                                                    <th class="p-2.5 text-center">Duration</th>
+                                                    <th class="p-2.5 text-center">Max Marks</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y">
+                                                ${subjectsList.map((item, idx) => `
+                                                    <tr class="hover:bg-slate-50">
+                                                        <td class="p-2.5 text-center font-bold text-slate-500">${idx + 1}</td>
+                                                        <td class="p-2.5 font-bold text-indigo-950">Class ${formatClass(item.cls)} - ${item.subject}</td>
+                                                        <td class="p-2.5 font-bold text-slate-800">👤 ${item.setterName}</td>
+                                                        <td class="p-2.5 font-semibold text-slate-600">${item.desig}</td>
+                                                        <td class="p-2.5 text-center font-medium">${item.duration}</td>
+                                                        <td class="p-2.5 text-center font-bold text-emerald-800">${item.maxMarks} M</td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="bg-amber-50/80 border border-amber-200 p-4 rounded-xl space-y-2 text-xs text-slate-700">
+                                    <h4 class="font-bold text-amber-900 uppercase">⚠️ Mandatory Directives for Paper Setters:</h4>
+                                    <ul class="list-disc pl-4 space-y-1">
+                                        <li>Submit 02 balanced Question Paper sets along with detailed Answer Keys & Marking Schemes in sealed confidential envelopes.</li>
+                                        <li>Strictly adhere to the prescribed CBSE/KVS Blueprint and syllabus weightage.</li>
+                                        <li>Purge/delete all soft copies from personal devices immediately after vault handover.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- SUB-TAB 2: DATESHEET OFFICE ORDERS (TEACHERS & STUDENTS) -->
+                    ${activePreExamSubTab === 'datesheet-orders' ? `
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                            <div class="border-b pb-3">
+                                <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
+                                    <span>📜</span> 2. Official Datesheet Office Orders (${selectedExam.title})
+                                </h3>
+                                <p class="text-xs text-slate-500">View and manage staff room datesheet orders and student notice circulars.</p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                                    <div class="flex justify-between items-center">
+                                        <h4 class="text-xs font-bold uppercase text-indigo-900 flex items-center gap-1.5">
+                                            <span>👩‍🏫</span> Teacher Staff Room Office Order
+                                        </h4>
+                                        <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded">Faculty Mandatory</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 leading-relaxed">
+                                        Generates formal office order detailing exam datesheet, syllabus coverage, duty assignments, and confidential QP submission protocols.
+                                    </p>
+                                </div>
+
+                                <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4">
+                                    <div class="flex justify-between items-center">
+                                        <h4 class="text-xs font-bold uppercase text-indigo-900 flex items-center gap-1.5">
+                                            <span>👨‍🎓</span> Student & Parent Datesheet Circular
+                                        </h4>
+                                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">Public Board</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 leading-relaxed">
+                                        Generates an official datesheet circular formatted for notice boards, parent broadcast groups, and student distribution.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- SUB-TAB 3: QP SUBMISSIONS TICK RECORD & VAULT OK REPORT -->
+                    ${activePreExamSubTab === 'qp-submissions' ? `
                         <div class="space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
@@ -1041,7 +1160,7 @@
                                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b pb-4">
                                     <div>
                                         <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
-                                            <span>📋</span> Question Paper Receiving & Vault Submission Tracker
+                                            <span>📝</span> 3. Question Paper Receiving & Submission Tick Matrix
                                         </h3>
                                         <p class="text-xs text-slate-500">Tick checkmarks as setters hand over sealed envelopes in the Exam Cell.</p>
                                     </div>
@@ -1094,16 +1213,16 @@
                                 </div>
                             </div>
 
-                            <!-- ITEM 4: INTERACTIVE ON-SCREEN DRAFT CANVAS FOR VAULT "OK REPORT" -->
+                            <!-- INTERACTIVE VAULT OK REPORT CANVAS -->
                             <div class="bg-slate-50 border-2 border-emerald-300 rounded-2xl p-6 space-y-5 shadow-sm">
                                 <div class="flex justify-between items-center border-b border-emerald-200 pb-3 flex-wrap gap-2">
                                     <div>
                                         <h3 class="text-base font-bold text-emerald-950 flex items-center gap-2">
-                                            <span>📄</span> Item 4: Interactive Vault "OK Report" Draft & Manual Verification
+                                            <span>📄</span> Vault "OK Report" Draft & Manual Clearance
                                         </h3>
                                         <p class="text-xs text-slate-600">Edit clearance fields, serial seal logs, and official signatures on-screen before generating the print view.</p>
                                     </div>
-                                    <span class="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-300">✏️ EDITABLE DRAFT CANVAS</span>
+                                    <span class="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-300">✏️ EDITABLE CLEARANCE CANVAS</span>
                                 </div>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1140,50 +1259,13 @@
                         </div>
                     ` : ''}
 
-                    <!-- SUB-TAB 2: DATESHEET OFFICE ORDERS -->
-                    ${activePreExamSubTab === 'datesheet-orders' ? `
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                            <div class="border-b pb-3">
-                                <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
-                                    <span>📜</span> Official Office Orders & Circulars (${selectedExam.title})
-                                </h3>
-                                <p class="text-xs text-slate-500">Issue printable office orders for teachers and datesheet circulars for students/parents.</p>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold uppercase text-indigo-900 flex items-center gap-1.5">
-                                            <span>👩‍🏫</span> Teacher Staff Room Office Order
-                                        </h4>
-                                        <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded">Faculty Mandatory</span>
-                                    </div>
-                                    <p class="text-xs text-slate-600 leading-relaxed">
-                                        Generates formal office order detailing exam datesheet, syllabus coverage, duty assignments, and confidential QP submission protocols.
-                                    </p>
-                                </div>
-
-                                <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold uppercase text-indigo-900 flex items-center gap-1.5">
-                                            <span>👨‍🎓</span> Student & Parent Datesheet Circular
-                                        </h4>
-                                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">Public Board</span>
-                                    </div>
-                                    <p class="text-xs text-slate-600 leading-relaxed">
-                                        Generates an official datesheet circular formatted for notice boards, parent broadcast groups, and student distribution.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
-
-                    <!-- SUB-TAB 3: ITEM 3 INTERACTIVE ON-SCREEN DRAFT CANVAS FOR QP PRINTING DEMAND -->
+                    <!-- SUB-TAB 4: QP PRINTING DEMAND (+5%) & PROGRESS TRACKER -->
                     ${activePreExamSubTab === 'qp-printing' ? `
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                             <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
                                 <div>
                                     <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
-                                        <span>🖨️</span> Item 3: Interactive QP Printing Demand Indent Sheet (Editable Draft)
+                                        <span>🖨️</span> 4. QP Printing Demand Indent Sheet (+5%) & Progress Tracker
                                     </h3>
                                     <p class="text-xs text-slate-500">Live student strength calculations with manual overrides, buffer percent adjustments, and printable notes.</p>
                                 </div>
@@ -1338,7 +1420,7 @@
                                         <h4 class="text-xs font-bold text-indigo-900 uppercase">1️⃣ Pre-Exam Needs</h4>
                                         <span class="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Ready</span>
                                     </div>
-                                    <p class="text-[11px] text-slate-600">Datesheet orders, QP Setters tick matrix, OK reports, and printing progress.</p>
+                                    <p class="text-[11px] text-slate-600">Office order to QP Setters, datesheet orders, tick matrix & printing demand.</p>
                                 </div>
                                 <button type="button" onclick="openPreExamFullPageWorkspace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded shadow transition">
                                     🚀 Open Full Pre-Exam Hub
