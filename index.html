@@ -1682,13 +1682,11 @@
                         * { box-sizing: border-box; }
                         body { font-family: Georgia, 'Times New Roman', serif; margin: 0; color: #111827; line-height: 1.45; background: white; position:relative; }
                         body:before { content:'KVS'; position:fixed; inset:35% 0 auto; text-align:center; font:700 130px Arial; color:rgba(30,58,138,.035); transform:rotate(-20deg); z-index:-1; }
-                        .page-top { height:7px; background:linear-gradient(90deg,#172554 0 72%,#d4a017 72%); margin-bottom:12px; }
-                        .letterhead { display: grid; grid-template-columns: 72px 1fr 72px; align-items: center; padding:0 5px 11px; border-bottom: 3px double #1e3a8a; text-align: center; }
-                        .seal { width: 60px; height: 60px; border: 2px solid #c08b16; outline:1px solid #1e3a8a; outline-offset:3px; border-radius: 50%; display:flex;align-items:center;justify-content:center;color:#172554;font-weight:bold;font-size:10px;line-height:1.15; }
-                        .letterhead h1 { margin: 0; font-size: 20px; color: #172554; text-transform: uppercase; letter-spacing: .3px; }
-                        .letterhead h2 { margin: 2px 0; font-size: 15px; text-transform: uppercase; }
-                        .letterhead p { margin: 1px 0; font-size: 10px; }
-                        .confidential { margin: 9px auto 14px; width:max-content; border:1px solid #991b1b; color:#991b1b; padding:3px 12px; font:700 10px Arial,sans-serif; letter-spacing:1.5px; }
+                        .page-top { height:5px; background:linear-gradient(90deg,#172554 0 82%,#d4a017 82%); margin-bottom:7px; }
+                        .letterhead { padding:0 5px 7px; border-bottom: 3px double #1e3a8a; text-align: center; }
+                        .letterhead h1 { margin: 0; font-size: 19px; color: #172554; text-transform: uppercase; letter-spacing: .3px; }
+                        .letterhead h2 { margin: 1px 0 0; font:700 12px Arial,sans-serif; text-transform: uppercase; letter-spacing:1.2px; }
+                        .confidential { margin: 6px auto 9px; width:max-content; border:1px solid #991b1b; color:#991b1b; padding:2px 10px; font:700 9px Arial,sans-serif; letter-spacing:1.5px; }
                         .ref-no { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 20px; }
                         .title { text-align: center; font-weight: bold; font-size: 16px; margin:0 auto 18px; text-transform: uppercase; color:#172554; border:1px solid #cbd5e1; border-left:5px solid #d4a017; padding:7px; background:#f8fafc; }
                         .content { font-size: 13px; text-align: justify; margin-bottom: 20px; }
@@ -1709,9 +1707,8 @@
                 <body>
                     <div class="page-top"></div>
                     <div class="letterhead">
-                        <div class="seal">भारत<br>सरकार</div>
-                        <div><p>शिक्षा मंत्रालय, भारत सरकार</p><h1>${escapeHtml(order.schoolName)}</h1><h2>Examination Cell</h2><p>केन्द्रीय विद्यालय संगठन • Kendriya Vidyalaya Sangathan</p></div>
-                        <div class="seal">KVS<br>EXAM</div>
+                        <h1>${escapeHtml(order.schoolName)}</h1>
+                        <h2>Examination Cell</h2>
                     </div>
                     <div class="confidential">CONFIDENTIAL</div>
                     <div class="ref-no">
