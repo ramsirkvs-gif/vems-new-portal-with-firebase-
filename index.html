@@ -2091,6 +2091,44 @@
             return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">📦 Room Inventory Planner</h3><p class="text-xs text-slate-500">Suggested quantities use the highest daywise candidate strength and the 5% buffer.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Material</th><th class="p-3 text-center">Suggested Requirement</th><th class="p-3 text-left">Unit</th><th class="p-3 text-left">Status</th></tr></thead><tbody class="divide-y">${items.map(([name,qty,unit]) => `<tr><td class="p-3 font-bold">${name}</td><td class="p-3 text-center font-black">${qty}</td><td class="p-3">${unit}</td><td class="p-3 text-amber-700 font-bold">Stock verification required</td></tr>`).join('')}</tbody></table></div></div>`;
         }
 
+        function examDatesheetRows(exam) {
+            return [...(exam.datesheetSnapshot || [])].sort((a, b) => String(a.dateStr).localeCompare(String(b.dateStr)))
+                .flatMap(day => (day.paperSlots || []).map(slot => ({ dateStr: day.dateStr, ...slot })))
+                .sort((a, b) => String(a.dateStr).localeCompare(String(b.dateStr)) || String(a.startTime || '').localeCompare(String(b.startTime || '')));
+        }
+
+        function dateSheetDay(value) {
+            if (!value) return '—';
+            return new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'long' });
+        }
+
+        function renderUnifiedDateSheet(exam) {
+            const rows = examDatesheetRows(exam);
+            return `<div class="bg-gradient-to-br from-sky-50 via-white to-indigo-50 rounded-2xl border border-indigo-100 shadow-sm p-5 md:p-7 space-y-5">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-indigo-100 pb-4"><div><h3 class="text-xl font-black text-indigo-950">📅 Date Sheet</h3><p class="text-xs text-slate-500 mt-1">Automatically generated from the selected Vault Exam: <b>${escapeHtml(exam.title)}</b></p></div><button type="button" onclick="previewSelectedDateSheet()" ${rows.length ? '' : 'disabled'} class="bg-indigo-700 hover:bg-indigo-800 disabled:bg-slate-300 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow">👁️ Preview & PDF</button></div>
+                <div class="bg-white/80 rounded-xl border border-indigo-100 p-4 text-center"><h4 class="font-black text-indigo-950 uppercase">${escapeHtml(exam.title)}</h4><p class="text-xs text-slate-500 mt-1">${escapeHtml(exam.fromDate)} to ${escapeHtml(exam.toDate)} • Session 2026–27</p></div>
+                <div class="overflow-x-auto rounded-xl border border-indigo-100 bg-white"><table class="w-full text-xs"><thead class="bg-indigo-900 text-white uppercase"><tr><th class="p-3 text-left">Date & Day</th><th class="p-3 text-left">Class / Sections</th><th class="p-3 text-left">Subject</th><th class="p-3 text-center">Reporting</th><th class="p-3 text-center">Reading</th><th class="p-3 text-center">Exam Time</th><th class="p-3 text-center">Duration</th><th class="p-3 text-center">Max Marks</th></tr></thead><tbody class="divide-y divide-indigo-50">${rows.map((row,index) => `<tr class="${index % 2 ? 'bg-sky-50/50' : 'bg-white'}"><td class="p-3 font-bold text-indigo-950">${escapeHtml(formatOrderDate(row.dateStr))}<br><span class="text-[10px] font-normal text-slate-500">${escapeHtml(dateSheetDay(row.dateStr))}</span></td><td class="p-3 font-bold">Class ${escapeHtml(formatClass(row.cls))}<br><span class="text-[10px] text-slate-500">Sections: ${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</span></td><td class="p-3 font-bold text-indigo-900">${escapeHtml(row.subject)}</td><td class="p-3 text-center">${escapeHtml(row.repTime || '—')}</td><td class="p-3 text-center">${escapeHtml(row.readTime || '—')}</td><td class="p-3 text-center font-bold">${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</td><td class="p-3 text-center">${escapeHtml(row.duration || '—')}</td><td class="p-3 text-center font-bold">${escapeHtml(row.maxMarks ?? '—')}</td></tr>`).join('') || '<tr><td colspan="8" class="p-8 text-center text-slate-500">No dated papers are available in this examination.</td></tr>'}</tbody></table></div>
+                <div class="rounded-xl bg-amber-50 border border-amber-200 p-4"><h4 class="text-xs font-black text-amber-900 uppercase mb-2">Important Instructions</h4><ol class="list-decimal pl-5 text-xs text-slate-700 space-y-1"><li>Students must report at the stated reporting time.</li><li>Bring the school identity card and required writing materials.</li><li>Electronic devices and unfair means are strictly prohibited.</li><li>Follow the instructions of the invigilator and verify the question paper before writing.</li></ol></div>
+            </div>`;
+        }
+
+        function buildDateSheetHtml(exam) {
+            const rows = examDatesheetRows(exam);
+            return `<!doctype html><html><head><title>Date Sheet - ${escapeHtml(exam.title)}</title><style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172554;margin:0}.top{height:5px;background:linear-gradient(90deg,#172554 0 82%,#d4a017 82%);margin-bottom:8px}.head{text-align:center;border-bottom:3px double #172554;padding-bottom:7px}.head h1{font-size:19px;margin:0}.head h2{font-size:13px;letter-spacing:1px;margin:3px 0}.exam{text-align:center;background:#eef2ff;border:1px solid #c7d2fe;padding:7px;margin:10px 0 12px}.exam b{font-size:15px}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#172554;color:white;text-transform:uppercase}th,td{border:1px solid #94a3b8;padding:7px;text-align:left}tbody tr:nth-child(even){background:#f0f9ff}.c{text-align:center}.notes{margin-top:12px;border:1px solid #f5d477;background:#fffbeb;padding:8px;font-size:10px}.notes b{color:#78350f}.notes ol{margin:5px 0 0;padding-left:18px}.sign{display:flex;justify-content:space-between;margin-top:30px;font-size:11px;font-weight:bold}.line{width:180px;border-top:1px solid #172554;text-align:center;padding-top:4px}@media screen{body{padding:12mm;max-width:297mm;min-height:210mm;margin:auto;box-shadow:0 6px 30px #64748b}}</style></head><body><div class="top"></div><div class="head"><h1>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h1><h2>EXAMINATION CELL — DATE SHEET</h2></div><div class="exam"><b>${escapeHtml(exam.title)}</b><br><small>Session 2026–27 • ${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))}</small></div><table><thead><tr><th>Date & Day</th><th>Class / Sections</th><th>Subject</th><th>Reporting</th><th>Reading</th><th>Exam Time</th><th>Duration</th><th>Marks</th></tr></thead><tbody>${rows.map(row => `<tr><td><b>${escapeHtml(formatOrderDate(row.dateStr))}</b><br>${escapeHtml(dateSheetDay(row.dateStr))}</td><td><b>Class ${escapeHtml(formatClass(row.cls))}</b><br>${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</td><td><b>${escapeHtml(row.subject)}</b></td><td class="c">${escapeHtml(row.repTime || '—')}</td><td class="c">${escapeHtml(row.readTime || '—')}</td><td class="c"><b>${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</b></td><td class="c">${escapeHtml(row.duration || '—')}</td><td class="c"><b>${escapeHtml(row.maxMarks ?? '—')}</b></td></tr>`).join('')}</tbody></table><div class="notes"><b>IMPORTANT INSTRUCTIONS</b><ol><li>Students must report at the stated reporting time with their school identity card.</li><li>Electronic devices and unfair means are strictly prohibited.</li><li>Follow the invigilator's instructions and verify the question paper before writing.</li></ol></div><div class="sign"><div class="line">Exam In-Charge</div><div class="line">Principal</div></div></body></html>`;
+        }
+
+        function previewSelectedDateSheet() {
+            const exam = archivedExams.find(item => item.id === selectedPreExamVaultId);
+            if (!exam || !examDatesheetRows(exam).length) return;
+            document.getElementById('date-sheet-preview')?.remove();
+            const modal = document.createElement('div');
+            modal.id = 'date-sheet-preview';
+            modal.className = 'fixed inset-0 z-[100] bg-slate-950/80 p-3 md:p-6 flex flex-col';
+            modal.innerHTML = `<div class="max-w-6xl w-full mx-auto bg-indigo-950 text-white rounded-t-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><b>Date Sheet PDF Preview</b><p class="text-[11px] text-indigo-200">A4 landscape preview linked to the selected Vault Exam.</p></div><div class="flex gap-2"><button type="button" onclick="document.querySelector('#date-sheet-preview iframe').contentWindow.print()" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">📄 Print / Save as PDF</button><button type="button" onclick="document.getElementById('date-sheet-preview').remove()" class="bg-red-600 px-4 py-2 rounded-lg text-xs font-bold">✕ Close</button></div></div><iframe title="Date Sheet PDF preview" class="max-w-6xl w-full mx-auto flex-1 bg-slate-200 rounded-b-xl border-0"></iframe>`;
+            document.body.appendChild(modal);
+            modal.querySelector('iframe').srcdoc = buildDateSheetHtml(exam);
+        }
+
         function renderFullPagePreExamWorkstation() {
             const currentExamList = archivedExams;
             if (!currentExamList.length) return '<div class="bg-white p-6 rounded-xl">Create an exam before opening its pre-exam workspace.</div>';
@@ -2128,7 +2166,7 @@
                     </div>
                     <div class="bg-white rounded-xl shadow-xs border p-2 flex overflow-x-auto gap-2">
                         <button type="button" onclick="switchPreExamSubTab('qp-setters')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-setters' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📝 1. Office Order to QP Setters</button>
-                        <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📅 2. Student & Teacher Datesheet</button>
+                        <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📅 2. Date Sheet</button>
                         <button type="button" onclick="switchPreExamSubTab('qp-receiving')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-receiving' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📥 3. QP Receiving & Vault</button>
                         <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🖨️ 4. Printing +5%</button>
                         <button type="button" onclick="switchPreExamSubTab('seating')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'seating' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🪑 5. Seating</button>
@@ -2243,23 +2281,7 @@
                             </div>
                         </div>
                     ` : ''}
-                    ${activePreExamSubTab === 'datesheet-orders' ? `
-                        <div class="bg-white rounded-xl shadow-sm border p-6 space-y-6">
-                            <h3 class="text-base font-bold text-indigo-950 border-b pb-3">📜 Official Office Orders & Circulars</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-slate-50 border rounded-xl p-5 space-y-4">
-                                    <h4 class="text-xs font-bold uppercase text-indigo-900">👩‍🏫 Teacher Staff Room Office Order</h4>
-                                    <p class="text-xs text-slate-600">Generates formal staff order for exam duties and confidential submissions.</p>
-                                    <button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="w-full bg-indigo-900 text-white text-xs font-bold py-2.5 rounded">🖨️ Print Teachers Order</button>
-                                </div>
-                                <div class="bg-indigo-50/60 border rounded-xl p-5 space-y-4">
-                                    <h4 class="text-xs font-bold uppercase text-indigo-900">👨‍🎓 Student Datesheet Circular</h4>
-                                    <p class="text-xs text-slate-600">Generates notice board circular for students and parents.</p>
-                                    <button type="button" onclick="alert('Printing Student Datesheet Circular...')" class="w-full bg-emerald-700 text-white text-xs font-bold py-2.5 rounded">🖨️ Print Student Circular</button>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
+                    ${activePreExamSubTab === 'datesheet-orders' ? renderUnifiedDateSheet(selectedExam) : ''}
                     ${activePreExamSubTab === 'qp-printing' ? `
                         <div class="bg-white rounded-xl shadow-sm border p-6 space-y-6">
                             <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">

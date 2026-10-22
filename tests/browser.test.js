@@ -168,6 +168,15 @@ async function main() {
         console.log('PASS: student creation and deletion propagate, including an empty list');
 
         await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); });
+        await a.evaluate(() => switchPreExamSubTab('datesheet-orders'));
+        assert.match(await a.locator('h3', { hasText: 'Date Sheet' }).textContent(), /Date Sheet/);
+        assert.equal(await a.locator('text=Teacher Staff Room Office Order').count(), 0);
+        await a.locator('button', { hasText: 'Preview & PDF' }).click();
+        await a.locator('#date-sheet-preview iframe').waitFor();
+        const dateSheetText = await a.locator('#date-sheet-preview iframe').contentFrame().locator('body').textContent();
+        assert.match(dateSheetText, /Existing Exam/);
+        assert.match(dateSheetText, /SCIENCE/);
+        await a.evaluate(() => { document.getElementById('date-sheet-preview').remove(); switchPreExamSubTab('qp-setters'); });
         const trackerKey = await a.evaluate(() => qpRecordKey(100, '10', 'SCIENCE'));
         await a.evaluate(key => toggleQpSubmissionTick(key, 'qpReceived'), trackerKey);
         await b.waitForFunction(key => qpSubmissionsTracker[key]?.qpReceived === true, trackerKey);
