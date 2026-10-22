@@ -135,8 +135,8 @@
                             <p class="text-xs text-slate-500">Search the latest class and section subject mapping published by the Examination Cell.</p>
                         </div>
                         <div class="flex flex-wrap gap-2 no-print">
-                            <select id="public-subject-class" onchange="renderPublicSubjectDirectory()" class="text-xs p-2 border rounded bg-white"><option value="">All Classes</option></select>
-                            <input id="public-subject-search" oninput="renderPublicSubjectDirectory()" placeholder="Search class, section or subject" class="w-56 max-w-full text-xs p-2 border rounded">
+                            <label class="text-[10px] font-bold text-slate-600 uppercase">Select Class<select id="public-subject-class" onchange="renderPublicSubjectDirectory()" class="block mt-1 min-w-36 text-xs p-2 border rounded bg-white font-semibold"><option value="">All Classes</option></select></label>
+                            <label class="text-[10px] font-bold text-slate-600 uppercase">Search Mapping<input id="public-subject-search" oninput="renderPublicSubjectDirectory()" placeholder="Class, section or subject" class="block mt-1 w-56 max-w-full text-xs p-2 border rounded bg-white font-normal normal-case"></label>
                             <button type="button" onclick="printPublishedSubjectDirectory()" class="text-xs bg-indigo-700 text-white px-3 py-2 rounded">PDF / Print</button>
                             <button type="button" onclick="sharePublishedSubjectDirectory()" class="text-xs bg-emerald-700 text-white px-3 py-2 rounded">Share</button>
                         </div>
