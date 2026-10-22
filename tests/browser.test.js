@@ -190,6 +190,11 @@ async function main() {
         await a.waitForTimeout(150);
         assert.equal(await instructionInputs.count(), 2, 'realtime refresh must not discard a newly added instruction row');
         assert.equal(await instructionInputs.nth(1).inputValue(), 'Submit both Word and PDF files.');
+        await a.evaluate(() => renderExamCreatorModule());
+        assert.equal(await a.locator('#qp-order-number').inputValue(), 'KV1/EXAM/2026/01');
+        assert.equal(await a.locator('#qp-order-deadline-at').inputValue(), '2026-11-04T15:30');
+        assert.equal(await a.locator('#qp-order-email').inputValue(), 'examcell@example.test');
+        assert.equal(await a.locator('.qp-instruction-input').nth(1).inputValue(), 'Submit both Word and PDF files.');
         await a.evaluate(() => saveQpInstructionsAsDefault());
         assert.deepEqual(data.qpOfficeOrderSettings.defaultInstructions, ['Use the approved blueprint.', 'Submit both Word and PDF files.']);
         assert.match(await a.locator('text=Auto-linked from Faculty Manager').first().textContent(), /Auto-linked/);

@@ -150,7 +150,7 @@ function refreshSharedViews() {
 document.addEventListener('focusout', scheduleSharedRender);
 document.addEventListener('input', event => {
     if (event.target.matches('.cfg-sub-input')) sectionFormDirty = true;
-    if (event.target.closest('#qp-instructions-list') || event.target.id?.startsWith('qp-order-')) qpOfficeOrderFormDirty = true;
+    if (event.target.closest('#qp-instructions-list') || event.target.id?.startsWith('qp-order-')) captureQpOfficeOrderDraft();
 });
 document.addEventListener('focusin', event => {
     if (activeExamId !== null && event.target.closest('#exam-creator-mount-prin, #exam-creator-mount-sec, #exam-creator-mount-pri')
@@ -160,6 +160,7 @@ document.addEventListener('focusin', event => {
     }
 });
 document.addEventListener('change', event => {
+    if (event.target.closest('#qp-instructions-list') || event.target.id?.startsWith('qp-order-')) captureQpOfficeOrderDraft();
     if (event.target.id?.match(/^(ct|coct|onduty)-/) && !editorBaselines.assignments) {
         editorBaselines.assignments = cloneData(assignmentRenderBaseline);
     }
