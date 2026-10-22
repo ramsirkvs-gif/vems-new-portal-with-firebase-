@@ -1627,9 +1627,8 @@
             order.submissionMethod = value('qp-order-method');
             order.instructions = value('qp-order-instructions').split('\n').map(line => line.trim()).filter(Boolean);
             order.setters = {};
-            document.querySelectorAll('[data-qp-setter-key]').forEach(select => {
-                const teacher = teachers.find(item => String(item.id) === select.value);
-                if (teacher) order.setters[select.dataset.qpSetterKey] = { teacherId: teacher.id, name: teacher.name, desig: teacher.desig };
+            getExamSubjectsListForVault(selectedPreExamVaultId, { setters: {} }).forEach(item => {
+                if (item.teacherId) order.setters[item.key] = { teacherId: item.teacherId, name: item.setterName, desig: item.desig };
             });
             return order;
         }
@@ -1670,27 +1669,25 @@
             return `${day}/${month}/${year}`;
         }
 
-        function generateQpSetterOfficeOrderPrint() {
+        function buildQpSetterOfficeOrderHtml() {
             const currentExam = archivedExams.find(ex => ex.id === selectedPreExamVaultId) || { title: 'Examination' };
             const order = currentQpOfficeOrder();
-            if (order.status !== 'ISSUED') {
-                alert('Issue the office order first. The final PDF will use the saved issued record.');
-                return;
-            }
             const subjects = getExamSubjectsListForVault(selectedPreExamVaultId, order);
-            const printWin = window.open('', '_blank', 'width=900,height=700');
-            if (!printWin) { alert('Please allow pop-ups to generate the PDF.'); return; }
-            printWin.document.write(`
+            return `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <title>Office Order - QP Setters (${escapeHtml(currentExam.title)})</title>
                     <style>
-                        body { font-family: serif; padding: 30px; color: #0f172a; line-height: 1.6; }
-                        .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px; }
-                        .header h2 { margin: 0; font-size: 20px; text-transform: uppercase; }
-                        .header h3 { margin: 2px 0; font-size: 16px; text-transform: uppercase; }
-                        .header h4 { margin: 4px 0; font-size: 14px; font-weight: normal; }
+                        @page { size: A4; margin: 14mm; }
+                        * { box-sizing: border-box; }
+                        body { font-family: Georgia, 'Times New Roman', serif; margin: 0; color: #111827; line-height: 1.45; background: white; }
+                        .letterhead { display: grid; grid-template-columns: 72px 1fr 72px; align-items: center; padding-bottom: 10px; border-bottom: 3px double #1e3a8a; text-align: center; }
+                        .seal { width: 58px; height: 58px; border: 2px solid #1e3a8a; border-radius: 50%; display:flex;align-items:center;justify-content:center;color:#1e3a8a;font-weight:bold;font-size:10px;line-height:1.15; }
+                        .letterhead h1 { margin: 0; font-size: 20px; color: #172554; text-transform: uppercase; letter-spacing: .3px; }
+                        .letterhead h2 { margin: 2px 0; font-size: 15px; text-transform: uppercase; }
+                        .letterhead p { margin: 1px 0; font-size: 10px; }
+                        .confidential { margin: 9px auto 14px; width:max-content; border:1px solid #991b1b; color:#991b1b; padding:3px 12px; font:700 10px Arial,sans-serif; letter-spacing:1px; }
                         .ref-no { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 20px; }
                         .title { text-align: center; font-weight: bold; text-decoration: underline; font-size: 16px; margin-bottom: 20px; text-transform: uppercase; }
                         .content { font-size: 13px; text-align: justify; margin-bottom: 20px; }
@@ -1703,11 +1700,12 @@
                     </style>
                 </head>
                 <body>
-                    <div class="header">
-                        <h2>EXAMINATION CELL</h2>
-                        <h3>${escapeHtml(order.schoolName)}</h3>
-                        <h4>Confidential Office Order for Question Paper Setters</h4>
+                    <div class="letterhead">
+                        <div class="seal">भारत<br>सरकार</div>
+                        <div><p>शिक्षा मंत्रालय, भारत सरकार</p><h1>${escapeHtml(order.schoolName)}</h1><h2>Examination Cell</h2><p>केन्द्रीय विद्यालय संगठन • Kendriya Vidyalaya Sangathan</p></div>
+                        <div class="seal">KVS<br>EXAM</div>
                     </div>
+                    <div class="confidential">CONFIDENTIAL</div>
                     <div class="ref-no">
                         <span>Office Order No.: ${escapeHtml(order.officeNo)}</span>
                         <span>Date: ${escapeHtml(formatOrderDate(order.issueDate))}</span>
@@ -1746,11 +1744,35 @@
                         <div style="text-align:center;width:220px;border-top:1px solid #0f172a;padding-top:5px;font-weight:bold;font-size:13px;">Exam In-Charge</div>
                         <div style="text-align:center;width:220px;border-top:1px solid #0f172a;padding-top:5px;font-weight:bold;font-size:13px;">Principal</div>
                     </div>
-                    <script>window.onload = function() { window.print(); }<\/script>
                 </body>
                 </html>
-            `);
-            printWin.document.close();
+            `;
+        }
+
+        function generateQpSetterOfficeOrderPrint() {
+            const order = currentQpOfficeOrder();
+            if (order.status !== 'ISSUED') {
+                alert('Issue the office order first. The final PDF will use the saved issued record.');
+                return;
+            }
+            closeQpOfficeOrderPreview();
+            const modal = document.createElement('div');
+            modal.id = 'qp-office-order-preview';
+            modal.className = 'fixed inset-0 z-[100] bg-slate-950/80 p-3 md:p-6 flex flex-col';
+            modal.innerHTML = `<div class="max-w-5xl w-full mx-auto bg-slate-900 text-white rounded-t-xl px-4 py-3 flex items-center justify-between gap-3"><div><b>Office Order PDF Preview</b><p class="text-[11px] text-slate-300">Review the A4 page, then choose Print / Save as PDF.</p></div><div class="flex gap-2"><button type="button" onclick="printQpOfficeOrderPreview()" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">🖨️ Print / Save PDF</button><button type="button" onclick="closeQpOfficeOrderPreview()" class="bg-red-600 px-4 py-2 rounded-lg text-xs font-bold">✕ Close</button></div></div><iframe title="QP office order PDF preview" class="max-w-5xl w-full mx-auto flex-1 bg-white rounded-b-xl border-0"></iframe>`;
+            document.body.appendChild(modal);
+            modal.querySelector('iframe').srcdoc = buildQpSetterOfficeOrderHtml();
+        }
+
+        function printQpOfficeOrderPreview() {
+            const frame = document.querySelector('#qp-office-order-preview iframe');
+            if (!frame?.contentWindow) return;
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+        }
+
+        function closeQpOfficeOrderPreview() {
+            document.getElementById('qp-office-order-preview')?.remove();
         }
 
         function generateOkReportPrint() {
@@ -1911,7 +1933,7 @@
                                 ? teachers.find(t => t.name === allotment.qpSetter) || subjectTeacher
                                 : subjectTeacher;
                             const order = suppliedOrder || currentQpOfficeOrder(vaultId);
-                            const override = order.setters?.[key];
+                            const override = order.status === 'ISSUED' ? order.setters?.[key] : null;
                             if (override) assignedTeacher = teachers.find(t => String(t.id) === String(override.teacherId)) || override;
                             result.push({
                                 key: key,
@@ -2014,21 +2036,20 @@
                                         <thead class="bg-indigo-950 text-white uppercase"><tr><th class="p-3">Class</th><th class="p-3">Subject</th><th class="p-3">Assigned QP Setter</th><th class="p-3">Designation</th></tr></thead>
                                         <tbody class="divide-y bg-white">${subjectsList.map(item => `
                                             <tr><td class="p-3 font-bold">Class ${escapeHtml(formatClass(item.cls))}</td><td class="p-3 font-bold">${escapeHtml(item.subject)}</td>
-                                            <td class="p-2"><select data-qp-setter-key="${escapeHtml(item.key)}" class="w-full border rounded p-2 text-xs bg-white">
-                                                <option value="">Select QP setter</option>${teachers.map(teacher => `<option value="${escapeHtml(teacher.id)}" ${String(teacher.id) === String(item.teacherId) ? 'selected' : ''}>${escapeHtml(teacher.name)} — ${escapeHtml(teacher.desig)}</option>`).join('')}
-                                            </select></td><td class="p-3">${escapeHtml(item.desig)}</td></tr>`).join('')}</tbody>
+                                            <td class="p-3">${item.teacherId ? `<b class="text-emerald-800">${escapeHtml(item.setterName)}</b><div class="text-[10px] text-slate-400 mt-0.5">Auto-linked from Faculty Manager</div>` : '<b class="text-red-700">Not mapped in Faculty Manager</b>'}</td><td class="p-3">${item.teacherId ? escapeHtml(item.desig) : '—'}</td></tr>`).join('')}</tbody>
                                     </table>
                                 </div>
                                 ${subjectsList.length ? '' : '<p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">No papers are mapped in this exam yet. Add class and subject papers to the exam datesheet first.</p>'}
+                                ${subjectsList.some(item => !item.teacherId) ? `<p class="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg p-3"><b>Setter mapping incomplete.</b> Add the faculty and their class-subject QP Setter assignments once in <b>3. Faculty Manager</b>. This order will then fill automatically; no entry is required here.${currentActiveRole === 'principal' ? ' <button type="button" onclick="closePreExamFullPageWorkspace(); switchTab(\'teachers\')" class="ml-2 underline font-bold">Open Faculty Manager</button>' : ' Ask the Principal to complete Faculty Manager.'}</p>` : ''}
                                 <label class="block text-xs font-bold text-slate-600">Instructions — one instruction per line
                                     <textarea id="qp-order-instructions" rows="7" class="mt-1 w-full border rounded-lg p-3 text-xs leading-6">${escapeHtml(officeOrder.instructions.join('\n'))}</textarea>
                                 </label>
                                 <div class="flex flex-wrap justify-end gap-2">
                                     <button type="button" onclick="saveQpOfficeOrder('DRAFT')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save Draft</button>
-                                    ${officeOrder.status === 'ISSUED' ? '<button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📥 Generate PDF Again</button>' : ''}
-                                    <button type="button" onclick="issueAndGenerateQpOfficeOrderPdf()" ${subjectsList.length ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">✅ Issue & Generate PDF</button>
+                                    ${officeOrder.status === 'ISSUED' ? '<button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview Issued Order</button>' : ''}
+                                    <button type="button" onclick="issueAndGenerateQpOfficeOrderPdf()" ${subjectsList.length && !subjectsList.some(item => !item.teacherId) ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">✅ Issue & Preview PDF</button>
                                 </div>
-                                <p class="text-[11px] text-slate-500 text-right">In the print window, choose <b>Save as PDF</b> as the destination.</p>
+                                <p class="text-[11px] text-slate-500 text-right">The PDF preview opens inside the portal. Use <b>Print / Save PDF</b> after reviewing it.</p>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="bg-white p-5 rounded-xl border shadow-xs flex justify-between items-center">

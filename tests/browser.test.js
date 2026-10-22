@@ -108,6 +108,10 @@ async function main() {
         await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
         assert.equal(Object.values(data.teachers).length, 1);
+        await a.evaluate(async () => {
+            teachers[0].allotments = [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }];
+            await saveData(['teachers']);
+        });
         console.log('PASS: faculty save is confirmed and appears on the other device');
 
         await a.selectOption('#ct-10-A', 'New Shared Teacher');
@@ -177,12 +181,18 @@ async function main() {
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
         await a.fill('#qp-order-deadline', '2026-11-04');
         await a.fill('#qp-order-time', '15:30');
-        await a.locator('[data-qp-setter-key]').selectOption(String(teacherId));
+        assert.match(await a.locator('text=Auto-linked from Faculty Manager').first().textContent(), /Auto-linked/);
         await a.evaluate(() => saveQpOfficeOrder('ISSUED'));
         await b.waitForFunction(() => qpOfficeOrders['100']?.status === 'ISSUED');
         assert.equal(data.qpOfficeOrders['100'].setters[trackerKey].name, 'Other Device Name');
         assert.equal(data.qpSubmissionDeadlines['100'], '2026-11-04');
-        console.log('PASS: issued QP office order saves mapped setters and deadline in realtime');
+        await a.evaluate(() => generateQpSetterOfficeOrderPrint());
+        await a.locator('#qp-office-order-preview iframe').waitFor();
+        const previewText = await a.locator('#qp-office-order-preview iframe').contentFrame().locator('body').textContent();
+        assert.match(previewText, /PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR/);
+        assert.match(previewText, /Other Device Name/);
+        await a.evaluate(() => closeQpOfficeOrderPreview());
+        console.log('PASS: issued QP office order auto-links setters, syncs, and opens an in-app A4 preview');
 
         const count = Object.values(data.archivedExams).length;
         await a.evaluate(() => startNewExamSetup());
