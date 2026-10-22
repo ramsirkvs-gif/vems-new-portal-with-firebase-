@@ -152,10 +152,16 @@ async function main() {
         assert.match(await b.locator('#public-subject-directory-body').innerText(), /Class X-A/);
         console.log('PASS: stream rules, Subject Mapping PDF, publish and public directory synchronize');
 
+        await a.evaluate(async () => { sectionConfigs['10-B']=['SCIENCE']; await saveData(['sectionConfigs']); });
+        await b.waitForFunction(() => Array.isArray(sectionConfigs['10-B']));
+        await b.evaluate(() => { switchTab('students'); document.getElementById('filter-class').value='10'; handleClassChange(); document.getElementById('filter-section').value='B'; rememberStudentLocation(); filterStudents(); switchTab('students'); });
+        assert.equal(await b.locator('#filter-section').inputValue(), 'B', 'same-tab rerender must retain the selected section');
+
         await b.reload();
         await login(b, 'principal2@example.test');
+        assert.equal(await b.locator('#filter-section').inputValue(), 'B', 'reload must restore the selected section');
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
-        console.log('PASS: shared records survive reload without local browser copies');
+        console.log('PASS: shared records and the current class/section location survive rerender and reload');
 
         const teacherId = Object.values(data.teachers)[0].id;
         await a.evaluate(id => { switchTab('teachers'); editTeacher(id); }, teacherId);

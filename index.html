@@ -172,11 +172,11 @@
                             <div class="flex items-center gap-3 flex-wrap">
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select Class</label>
-                                    <select id="cfg-class" onchange="updateCfgSections(); loadSectionConfigDetails();" class="text-xs p-2 border rounded font-semibold bg-white"></select>
+                                    <select id="cfg-class" onchange="localStorage.setItem('vems_cfg_class',this.value); updateCfgSections(); loadSectionConfigDetails();" class="text-xs p-2 border rounded font-semibold bg-white"></select>
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Select Section</label>
-                                    <select id="cfg-section" onchange="loadSectionConfigDetails()" class="text-xs p-2 border rounded font-semibold bg-white"></select>
+                                    <select id="cfg-section" onchange="rememberConfigLocation(); loadSectionConfigDetails()" class="text-xs p-2 border rounded font-semibold bg-white"></select>
                                 </div>
                             </div>
                             <div class="flex flex-wrap gap-2">
@@ -244,7 +244,7 @@
                 </div>
                 <div class="bg-slate-50 p-4 rounded-lg border grid grid-cols-1 sm:grid-cols-4 gap-4 no-print">
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Class</label><select id="filter-class" onchange="handleClassChange()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
-                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label><select id="filter-section" onchange="filterStudents()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
+                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label><select id="filter-section" onchange="rememberStudentLocation(); filterStudents()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Stream</label><div id="stream-indicator" class="text-xs font-bold p-2 bg-white rounded border">General</div></div>
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Strength</label><div id="student-count-badge" class="text-xs font-bold text-indigo-700 p-2 bg-indigo-50 rounded border">Total: 0</div></div>
                 </div>
@@ -499,9 +499,11 @@
         let classTeacherAssignments = {};
         let isExamConfigOpen = false;
         let activeExamId = null;
-        let isPreExamFullPageOpen = false;
-        let activePreExamSubTab = 'qp-setters';
-        let selectedPreExamVaultId = null;
+        let isPreExamFullPageOpen = sessionStorage.getItem('vems_pre_exam_open') === '1';
+        let activePreExamSubTab = localStorage.getItem('vems_pre_exam_tab') || 'qp-setters';
+        let selectedPreExamVaultId = Number(localStorage.getItem('vems_pre_exam_id')) || null;
+        let lastRenderedTab = null;
+        let workspaceScrollTimer = null;
         let qpSubmissionDeadline = '';
         let qpSubmissionDeadlines = {};
 
@@ -616,7 +618,9 @@
         }
 
         function switchTab(tab) {
+            const shouldRestore = lastRenderedTab !== tab;
             currentActiveTab = tab;
+            lastRenderedTab = tab;
             localStorage.setItem('vems_active_tab', tab);
             document.getElementById('sec-config').classList.toggle('hidden', tab !== 'config');
             document.getElementById('sec-students').classList.toggle('hidden', tab !== 'students');
@@ -634,6 +638,7 @@
             if(tab === 'students') initSelectors();
             if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
             if(tab === 'settings') populateLegacyExamOptions();
+            if (shouldRestore) setTimeout(() => window.scrollTo(0, Number(localStorage.getItem(`vems_scroll_${currentActiveRole}_${tab}`)) || 0), 80);
         }
 
         function getAllUniqueClasses() {
@@ -727,7 +732,7 @@
         function initCfgSections() { 
             const clsSel = document.getElementById('cfg-class');
             if(!clsSel) return;
-            let currentCls = clsSel.value || '11';
+            let currentCls = clsSel.value || localStorage.getItem('vems_cfg_class') || '11';
             clsSel.innerHTML = '';
             getAllUniqueClasses().forEach(cls => {
                 clsSel.innerHTML += `<option value="${escapeHtml(cls)}" ${cls === currentCls ? 'selected' : ''}>Class ${escapeHtml(formatClass(cls))}</option>`;
@@ -739,12 +744,18 @@
             const cls = document.getElementById('cfg-class').value;
             const secSel = document.getElementById('cfg-section');
             if(!secSel || !cls) return;
-            let currentSec = secSel.value || 'A';
+            let currentSec = localStorage.getItem(`vems_cfg_section_${cls}`) || secSel.value || 'A';
             secSel.innerHTML = '';
             getAllSectionsForClass(cls).forEach(s => {
                 secSel.innerHTML += `<option value="${escapeHtml(s)}" ${s === currentSec ? 'selected' : ''}>Section ${escapeHtml(s)}</option>`;
             });
             loadSectionConfigDetails();
+        }
+
+        function rememberConfigLocation() {
+            const cls=document.getElementById('cfg-class')?.value, sec=document.getElementById('cfg-section')?.value;
+            if(cls) localStorage.setItem('vems_cfg_class',cls);
+            if(cls&&sec) localStorage.setItem(`vems_cfg_section_${cls}`,sec);
         }
 
         function loadSectionConfigDetails() {
@@ -858,7 +869,7 @@
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             if(!classSel) return;
-            const selected = classSel.value || '10';
+            const selected = classSel.value || localStorage.getItem('vems_student_class') || '10';
             classSel.innerHTML = '';
             getAllUniqueClasses().forEach(cls => {
                 classSel.innerHTML += `<option value="${escapeHtml(cls)}">Class ${escapeHtml(formatClass(cls))}</option>`;
@@ -871,12 +882,21 @@
             const cls = document.getElementById('filter-class').value;
             const secSel = document.getElementById('filter-section');
             if(!secSel || !cls) return;
+            const selectedSection = localStorage.getItem(`vems_student_section_${cls}`) || secSel.value || 'A';
             secSel.innerHTML = '';
             getAllSectionsForClass(cls).forEach(sec => {
                 secSel.innerHTML += `<option value="${escapeHtml(sec)}">Section ${escapeHtml(sec)}</option>`;
             });
+            if ([...secSel.options].some(option => option.value === selectedSection)) secSel.value = selectedSection;
+            rememberStudentLocation();
             updateStudentTableHeaders();
             filterStudents();
+        }
+
+        function rememberStudentLocation() {
+            const cls=document.getElementById('filter-class')?.value, sec=document.getElementById('filter-section')?.value;
+            if(cls) localStorage.setItem('vems_student_class',cls);
+            if(cls&&sec) localStorage.setItem(`vems_student_section_${cls}`,sec);
         }
 
         function updateStudentTableHeaders() {
@@ -1666,23 +1686,28 @@
             } else if (examId === null && activeExamId) {
                 selectedPreExamVaultId = activeExamId;
             }
+            sessionStorage.setItem('vems_pre_exam_open','1');
+            if(selectedPreExamVaultId) localStorage.setItem('vems_pre_exam_id',String(selectedPreExamVaultId));
             renderExamCreatorModule();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function closePreExamFullPageWorkspace() {
             isPreExamFullPageOpen = false;
+            sessionStorage.removeItem('vems_pre_exam_open');
             qpOfficeOrderFormDirty = false;
             renderExamCreatorModule();
         }
 
         function switchPreExamSubTab(subTab) {
             activePreExamSubTab = subTab;
+            localStorage.setItem('vems_pre_exam_tab',subTab);
             renderExamCreatorModule();
         }
 
         function handlePreExamVaultSelection(val) {
             selectedPreExamVaultId = parseInt(val);
+            localStorage.setItem('vems_pre_exam_id',String(selectedPreExamVaultId));
             qpOfficeOrderFormDirty = false;
             renderExamCreatorModule();
         }
@@ -2820,6 +2845,13 @@
                 container.appendChild(dayCard);
             });
         }
+
+        window.addEventListener('scroll', () => {
+            clearTimeout(workspaceScrollTimer);
+            workspaceScrollTimer=setTimeout(() => {
+                if(currentActiveRole==='principal') localStorage.setItem(`vems_scroll_${currentActiveRole}_${currentActiveTab}`,String(Math.round(window.scrollY)));
+            },120);
+        }, {passive:true});
     </script>
     <script src="app-sync.js"></script>
 </body>
