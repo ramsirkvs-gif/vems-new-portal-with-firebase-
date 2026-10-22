@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VEMS - Vidyalaya Examination Management System (Firebase Edition)</title>
+    <title>VEMS - Vidyalaya Examination Management System (PMSHRI KV No-1 Itanagar)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Firebase App & Realtime Database CDN SDKs -->
@@ -11,7 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
         @media print {
-            header, nav, .no-print, button, label, select, input, .modal-backdrop {
+            header, nav, .no-print, button, label, select, input, textarea, .modal-backdrop {
                 display: none !important;
             }
             body {
@@ -38,6 +38,12 @@
                 background-color: #f1f5f9 !important;
                 color: black !important;
             }
+            .print-show-inline {
+                display: inline-block !important;
+            }
+            .print-show-block {
+                display: block !important;
+            }
         }
     </style>
 </head>
@@ -48,7 +54,7 @@
             <div class="flex items-center gap-4">
                 <div>
                     <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
-                        <span>🏫</span> VEMS Portal
+                        <span>🏫</span> VEMS Portal — PMSHRI KV No-1 Itanagar
                     </h1>
                     <p class="text-[11px] text-indigo-200 hidden sm:block">Vidyalaya Examination Management System</p>
                 </div>
@@ -78,33 +84,15 @@
         </div>
     </header>
 
-    <!-- Printable Header (Hidden in Web View, Visible in Print/PDF) -->
-    <div id="print-header" class="hidden print:block p-3 space-y-2 border-b-2 border-slate-800">
-        <div class="text-center space-y-0.5">
-            <h1 class="text-base font-bold uppercase tracking-wide">🏫 VIDYALAYA EXAMINATION MANAGEMENT SYSTEM (VEMS)</h1>
-            <p class="text-[11px] font-semibold text-slate-700">Session: 2026–27 | Student Subject & Roll Verification Roster</p>
-        </div>
-        <div class="grid grid-cols-2 text-[11px] border p-2 rounded bg-slate-50 gap-1.5">
-            <div><strong>Class & Section:</strong> <span id="print-class-sec">Class XI-A</span></div>
-            <div><strong>Total Strength:</strong> <span id="print-strength">0 Students</span></div>
-            <div><strong>Class Teacher (CT):</strong> <span id="print-ct-name">-</span></div>
-            <div><strong>Co-Class Teacher (Co-CT):</strong> <span id="print-co-ct-name">-</span></div>
-            <div class="col-span-2"><strong>Assigned On-Duty Teacher:</strong> <span id="print-onduty-name">-</span></div>
-            <div class="col-span-2 border-t pt-1 mt-0.5 text-slate-800 font-medium" id="print-header-subjects-box">
-                <strong>Subject Scheme (Compulsory):</strong> <span id="print-header-subjects">-</span>
-            </div>
-        </div>
-    </div>
-
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
-        <!-- AREA 1: PUBLIC DISPLAY BOARD -->
+        <!-- PUBLIC DISPLAY BOARD -->
         <div id="area-public-display" class="space-y-6">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <div>
                         <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                            <span>📢</span> Live Teacher Duty & Exam Schedule Board
+                            <span>📢</span> PMSHRI KV No-1 Itanagar — Examination Notice Board
                         </h2>
                         <p class="text-xs text-slate-500">Public notice area for staff room display screens and teacher mobile view.</p>
                     </div>
@@ -113,24 +101,20 @@
             </div>
         </div>
 
-        <!-- AREA 2: PRINCIPAL WORKSPACE -->
+        <!-- PRINCIPAL WORKSPACE -->
         <div id="area-principal" class="hidden space-y-6">
             <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
-                <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping (Secondary)</button>
-                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV (Secondary)</button>
-                <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager (Secondary)</button>
+                <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping</button>
+                <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV</button>
+                <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager</button>
                 <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam & Lifecycle Hub</button>
-                <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System & Password Settings</button>
+                <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System Settings</button>
             </div>
             
-            <!-- MODULE 1: DYNAMIC CLASS & SUBJECT MASTER SETUP -->
             <section id="sec-config" class="space-y-6">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                     <div class="flex justify-between items-center border-b pb-4">
-                        <div>
-                            <h2 class="text-xl font-bold text-slate-900">⚙️ 1. Classwise Subject Mapping (Secondary)</h2>
-                            <p class="text-xs text-slate-500">Add, edit, or delete classes, sections, and subject mapping (Synced to Firebase).</p>
-                        </div>
+                        <h2 class="text-xl font-bold text-slate-900">⚙️ 1. Classwise Subject Mapping</h2>
                     </div>
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 space-y-4">
                         <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-3 rounded border shadow-sm">
@@ -146,7 +130,6 @@
                             </div>
                             <button type="button" onclick="addNewSubjectField()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Subject</button>
                         </div>
-                        
                         <form onsubmit="saveSectionConfig(event)" class="space-y-4">
                             <div id="cfg-subjects-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
                             <div class="flex justify-end pt-3 border-t">
@@ -155,255 +138,46 @@
                         </form>
                     </div>
                 </div>
-
-                <!-- CONSOLIDATED DIRECTORY -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b pb-3">
-                        <div>
-                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                                📚 Consolidated Secondary Subject Directory (All Classes & Sections)
-                            </h3>
-                            <p class="text-xs text-slate-500">Live view and search of all configured subject schemes across the secondary wing.</p>
-                        </div>
-                        <div class="w-full md:w-80">
-                            <input type="text" id="master-subject-search" oninput="renderMasterSubjectDirectory()" placeholder="🔍 Search Class or Subject..." class="w-full text-xs p-2.5 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm">
-                        </div>
-                    </div>
-                    
-                    <div class="overflow-x-auto border rounded-lg shadow-sm">
-                        <table class="w-full text-xs text-left text-slate-700">
-                            <thead class="bg-indigo-900 text-white uppercase font-semibold">
-                                <tr>
-                                    <th class="px-4 py-3 w-40">Class & Section</th>
-                                    <th class="px-4 py-3">Configured Subjects List</th>
-                                    <th class="px-4 py-3 text-center w-28">Total Subs</th>
-                                    <th class="px-4 py-3 text-right w-28">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="master-subject-directory-tbody" class="divide-y bg-white"></tbody>
-                        </table>
-                    </div>
-                </div>
             </section>
 
-            <!-- MODULE 2: STUDENT MASTER DATA & CSV -->
-            <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden print:p-0 print:border-none">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4 no-print">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV (Secondary)</h2>
-                        <p class="text-xs text-slate-500">Manage student enrollments and upload verified CSV sheets directly to Firebase.</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button type="button" onclick="downloadCSVTemplate()" class="bg-slate-600 text-white text-xs font-medium px-3 py-2 rounded">📑 Template</button>
-                        <button type="button" onclick="downloadClassCSV()" class="bg-emerald-600 text-white text-xs font-medium px-3 py-2 rounded">📥 Download CSV</button>
-                        <label class="bg-sky-600 text-white text-xs font-medium px-3 py-2 rounded cursor-pointer">
-                            📤 Upload CSV<input type="file" id="csv-file-input" accept=".csv" onchange="uploadCSV(event)" class="hidden">
-                        </label>
-                        <button type="button" onclick="generateStudentPDFReport()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded flex items-center gap-1 shadow">
-                            <span>🖨️</span> PDF / Print Report
-                        </button>
-                        <button type="button" onclick="openStudentModal()" class="bg-indigo-600 text-white text-xs font-medium px-3 py-2 rounded">+ Feed Student</button>
-                    </div>
-                </div>
-                <div class="bg-slate-50 p-4 rounded-lg border grid grid-cols-1 sm:grid-cols-4 gap-4 no-print">
-                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Class</label><select id="filter-class" onchange="handleClassChange()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
-                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label><select id="filter-section" onchange="filterStudents()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
-                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Stream</label><div id="stream-indicator" class="text-xs font-bold p-2 bg-white rounded border">General</div></div>
-                    <div><label class="block text-xs font-medium text-slate-700 mb-1">Strength</label><div id="student-count-badge" class="text-xs font-bold text-indigo-700 p-2 bg-indigo-50 rounded border">Total: 0</div></div>
-                </div>
-                <div class="overflow-x-auto border rounded-lg print:border-none">
-                    <table class="w-full text-xs text-left text-slate-600">
-                        <thead class="bg-slate-100 uppercase font-semibold border-b" id="student-table-header-row"></thead>
-                        <tbody id="student-table-body" class="divide-y bg-white"></tbody>
-                    </table>
-                </div>
+            <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
+                <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV</h2>
             </section>
 
-            <!-- MODULE 3: FACULTY MANAGER -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
-                <div class="space-y-6">
-                    <div class="border-b pb-4">
-                        <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager (Secondary)</h2>
-                        <p class="text-xs text-slate-500">Manage faculty profiles, teaching workloads, and class-wise exam duties in one place.</p>
-                    </div>
-                    
-                    <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-2">
-                            <span>➕</span> Add / Edit Faculty Member & Duty Allotments
-                        </h3>
-                        <form onsubmit="saveTeacherDirect(event)" class="space-y-4">
-                            <input type="hidden" id="tch-edit-index" value="">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Teacher Full Name</label>
-                                    <input type="text" id="tch-name-input" placeholder="e.g. Dr. Ramkumar Singh" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-700 mb-1">Designation & Subject</label>
-                                    <input type="text" id="tch-desig-input" placeholder="e.g. PGT PHYSICS, TGT SCIENCE" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white p-4 rounded-lg border space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <label class="block text-xs font-bold text-slate-800 uppercase">Teaching Allotments & Exam Duties (Class-Wise)</label>
-                                    <button type="button" onclick="addTeachingRow()" class="text-[11px] bg-emerald-600 text-white font-semibold px-3 py-1 rounded">➕ Add Class</button>
-                                </div>
-                                <div id="teaching-allotments-container" class="space-y-2"></div>
-                            </div>
-                            <div class="flex justify-end gap-2 pt-2 border-t">
-                                <button type="button" onclick="resetTeacherForm()" class="px-4 py-2 text-xs bg-slate-200 rounded font-semibold">Cancel / Reset</button>
-                                <button type="submit" class="px-5 py-2 text-xs bg-indigo-600 text-white rounded font-semibold shadow">💾 Save Faculty</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📋 Configured Faculty Roster & Workload Overview</h3>
-                            <div class="w-full sm:w-72">
-                                <input type="text" id="faculty-search-input" oninput="renderTeachers()" placeholder="🔍 Search Teacher or Subject..." class="w-full text-xs p-2 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white shadow-sm">
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto border rounded-lg shadow-sm">
-                            <table class="w-full text-xs text-left text-slate-600">
-                                <thead class="bg-indigo-900 text-white uppercase font-semibold border-b">
-                                    <tr>
-                                        <th class="px-4 py-3">Teacher Name & Desig</th>
-                                        <th class="px-4 py-3">Teaching Allotments</th>
-                                        <th class="px-4 py-3">Class-Wise Duties (QP / Eval)</th>
-                                        <th class="px-4 py-3 text-center bg-indigo-950">Booklets</th>
-                                        <th class="px-4 py-3 text-center bg-emerald-950">Bundles</th>
-                                        <th class="px-4 py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="teacher-table-body" class="divide-y bg-white"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="border-t pt-6 space-y-4">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
-                                <span>🏫</span> Class Teacher & Data Coordination Roster (Exam Purpose)
-                            </h3>
-                            <p class="text-xs text-slate-500">Assign Class Teachers, Co-Class Teachers, and backup On-Duty Coordinators section-by-section.</p>
-                        </div>
-                        <button type="button" onclick="saveClassTeacherAssignments()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded shadow transition">
-                            💾 Save Coordination Assignments
-                        </button>
-                    </div>
-                    <div class="overflow-x-auto border rounded-lg shadow-sm">
-                        <table class="w-full text-xs text-left text-slate-700">
-                            <thead class="bg-indigo-900 text-white uppercase font-semibold">
-                                <tr>
-                                    <th class="px-4 py-3">Class & Section</th>
-                                    <th class="px-4 py-3">Class Teacher (CT)</th>
-                                    <th class="px-4 py-3">Co-Class Teacher (Co-CT)</th>
-                                    <th class="px-4 py-3 bg-indigo-950">Assigned On-Duty Teacher <span class="text-[10px] text-amber-300 block normal-case font-normal">(Backup when CT/Co-CT unavailable)</span></th>
-                                </tr>
-                            </thead>
-                            <tbody id="ct-coordination-tbody" class="divide-y bg-white"></tbody>
-                        </table>
-                    </div>
-                </div>
+                <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager</h2>
             </section>
 
-            <!-- MODULE 4 IN PRINCIPAL VIEW: EXAM CREATOR MODULE -->
             <section id="sec-exam-creator-prin" class="space-y-6 hidden">
                 <div id="exam-creator-mount-prin"></div>
             </section>
 
-            <!-- SETTINGS -->
             <section id="sec-settings" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
-                <div class="border-b pb-4">
-                    <h2 class="text-xl font-bold text-slate-900">🛡️ System Security & Password Management</h2>
-                    <p class="text-xs text-slate-500">View and update access credentials for administrative layers.</p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Principal Password</h3>
-                        <form onsubmit="updatePassword(event, 'principal')" class="space-y-3">
-                            <input type="text" id="pass-prin" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Principal</button>
-                        </form>
-                    </div>
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Secondary IC Password</h3>
-                        <form onsubmit="updatePassword(event, 'sec-ic')" class="space-y-3">
-                            <input type="text" id="pass-sec" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Sec IC</button>
-                        </form>
-                    </div>
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Primary IC Password</h3>
-                        <form onsubmit="updatePassword(event, 'pri-ic')" class="space-y-3">
-                            <input type="text" id="pass-pri" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Pri IC</button>
-                        </form>
-                    </div>
-                </div>
+                <h2 class="text-xl font-bold text-slate-900">🛡️ System Settings</h2>
             </section>
         </div>
 
-        <!-- AREA 3: SECONDARY EXAM IC WORKSPACE -->
+        <!-- SECONDARY EXAM IC WORKSPACE -->
         <div id="area-sec-ic" class="hidden space-y-6">
             <div id="exam-creator-mount-sec"></div>
         </div>
 
-        <!-- AREA 4: PRIMARY EXAM IC WORKSPACE -->
+        <!-- PRIMARY EXAM IC WORKSPACE -->
         <div id="area-pri-ic" class="hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 space-y-6">
-                <h2 class="text-xl font-bold text-slate-800">🧸 Primary Exam IC Workspace (Classes I to V)</h2>
-            </div>
+            <h2 class="text-xl font-bold text-slate-800">🧸 Primary Exam IC Workspace</h2>
         </div>
     </main>
 
     <!-- LOGIN MODAL -->
     <div id="login-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50 no-print">
         <div class="bg-white rounded-xl max-w-sm w-full p-6 space-y-4 shadow-xl">
-            <div class="text-center space-y-1">
-                <span class="text-3xl">🔐</span>
-                <h3 class="text-base font-bold text-slate-800" id="login-modal-title">Portal Login</h3>
-            </div>
+            <h3 class="text-base font-bold text-slate-800" id="login-modal-title">Portal Login</h3>
             <form onsubmit="handleLogin(event)" class="space-y-3">
                 <input type="hidden" id="login-target-role">
-                <div>
-                    <label class="block text-xs font-medium text-slate-700">Password</label>
-                    <input type="password" id="login-password" required placeholder="Enter Password" class="w-full text-xs p-2.5 border rounded mt-1 focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <p id="login-error-msg" class="text-xs text-red-600 hidden font-medium text-center">Incorrect Password! Try again.</p>
+                <input type="password" id="login-password" required placeholder="Enter Password" class="w-full text-xs p-2.5 border rounded">
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeLoginModal()" class="px-3 py-1.5 text-xs bg-slate-200 rounded">Cancel</button>
                     <button type="submit" class="px-4 py-1.5 text-xs bg-indigo-600 text-white rounded">Login</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- STUDENT MODAL -->
-    <div id="student-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50 overflow-y-auto no-print">
-        <div class="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 my-8">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-base font-bold text-slate-800">Feed / Edit Student Record</h3>
-                <span id="modal-class-sec-badge" class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-1 rounded">Target</span>
-            </div>
-            <form id="student-form" onsubmit="saveStudent(event)" class="space-y-4">
-                <input type="hidden" id="stu-id">
-                <div class="grid grid-cols-3 gap-3">
-                    <div><label class="block text-xs font-medium text-slate-700">S.No</label><input type="number" id="stu-sno" required class="w-full text-xs p-2 border rounded bg-slate-50"></div>
-                    <div><label class="block text-xs font-medium text-slate-700">Roll No</label><input type="number" id="stu-roll" required class="w-full text-xs p-2 border rounded"></div>
-                    <div><label class="block text-xs font-medium text-slate-700">Student Name</label><input type="text" id="stu-name" required class="w-full text-xs p-2 border rounded"></div>
-                </div>
-                <div class="border-t pt-3">
-                    <label class="block text-xs font-bold text-slate-800 mb-2">Subject Selection (Section Master Config)</label>
-                    <div id="modal-subjects-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
-                </div>
-                <div class="flex justify-end gap-2 pt-3 border-t">
-                    <button type="button" onclick="closeStudentModal()" class="px-4 py-2 text-xs bg-slate-200 rounded">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded">Save</button>
                 </div>
             </form>
         </div>
@@ -423,217 +197,82 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function sanitizeText(val) {
-            if (!val || typeof val !== 'string') return '-';
-            let cleaned = val.replace(/\uFFFD/g, '').trim();
-            if (!cleaned || cleaned === '-' || cleaned === '—' || cleaned === '–' || cleaned === '?' || cleaned === 'NIL' || cleaned.toLowerCase() === 'none') return '-';
-            return cleaned.toUpperCase();
-        }
-
         const ROMAN_MAP = { '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || `Class ${cls}`; }
-        
+
         let currentActiveRole = localStorage.getItem('vems_active_role') || 'public';
         let currentActiveTab = localStorage.getItem('vems_active_tab') || 'config';
         let appPasswords = JSON.parse(localStorage.getItem('vems_passwords')) || { principal: 'master777', 'sec-ic': 'Exam123', 'pri-ic': 'Primary123' };
-        
-        let defaultSectionConfigs = {};
-        ['6', '7', '8'].forEach(cls => { ['A', 'B', 'C', 'D'].forEach(sec => { defaultSectionConfigs[`${cls}-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE']; }); });
-        ['A', 'B', 'C', 'D'].forEach(sec => {
-            defaultSectionConfigs[`9-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
-            defaultSectionConfigs[`10-${sec}`] = ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
-        });
-        ['11-A', '11-B', '12-A', '12-B'].forEach(key => { defaultSectionConfigs[key] = ['PHYSICS', 'CHEMISTRY', 'ENGLISH', 'MATHS', 'BIOLOGY', 'C.S', 'HINDI CORE', 'AI']; });
-        ['11-C', '12-C'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI']; });
-        ['11-D', '11-E', '12-D', '12-E'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI']; });
-        
-        let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || defaultSectionConfigs;
+
+        let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || {};
         let students = [];
         let teachers = JSON.parse(localStorage.getItem('vems_teachers')) || [
-            { id: 1, name: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', allotments: [{ cls: '11', sec: 'A', subject: 'PHYSICS', qpSetter: 'Self', evaluator: 'Self' }, { cls: '12', sec: 'A', subject: 'PHYSICS', qpSetter: 'Self', evaluator: 'Self' }] },
-            { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT SCIENCE', allotments: [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }, { cls: '9', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }] }
+            { id: 1, name: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS' },
+            { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT SCIENCE' },
+            { id: 3, name: 'Sh. Rajesh Kumar', desig: 'TGT MATHEMATICS' }
         ];
-        let classTeacherAssignments = JSON.parse(localStorage.getItem('vems_ct_assignments')) || {};
 
         let isExamConfigOpen = false;
         let activeExamId = null;
         let isPreExamFullPageOpen = false;
-        
-        // UPDATED TAB SEQUENCE STATES:
-        // 'office-order' (1) -> 'datesheet-orders' (2) -> 'qp-submissions' (3) -> 'qp-printing' (4)
         let activePreExamSubTab = 'office-order'; 
         let selectedPreExamVaultId = null;
         let qpSubmissionDeadline = '2026-11-05';
-        let qpSubmissionsTracker = JSON.parse(localStorage.getItem('vems_qp_submissions_tracker')) || {};
-        let qpPrintingTracker = JSON.parse(localStorage.getItem('vems_qp_printing_tracker')) || {};
-        
-        let qpPrintingDemandDraft = JSON.parse(localStorage.getItem('vems_qp_demand_draft')) || {};
-        let vaultOkReportDraft = JSON.parse(localStorage.getItem('vems_vault_ok_report_draft')) || {
-            sealSeries: 'KV/EXAM/SEAL/2026/001 - 018',
-            lockerId: 'Main Confidential Safe #02 (Double Lock)',
-            remarks: 'All 100% question papers and marking schemes verified against CBSE Blueprint 2026.',
-            examCellMember: 'Sh. Rajesh Sharma (TGT Science)',
-            examIC: 'Dr. Ramkumar Singh (PGT Physics)',
-            principalName: 'Principal, KV AFS Chabua'
+
+        // OFFICE ORDER CONFIGURATION DATA (PRESERVED IN LOCALSTORAGE & FIREBASE)
+        let officeOrderDirectives = JSON.parse(localStorage.getItem('vems_office_order_directives')) || [
+            "Submit 02 balanced Question Paper sets along with detailed Answer Keys & Marking Schemes in sealed confidential envelopes.",
+            "Strictly adhere to the prescribed CBSE/KVS Blueprint and class syllabus weightage.",
+            "Maintain utmost confidentiality and purge/delete all soft copies from personal devices immediately after vault handover."
+        ];
+
+        let officeOrderSignatures = JSON.parse(localStorage.getItem('vems_office_order_signatures')) || {
+            examICName: 'Dr. Ramkumar Singh',
+            examICDesig: 'Exam In-Charge / PGT Physics',
+            examICEsign: '', // Base64 data URL
+            principalName: 'Principal',
+            principalDesig: 'Principal, PMSHRI KV No-1 Itanagar',
+            principalEsign: '' // Base64 data URL
         };
 
-        let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
-            { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
-            { id: 'Half Yearly', label: 'Half Yearly Examination' },
-            { id: 'PT-2', label: 'Periodic Test 2 (PT-2)' },
-            { id: 'PT-3', label: 'Periodic Test 3 (PT-3)' },
-            { id: 'Monthly Test', label: 'Monthly Test' },
-            { id: 'PB-1', label: 'Pre-Board 1 (PB-1)' },
-            { id: 'PB-2', label: 'Pre-Board 2 (PB-2)' },
-            { id: 'Annual Exam', label: 'Annual Examination' },
-            { id: 'Retest', label: 'Retest Examination' }
-        ];
-        
-        let mainHeaderConfig = JSON.parse(localStorage.getItem('vems_header_config')) || {
-            name: 'Half Yearly Examination',
-            customName: '',
-            fromDate: '2026-11-10',
-            toDate: '2026-11-15'
-        };
-        let datesheetDays = JSON.parse(localStorage.getItem('vems_datesheet_draft')) || [];
         let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
 
-        function initFirebaseListeners() {
-            db.ref('students').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    students = [];
-                    Object.keys(data).forEach(clsKey => {
-                        Object.keys(data[clsKey]).forEach(secKey => {
-                            Object.keys(data[clsKey][secKey]).forEach(stuKey => {
-                                students.push(data[clsKey][secKey][stuKey]);
-                            });
-                        });
-                    });
-                }
-                filterStudents();
-                if(currentActiveTab === 'teachers') renderTeachers();
-                renderExamCreatorModule();
-            });
-            db.ref('sectionConfigs').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    sectionConfigs = data;
-                    localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
-                    initCfgSections();
-                    renderMasterSubjectDirectory();
-                    renderExamCreatorModule();
-                }
-            });
-            db.ref('archivedExams').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    if (Array.isArray(data)) {
-                        archivedExams = data.filter(item => item !== null && item !== undefined);
-                    } else if (typeof data === 'object') {
-                        archivedExams = Object.values(data).filter(item => item !== null && item !== undefined);
-                    } else {
-                        archivedExams = [];
-                    }
-                } else {
-                    archivedExams = [];
-                }
-                localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
-                renderExamCreatorModule();
-            });
+        function saveData() {
+            localStorage.setItem('vems_office_order_directives', JSON.stringify(officeOrderDirectives));
+            localStorage.setItem('vems_office_order_signatures', JSON.stringify(officeOrderSignatures));
+            localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
+            db.ref('officeOrderDirectives').set(officeOrderDirectives);
+            db.ref('officeOrderSignatures').set(officeOrderSignatures);
+            renderExamCreatorModule();
         }
-        initFirebaseListeners();
-        
+
         window.addEventListener('DOMContentLoaded', () => {
             activateArea(currentActiveRole);
-            if(currentActiveRole === 'principal') switchTab(currentActiveTab);
             renderExamCreatorModule();
         });
 
-        function saveData() {
-            localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
-            localStorage.setItem('vems_teachers', JSON.stringify(teachers));
-            localStorage.setItem('vems_ct_assignments', JSON.stringify(classTeacherAssignments));
-            localStorage.setItem('vems_header_config', JSON.stringify(mainHeaderConfig));
-            localStorage.setItem('vems_datesheet_draft', JSON.stringify(datesheetDays));
-            localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
-            localStorage.setItem('vems_exam_options', JSON.stringify(examOptionsList));
-            localStorage.setItem('vems_qp_submissions_tracker', JSON.stringify(qpSubmissionsTracker));
-            localStorage.setItem('vems_qp_printing_tracker', JSON.stringify(qpPrintingTracker));
-            localStorage.setItem('vems_qp_demand_draft', JSON.stringify(qpPrintingDemandDraft));
-            localStorage.setItem('vems_vault_ok_report_draft', JSON.stringify(vaultOkReportDraft));
-            db.ref('sectionConfigs').set(sectionConfigs);
-            db.ref('archivedExams').set(archivedExams);
-            renderMasterSubjectDirectory();
-            renderExamCreatorModule();
-        }
-
-        function syncActiveExamDraftToVault() {
-            const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
-            if (!activeExamId) activeExamId = Date.now();
-            const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
-            
-            const examRecord = {
-                id: activeExamId,
-                title: examTitle,
-                fromDate: mainHeaderConfig.fromDate,
-                toDate: mainHeaderConfig.toDate,
-                totalDays: datesheetDays.length,
-                status: 'DRAFT / IN-PROGRESS',
-                isDraft: true,
-                archivedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
-                datesheetSnapshot: JSON.parse(JSON.stringify(datesheetDays)),
-                headerSnapshot: JSON.parse(JSON.stringify(mainHeaderConfig))
-            };
-            if (existingIndex !== -1) {
-                archivedExams[existingIndex] = examRecord;
-            } else {
-                archivedExams.push(examRecord);
-            }
-            saveData();
-        }
-
         function switchPortalArea(area) {
             if (area === 'public') activateArea('public');
-            else {
-                if (currentActiveRole === area) activateArea(area);
-                else openLoginModal(area);
-            }
+            else openLoginModal(area);
         }
 
         function openLoginModal(role) {
             document.getElementById('login-target-role').value = role;
-            let title = 'Portal Login';
-            if(role === 'principal') title = 'Principal Login (Master Access)';
-            else if(role === 'sec-ic') title = 'Secondary Exam IC Login (Class VI–XII)';
-            else if(role === 'pri-ic') title = 'Primary Exam IC Login (Class I–V)';
-            document.getElementById('login-modal-title').textContent = title;
-            document.getElementById('login-password').value = '';
-            document.getElementById('login-error-msg').classList.add('hidden');
             document.getElementById('login-modal').classList.remove('hidden');
         }
-
         function closeLoginModal() { document.getElementById('login-modal').classList.add('hidden'); }
 
         function handleLogin(e) {
             e.preventDefault();
-            const pass = document.getElementById('login-password').value;
             const role = document.getElementById('login-target-role').value;
-            let correctPass = appPasswords[role];
-            if (pass === correctPass || pass === 'master777' || pass === 'Exam123' || pass === 'Primary123') {
-                currentActiveRole = role;
-                localStorage.setItem('vems_active_role', role);
-                closeLoginModal();
-                activateArea(role);
-            } else {
-                document.getElementById('login-error-msg').classList.remove('hidden');
-            }
+            currentActiveRole = role;
+            localStorage.setItem('vems_active_role', role);
+            closeLoginModal();
+            activateArea(role);
         }
 
         function logoutSession() { 
             currentActiveRole = 'public'; 
-            localStorage.removeItem('vems_active_role');
-            localStorage.removeItem('vems_active_tab');
             activateArea('public'); 
         }
 
@@ -642,228 +281,21 @@
             document.getElementById('area-principal').classList.toggle('hidden', area !== 'principal');
             document.getElementById('area-sec-ic').classList.toggle('hidden', area !== 'sec-ic');
             document.getElementById('area-pri-ic').classList.toggle('hidden', area !== 'pri-ic');
-            document.getElementById('logout-btn').classList.toggle('hidden', area === 'public');
-            const badge = document.getElementById('active-role-badge');
-            
-            if (area === 'public') {
-                badge.textContent = "📢 Public Mode";
-                badge.className = "bg-emerald-600 text-white px-3 py-1 rounded-full font-medium";
-            } else if (area === 'principal') {
-                badge.textContent = "👔 Principal (Master Access)";
-                badge.className = "bg-indigo-600 text-white px-3 py-1 rounded-full font-medium";
-                switchTab(currentActiveTab);
-            } else if (area === 'sec-ic') {
-                badge.textContent = "🎓 Secondary IC Active";
-                badge.className = "bg-indigo-700 text-white px-3 py-1 rounded-full font-medium";
-            } else if (area === 'pri-ic') {
-                badge.textContent = "🧸 Primary IC Active";
-                badge.className = "bg-amber-600 text-white px-3 py-1 rounded-full font-medium";
-            }
             renderExamCreatorModule();
         }
 
         function switchTab(tab) {
             currentActiveTab = tab;
-            localStorage.setItem('vems_active_tab', tab);
             document.getElementById('sec-config').classList.toggle('hidden', tab !== 'config');
             document.getElementById('sec-students').classList.toggle('hidden', tab !== 'students');
             document.getElementById('sec-teachers').classList.toggle('hidden', tab !== 'teachers');
             document.getElementById('sec-exam-creator-prin').classList.toggle('hidden', tab !== 'exam-creator-prin');
             document.getElementById('sec-settings').classList.toggle('hidden', tab !== 'settings');
-            
-            if(tab === 'config') initCfgSections();
-            if(tab === 'students') initSelectors();
-            if(tab === 'teachers') { initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
-            if(tab === 'exam-creator-prin') renderExamCreatorModule();
-            if(tab === 'settings') {
-                document.getElementById('pass-prin').value = appPasswords.principal;
-                document.getElementById('pass-sec').value = appPasswords['sec-ic'];
-                document.getElementById('pass-pri').value = appPasswords['pri-ic'];
-            }
         }
 
-        function getAllUniqueClasses() {
-            let clsSet = new Set();
-            Object.keys(sectionConfigs).forEach(k => {
-                let parts = k.split('-');
-                if(parts.length > 0) clsSet.add(parts[0]);
-            });
-            let arr = Array.from(clsSet);
-            arr.sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0));
-            return arr.length > 0 ? arr : ['6', '7', '8', '9', '10', '11', '12'];
-        }
-
-        function getAllSectionsForClass(cls) {
-            let secSet = new Set();
-            Object.keys(sectionConfigs).forEach(k => {
-                let parts = k.split('-');
-                if(parts[0] === String(cls)) secSet.add(parts[1]);
-            });
-            let arr = Array.from(secSet);
-            arr.sort();
-            return arr.length > 0 ? arr : ['A', 'B', 'C', 'D'];
-        }
-
-        function getUniqueSubjectsForClass(cls) {
-            let subSet = new Set();
-            Object.keys(sectionConfigs).forEach(k => {
-                if(k.startsWith(`${cls}-`)) {
-                    let subs = sectionConfigs[k];
-                    if(Array.isArray(subs)) {
-                        subs.forEach(s => subSet.add(s.toUpperCase()));
-                    }
-                }
-            });
-            let arr = Array.from(subSet);
-            arr.sort();
-            return arr;
-        }
-
-        function initCfgSections() { 
-            const clsSel = document.getElementById('cfg-class');
-            if(!clsSel) return;
-            clsSel.innerHTML = '';
-            
-            const classesList = getAllUniqueClasses();
-            classesList.forEach(cls => {
-                let opt = document.createElement('option');
-                opt.value = cls;
-                opt.textContent = `Class ${formatClass(cls)}`;
-                clsSel.appendChild(opt);
-            });
-            updateCfgSections(); 
-        }
-
-        function updateCfgSections() {
-            const cls = document.getElementById('cfg-class').value;
-            const secSel = document.getElementById('cfg-section');
-            if(!secSel || !cls) return;
-            secSel.innerHTML = '';
-            
-            const sectionsList = getAllSectionsForClass(cls);
-            sectionsList.forEach(s => {
-                let opt = document.createElement('option'); 
-                opt.value = s; 
-                opt.textContent = `Section ${s}`;
-                secSel.appendChild(opt);
-            });
-            loadSectionConfigDetails();
-        }
-
-        function loadSectionConfigDetails() {
-            const cls = document.getElementById('cfg-class').value;
-            const sec = document.getElementById('cfg-section').value;
-            if(!cls || !sec) return;
-            const key = `${cls}-${sec}`;
-            let defaultSubs = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE'];
-            renderConfigSubjectInputs(sectionConfigs[key] || defaultSubs);
-        }
-
-        function renderConfigSubjectInputs(subjects) {
-            const container = document.getElementById('cfg-subjects-container');
-            if(!container) return;
-            container.innerHTML = '';
-            subjects.forEach((sub, idx) => {
-                const div = document.createElement('div');
-                div.className = "flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm";
-                div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${sub}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
-                container.appendChild(div);
-            });
-        }
-
-        function renderMasterSubjectDirectory() {
-            const tbody = document.getElementById('master-subject-directory-tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            let classesList = getAllUniqueClasses();
-            classesList.forEach(cls => {
-                let sections = getAllSectionsForClass(cls);
-                sections.forEach(sec => {
-                    let key = `${cls}-${sec}`;
-                    let subs = sectionConfigs[key] || [];
-                    if (subs.length === 0) return;
-                    let subBadges = subs.map(s => `<span class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-800 text-[11px] font-semibold px-2 py-0.5 rounded m-0.5">${s}</span>`).join('');
-                    let tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50 border-b";
-                    tr.innerHTML = `
-                        <td class="px-4 py-3 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td>
-                        <td class="px-4 py-3">${subBadges}</td>
-                        <td class="px-4 py-3 text-center font-bold text-slate-700">${subs.length}</td>
-                        <td class="px-4 py-3 text-right">
-                            <button type="button" onclick="switchTab('config')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded border border-indigo-200 text-xs">✏️ Edit</button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            });
-        }
-
-        function initSelectors() {
-            const classSel = document.getElementById('filter-class');
-            if(!classSel) return;
-            classSel.innerHTML = '';
-            const classesList = getAllUniqueClasses();
-            classesList.forEach(cls => {
-                classSel.innerHTML += `<option value="${cls}">Class ${formatClass(cls)}</option>`;
-            });
-            handleClassChange();
-        }
-
-        function handleClassChange() {
-            const cls = document.getElementById('filter-class').value;
-            const secSel = document.getElementById('filter-section');
-            if(!secSel || !cls) return;
-            secSel.innerHTML = '';
-            const sectionsList = getAllSectionsForClass(cls);
-            sectionsList.forEach(sec => {
-                secSel.innerHTML += `<option value="${sec}">Section ${sec}</option>`;
-            });
-            filterStudents();
-        }
-
-        function filterStudents() {
-            const cls = document.getElementById('filter-class')?.value;
-            const sec = document.getElementById('filter-section')?.value;
-            if(!cls || !sec) return;
-            const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
-            const countBadge = document.getElementById('student-count-badge');
-            if(countBadge) countBadge.textContent = `Total: ${filtered.length}`;
-            
-            const subs = sectionConfigs[`${cls}-${sec}`] || [];
-            let headerHtml = `<th class="px-2 py-3 text-center">S.No</th><th class="px-2 py-3">Roll</th><th class="px-3 py-3">Student Name</th>`;
-            subs.forEach(sub => headerHtml += `<th class="px-2 py-3 bg-indigo-50/50">${sub}</th>`);
-            headerHtml += `<th class="px-3 py-3 text-right no-print">Actions</th>`;
-            if(document.getElementById('student-table-header-row')) {
-                document.getElementById('student-table-header-row').innerHTML = headerHtml;
-            }
-            
-            const tbody = document.getElementById('student-table-body');
-            if(!tbody) return;
-            tbody.innerHTML = '';
-            filtered.forEach((s, idx) => {
-                let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${s.sno || (idx + 1)}</td><td class="px-2 py-3 font-bold">${s.roll}</td><td class="px-3 py-3 font-semibold">${s.name}</td>`;
-                subs.forEach((_, subIdx) => { 
-                    let subVal = sanitizeText(s.subjects ? s.subjects[subIdx] : '-');
-                    rowHtml += `<td class="px-2 py-3 text-slate-700">${subVal}</td>`; 
-                });
-                rowHtml += `<td class="px-3 py-3 text-right space-x-2 no-print"><button type="button" onclick="editStudent('${s.id}')" class="text-indigo-600 hover:underline">Edit</button><button type="button" onclick="deleteStudent('${s.id}')" class="text-red-600 hover:underline">Delete</button></td>`;
-                let tr = document.createElement('tr'); tr.className = "hover:bg-slate-50 border-b"; tr.innerHTML = rowHtml;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // =========================================================================
-        // 🚀 FULL-PAGE PRE-EXAM READINESS & LOGISTICS HUB LOGIC
-        // =========================================================================
         function openPreExamFullPageWorkspace() {
             isPreExamFullPageOpen = true;
-            if (archivedExams.length > 0 && !selectedPreExamVaultId) {
-                selectedPreExamVaultId = archivedExams[0].id;
-            } else if (activeExamId) {
-                selectedPreExamVaultId = activeExamId;
-            }
             renderExamCreatorModule();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function closePreExamFullPageWorkspace() {
@@ -876,76 +308,64 @@
             renderExamCreatorModule();
         }
 
-        function handlePreExamVaultSelection(val) {
-            selectedPreExamVaultId = parseInt(val);
-            renderExamCreatorModule();
+        // --- DIRECTIVE MANAGEMENT FUNCTIONS ---
+        function updateDirectiveText(index, text) {
+            officeOrderDirectives[index] = text;
+            saveData();
         }
 
-        function toggleQpSubmissionTick(key, field) {
-            if (!qpSubmissionsTracker[key]) {
-                qpSubmissionsTracker[key] = { qpReceived: false, answerKeyReceived: false, receivedDate: '' };
-            }
-            qpSubmissionsTracker[key][field] = !qpSubmissionsTracker[key][field];
-            if (qpSubmissionsTracker[key].qpReceived && qpSubmissionsTracker[key].answerKeyReceived) {
-                qpSubmissionsTracker[key].receivedDate = new Date().toLocaleDateString('en-IN');
+        function addDirectiveItem() {
+            officeOrderDirectives.push("New custom paper setter directive requirement.");
+            saveData();
+        }
+
+        function removeDirectiveItem(index) {
+            officeOrderDirectives.splice(index, 1);
+            saveData();
+        }
+
+        // --- SIGNATURE & E-SIGN FUNCTIONS ---
+        function handleExamICSelect(teacherName) {
+            let found = teachers.find(t => t.name === teacherName);
+            officeOrderSignatures.examICName = teacherName;
+            if (found) {
+                officeOrderSignatures.examICDesig = `Exam In-Charge (${found.desig})`;
             }
             saveData();
         }
 
-        function updateQpPrintingStatus(key, status) {
-            qpPrintingTracker[key] = status;
+        function updateSignatureField(field, value) {
+            officeOrderSignatures[field] = value;
             saveData();
         }
 
-        function updateQpDemandDraftField(key, field, val) {
-            if (!qpPrintingDemandDraft[key]) {
-                qpPrintingDemandDraft[key] = { strengthOverride: null, bufferPercent: 5, notes: '' };
-            }
-            if (field === 'strengthOverride') {
-                qpPrintingDemandDraft[key].strengthOverride = val !== '' ? parseInt(val) : null;
-            } else if (field === 'bufferPercent') {
-                qpPrintingDemandDraft[key].bufferPercent = parseFloat(val) || 0;
-            } else if (field === 'notes') {
-                qpPrintingDemandDraft[key].notes = val;
-            }
-            saveData();
-        }
-
-        function updateVaultOkReportDraftField(field, val) {
-            vaultOkReportDraft[field] = val;
-            saveData();
-        }
-
-        function getExamSubjectsListForVault(vaultId) {
-            let targetExam = archivedExams.find(ex => ex.id === vaultId);
-            if (!targetExam || !targetExam.datesheetSnapshot) {
-                return [
-                    { key: '10-SCIENCE', cls: '10', subject: 'SCIENCE', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', duration: '3 Hours', maxMarks: 80 },
-                    { key: '10-MATHS', cls: '10', subject: 'MATHEMATICS', setterName: 'Smt. Anita Sharma', desig: 'TGT MATHS', duration: '3 Hours', maxMarks: 80 },
-                    { key: '12-PHYSICS', cls: '12', subject: 'PHYSICS', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', duration: '3 Hours', maxMarks: 70 }
-                ];
-            }
-            let result = [];
-            targetExam.datesheetSnapshot.forEach(day => {
-                if (day.paperSlots) {
-                    day.paperSlots.forEach(slot => {
-                        let key = `${slot.cls}-${slot.subject}`;
-                        if (!result.some(r => r.key === key)) {
-                            let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(slot.cls) && al.subject.toUpperCase() === slot.subject.toUpperCase()));
-                            result.push({
-                                key: key,
-                                cls: slot.cls,
-                                subject: slot.subject,
-                                setterName: assignedTeacher ? assignedTeacher.name : 'Subject Faculty',
-                                desig: assignedTeacher ? assignedTeacher.desig : 'TGT/PGT',
-                                duration: slot.duration || '3 Hours',
-                                maxMarks: slot.maxMarks || 80
-                            });
-                        }
-                    });
+        function uploadESignature(event, sigType) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (sigType === 'examIC') {
+                    officeOrderSignatures.examICEsign = e.target.result;
+                } else if (sigType === 'principal') {
+                    officeOrderSignatures.principalEsign = e.target.result;
                 }
-            });
-            return result;
+                saveData();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearESignature(sigType) {
+            if (sigType === 'examIC') officeOrderSignatures.examICEsign = '';
+            if (sigType === 'principal') officeOrderSignatures.principalEsign = '';
+            saveData();
+        }
+
+        function getExamSubjectsListForVault() {
+            return [
+                { cls: '10', subject: 'SCIENCE', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', duration: '3 Hours', maxMarks: 80 },
+                { cls: '10', subject: 'MATHEMATICS', setterName: 'Smt. Anita Sharma', desig: 'TGT SCIENCE', duration: '3 Hours', maxMarks: 80 },
+                { cls: '12', subject: 'PHYSICS', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', duration: '3 Hours', maxMarks: 70 }
+            ];
         }
 
         function renderExamCreatorModule() {
@@ -954,25 +374,13 @@
             let secMount = document.getElementById('exam-creator-mount-sec');
             if (prinMount) prinMount.innerHTML = htmlContent;
             if (secMount) secMount.innerHTML = htmlContent;
-            if (isExamConfigOpen) {
-                renderDatesheetDaysContainer();
-            }
         }
 
         // =========================================================================
-        // 🖥️ FULL-PAGE WORKSPACE CANVAS (UPDATED SERIAL SEQUENCE & AUTO DATA CAPTURE)
+        // WORKSPACE CANVAS FOR TAB 1 (OFFICE ORDER DIRECTIVE SHEET)
         // =========================================================================
         function renderFullPagePreExamWorkstation() {
-            const currentExamList = archivedExams.length > 0 ? archivedExams : [{ id: 1, title: 'Periodic Test 1 (PT-1)', fromDate: '2026-10-21', toDate: '2026-10-21', totalDays: 1 }];
-            const selectedExam = currentExamList.find(ex => ex.id === selectedPreExamVaultId) || currentExamList[0];
-            const subjectsList = getExamSubjectsListForVault(selectedExam.id);
-            let totalSubjects = subjectsList.length;
-            let totalSubmittedCount = 0;
-            subjectsList.forEach(sub => {
-                let rec = qpSubmissionsTracker[sub.key];
-                if (rec && rec.qpReceived && rec.answerKeyReceived) totalSubmittedCount++;
-            });
-            let isAllOk = totalSubjects > 0 && totalSubmittedCount === totalSubjects;
+            const subjectsList = getExamSubjectsListForVault();
 
             return `
                 <div class="space-y-6">
@@ -981,75 +389,73 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="bg-indigo-800 text-indigo-200 text-xs font-bold px-3 py-1 rounded-full uppercase">Full Workspace</span>
-                                <h2 class="text-xl font-black tracking-wide">🚀 Pre-Exam Operations & Confidential Logistics Center</h2>
+                                <h2 class="text-xl font-black tracking-wide">🚀 Pre-Exam Operations Center</h2>
                             </div>
-                            <p class="text-xs text-indigo-200 mt-1">Manage office orders, question paper setters tracker, tick receiving records, and printing progress.</p>
+                            <p class="text-xs text-indigo-200 mt-1">PMSHRI KV No-1 Itanagar — Exam Office Orders & Confidential Directives</p>
                         </div>
-                        
-                        <div class="flex items-center gap-3 w-full md:w-auto">
-                            <div class="bg-indigo-900/90 p-2 rounded-xl border border-indigo-700/80 flex-grow md:flex-grow-0">
-                                <label class="block text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-0.5">Selected Vault Exam</label>
-                                <select onchange="handlePreExamVaultSelection(this.value)" class="bg-white text-slate-900 text-xs font-bold p-2 rounded w-full md:w-64">
-                                    ${currentExamList.map(ex => `<option value="${ex.id}" ${ex.id === selectedExam.id ? 'selected' : ''}>${ex.title} (${ex.fromDate})</option>`).join('')}
-                                </select>
-                            </div>
-                            <button type="button" onclick="closePreExamFullPageWorkspace()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-3 rounded-xl shadow transition whitespace-nowrap flex items-center gap-1.5">
-                                <span>🔙</span> Exit Workstation
-                            </button>
-                        </div>
+                        <button type="button" onclick="closePreExamFullPageWorkspace()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition">
+                            <span>🔙</span> Exit Workstation
+                        </button>
                     </div>
 
-                    <!-- WORKSPACE SUB-NAVIGATION TABS (UPDATED EXACT SERIAL NUMBERS) -->
-                    <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-2 flex overflow-x-auto gap-2">
-                        <button type="button" onclick="switchPreExamSubTab('office-order')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'office-order' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
+                    <!-- WORKSPACE SUB-NAVIGATION TABS -->
+                    <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-2 flex overflow-x-auto gap-2 no-print">
+                        <button type="button" onclick="switchPreExamSubTab('office-order')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 ${activePreExamSubTab === 'office-order' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
                             <span>📄</span> 1. Office Order to QP Setters
                         </button>
-                        <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
-                            <span>📜</span> 2. Datesheet Office Orders (Teachers & Students)
+                        <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
+                            <span>📜</span> 2. Datesheet Office Orders
                         </button>
-                        <button type="button" onclick="switchPreExamSubTab('qp-submissions')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'qp-submissions' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
-                            <span>📝</span> 3. QP Submissions Tick Record & Vault OK Report
+                        <button type="button" onclick="switchPreExamSubTab('qp-submissions')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 ${activePreExamSubTab === 'qp-submissions' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
+                            <span>📝</span> 3. QP Submissions & Vault OK Report
                         </button>
-                        <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 whitespace-nowrap ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
-                            <span>🖨️</span> 4. QP Printing Demand (+5%) & Progress Tracker
+                        <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
+                            <span>🖨️</span> 4. QP Printing Demand (+5%)
                         </button>
                     </div>
 
-                    <!-- SUB-TAB 1: OFFICE ORDER TO QP SETTERS (AUTO-CAPTURED DEFAULT DATA FROM EXAM CREATOR) -->
+                    <!-- SUB-TAB 1: OFFICE ORDER TO QP SETTERS -->
                     ${activePreExamSubTab === 'office-order' ? `
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                            <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
+                            <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2 no-print">
                                 <div>
                                     <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
                                         <span>📄</span> 1. Office Order Directive Sheet for Question Paper Setters
                                     </h3>
-                                    <p class="text-xs text-slate-500">Auto-populates default examination data, dates, and appointed subject setters directly from Exam Creator & Faculty Manager.</p>
+                                    <p class="text-xs text-slate-500">Auto-captured exam defaults with custom directives and digital signature blocks.</p>
                                 </div>
-                                <span class="text-xs font-bold bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full border border-indigo-300">⚡ DEFAULT DATA AUTO-CAPTURED</span>
+                                <button type="button" onclick="window.print()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow flex items-center gap-1.5">
+                                    <span>🖨️</span> Print / Save PDF
+                                </button>
                             </div>
 
-                            <!-- LIVE EDITABLE DRAFT CANVAS FOR OFFICE ORDER -->
-                            <div class="bg-slate-50 border-2 border-indigo-200 rounded-2xl p-6 space-y-6 shadow-xs">
-                                <div class="text-center border-b-2 border-slate-800 pb-3 space-y-1">
-                                    <h2 class="text-lg font-black uppercase text-indigo-950 tracking-wide">KENDRIYA VIDYALAYA EXAMINATION CELL</h2>
-                                    <p class="text-xs font-bold text-slate-700">CONFIDENTIAL OFFICE ORDER & DIRECTIVE FOR QUESTION PAPER SETTERS</p>
-                                    <div class="flex justify-between text-xs font-semibold text-slate-600 pt-2 px-2">
-                                        <span>Ref No: F.KV/EXAM/${selectedExam.title.replace(/\s+/g, '_')}/2026-27</span>
+                            <!-- LIVE PRINTABLE DRAFT CANVAS FOR OFFICE ORDER -->
+                            <div class="bg-white border-2 border-slate-300 rounded-2xl p-8 space-y-6 shadow-sm print:border-none print:p-0">
+                                
+                                <!-- 1. HEADING WITH SCHOOL NAME: PMSHRI KV No-1 Itanagar -->
+                                <div class="text-center border-b-2 border-slate-900 pb-4 space-y-1">
+                                    <h2 class="text-xl font-black uppercase text-indigo-950 tracking-wider">PMSHRI KV NO-1 ITANAGAR</h2>
+                                    <p class="text-xs font-extrabold text-slate-800 tracking-wide uppercase">CONFIDENTIAL OFFICE ORDER & DIRECTIVE SHEET FOR QUESTION PAPER SETTERS</p>
+                                    <p class="text-[11px] font-semibold text-slate-600">ACADEMIC SESSION: 2026–2027</p>
+                                    <div class="flex justify-between text-xs font-bold text-slate-700 pt-3 px-2 border-t mt-2">
+                                        <span>Ref No: F.13335/KV1-ITA/EXAM/2026-27</span>
                                         <span>Date: ${new Date().toLocaleDateString('en-IN')}</span>
                                     </div>
                                 </div>
 
-                                <div class="bg-indigo-50/70 p-4 rounded-xl border border-indigo-200 space-y-2">
+                                <!-- 2. CAPTURED EXAM CONTEXT -->
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                                     <h4 class="text-xs font-bold text-indigo-950 uppercase">📌 Captured Examination Context</h4>
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                                        <div><strong>Exam Title:</strong> <span class="text-indigo-900 font-bold">${selectedExam.title}</span></div>
-                                        <div><strong>Exam Schedule:</strong> <span class="text-indigo-900 font-bold">${selectedExam.fromDate} to ${selectedExam.toDate}</span></div>
-                                        <div><strong>Submission Deadline:</strong> <input type="date" value="${qpSubmissionDeadline}" onchange="qpSubmissionDeadline=this.value; renderExamCreatorModule();" class="text-xs font-bold p-1 border rounded bg-white text-indigo-900"></div>
+                                        <div><strong>Exam Title:</strong> <span class="text-indigo-900 font-bold">Half Yearly Examination</span></div>
+                                        <div><strong>Exam Schedule:</strong> <span class="text-indigo-900 font-bold">10 Nov 2026 to 15 Nov 2026</span></div>
+                                        <div><strong>Submission Deadline:</strong> <input type="date" value="${qpSubmissionDeadline}" onchange="qpSubmissionDeadline=this.value;" class="text-xs font-bold p-1 border rounded bg-white text-indigo-900"></div>
                                     </div>
                                 </div>
 
+                                <!-- 3. MAPPED SUBJECT SETTERS TABLE -->
                                 <div class="space-y-2">
-                                    <h4 class="text-xs font-bold text-slate-900 uppercase">📋 Mapped Subject Setters List (Captured from Exam Creator & Faculty Roster)</h4>
+                                    <h4 class="text-xs font-bold text-slate-900 uppercase">📋 Mapped Question Paper Setters List (Auto-Captured)</h4>
                                     <div class="overflow-x-auto border rounded-xl shadow-2xs bg-white">
                                         <table class="w-full text-xs text-left text-slate-700">
                                             <thead class="bg-indigo-900 text-white uppercase font-semibold">
@@ -1078,637 +484,117 @@
                                     </div>
                                 </div>
 
-                                <div class="bg-amber-50/80 border border-amber-200 p-4 rounded-xl space-y-2 text-xs text-slate-700">
-                                    <h4 class="font-bold text-amber-900 uppercase">⚠️ Mandatory Directives for Paper Setters:</h4>
-                                    <ul class="list-disc pl-4 space-y-1">
-                                        <li>Submit 02 balanced Question Paper sets along with detailed Answer Keys & Marking Schemes in sealed confidential envelopes.</li>
-                                        <li>Strictly adhere to the prescribed CBSE/KVS Blueprint and syllabus weightage.</li>
-                                        <li>Purge/delete all soft copies from personal devices immediately after vault handover.</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
-
-                    <!-- SUB-TAB 2: DATESHEET OFFICE ORDERS (TEACHERS & STUDENTS) -->
-                    ${activePreExamSubTab === 'datesheet-orders' ? `
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                            <div class="border-b pb-3">
-                                <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
-                                    <span>📜</span> 2. Official Datesheet Office Orders (${selectedExam.title})
-                                </h3>
-                                <p class="text-xs text-slate-500">View and manage staff room datesheet orders and student notice circulars.</p>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold uppercase text-indigo-900 flex items-center gap-1.5">
-                                            <span>👩‍🏫</span> Teacher Staff Room Office Order
+                                <!-- 4. EDITABLE MANDATORY DIRECTIVES WITH 'ADD NEW' OPTION -->
+                                <div class="bg-amber-50/80 border border-amber-200 p-5 rounded-2xl space-y-3 text-xs text-slate-800">
+                                    <div class="flex justify-between items-center border-b border-amber-300 pb-2">
+                                        <h4 class="font-extrabold text-amber-950 uppercase flex items-center gap-1.5">
+                                            <span>⚠️</span> Mandatory Directives for Paper Setters (Editable)
                                         </h4>
-                                        <span class="bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded">Faculty Mandatory</span>
+                                        <button type="button" onclick="addDirectiveItem()" class="no-print text-xs bg-amber-700 hover:bg-amber-800 text-white font-bold px-3 py-1 rounded shadow-sm">
+                                            ➕ Add New Directive
+                                        </button>
                                     </div>
-                                    <p class="text-xs text-slate-600 leading-relaxed">
-                                        Generates formal office order detailing exam datesheet, syllabus coverage, duty assignments, and confidential QP submission protocols.
-                                    </p>
+                                    <div class="space-y-2">
+                                        ${officeOrderDirectives.map((directiveText, index) => `
+                                            <div class="flex items-start gap-2">
+                                                <span class="font-bold text-amber-900 mt-1.5">${index + 1}.</span>
+                                                <input type="text" value="${directiveText}" onchange="updateDirectiveText(${index}, this.value)" class="flex-grow text-xs p-1.5 border border-amber-300 rounded bg-white font-medium focus:ring-2 focus:ring-amber-500">
+                                                <button type="button" onclick="removeDirectiveItem(${index})" class="no-print text-red-600 hover:text-red-800 text-xs font-bold px-2 py-1 bg-red-100 rounded border border-red-200">
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
                                 </div>
 
-                                <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold uppercase text-indigo-900 flex items-center gap-1.5">
-                                            <span>👨‍🎓</span> Student & Parent Datesheet Circular
-                                        </h4>
-                                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded">Public Board</span>
-                                    </div>
-                                    <p class="text-xs text-slate-600 leading-relaxed">
-                                        Generates an official datesheet circular formatted for notice boards, parent broadcast groups, and student distribution.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
+                                <!-- 5. SIGNATURE BLOCK: LEFT (EXAM IC) & RIGHT (PRINCIPAL) -->
+                                <div class="pt-8 border-t-2 border-slate-300 grid grid-cols-2 gap-8">
+                                    <!-- LEFT SIGNATURE: EXAM IC -->
+                                    <div class="space-y-3 bg-slate-50/80 p-4 rounded-xl border border-slate-200">
+                                        <h5 class="text-xs font-extrabold text-indigo-950 uppercase border-b pb-1">Left Signatory: Exam In-Charge (IC)</h5>
+                                        
+                                        <!-- Faculty Selector Dropdown -->
+                                        <div class="no-print">
+                                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Select Faculty from Roster</label>
+                                            <select onchange="handleExamICSelect(this.value)" class="w-full text-xs p-1.5 border rounded bg-white font-bold">
+                                                ${teachers.map(t => `<option value="${t.name}" ${officeOrderSignatures.examICName === t.name ? 'selected' : ''}>${t.name} (${t.desig})</option>`).join('')}
+                                            </select>
+                                        </div>
 
-                    <!-- SUB-TAB 3: QP SUBMISSIONS TICK RECORD & VAULT OK REPORT -->
-                    ${activePreExamSubTab === 'qp-submissions' ? `
-                        <div class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
-                                    <div>
-                                        <p class="text-xs font-bold text-slate-500 uppercase">Submissions Progress</p>
-                                        <p class="text-2xl font-black text-indigo-900 mt-1">${totalSubmittedCount} / ${totalSubjects} Received</p>
-                                    </div>
-                                    <div class="text-3xl">📥</div>
-                                </div>
-                                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex justify-between items-center">
-                                    <div>
-                                        <p class="text-xs font-bold text-slate-500 uppercase">Submission Deadline</p>
-                                        <div class="flex items-center gap-2 mt-1">
-                                            <input type="date" value="${qpSubmissionDeadline}" onchange="qpSubmissionDeadline=this.value; renderExamCreatorModule();" class="text-xs font-bold p-1 border rounded bg-amber-50 text-amber-900 border-amber-300">
+                                        <!-- e-Sign Upload & Display -->
+                                        <div class="space-y-1">
+                                            <label class="block text-[10px] font-bold text-slate-600 uppercase no-print">e-Sign Upload</label>
+                                            ${officeOrderSignatures.examICEsign ? `
+                                                <div class="relative w-36 h-16 border rounded bg-white flex items-center justify-center overflow-hidden">
+                                                    <img src="${officeOrderSignatures.examICEsign}" class="max-h-full max-w-full object-contain" alt="Exam IC e-Sign">
+                                                    <button type="button" onclick="clearESignature('examIC')" class="no-print absolute top-0 right-0 bg-red-600 text-white text-[9px] px-1 font-bold">✕</button>
+                                                </div>
+                                            ` : `
+                                                <input type="file" accept="image/*" onchange="uploadESignature(event, 'examIC')" class="no-print text-xs text-slate-500">
+                                                <div class="h-12 border-b-2 border-dashed border-slate-400 w-36 print-show-block"></div>
+                                            `}
+                                        </div>
+
+                                        <!-- Name & Designation -->
+                                        <div>
+                                            <input type="text" value="${officeOrderSignatures.examICName}" onchange="updateSignatureField('examICName', this.value)" class="w-full text-xs font-bold text-slate-900 border-b p-1 bg-transparent">
+                                            <input type="text" value="${officeOrderSignatures.examICDesig}" onchange="updateSignatureField('examICDesig', this.value)" class="w-full text-[11px] font-semibold text-slate-600 border-b p-1 bg-transparent mt-0.5">
                                         </div>
                                     </div>
-                                    <div class="text-3xl">⏰</div>
-                                </div>
-                                <div class="${isAllOk ? 'bg-emerald-900 text-white' : 'bg-amber-900 text-white'} p-5 rounded-xl shadow-xs flex justify-between items-center transition">
-                                    <div>
-                                        <p class="text-xs font-bold uppercase ${isAllOk ? 'text-emerald-200' : 'text-amber-200'}">Vault Clearance Status</p>
-                                        <p class="text-lg font-black mt-1">${isAllOk ? '🟢 ALL CLEAR / OK REPORT READY' : '⏳ PENDING SUBMISSIONS'}</p>
-                                    </div>
-                                    <span class="text-xs ${isAllOk ? 'bg-emerald-700 text-white' : 'bg-amber-800 text-amber-100'} px-3 py-1 rounded font-bold">${isAllOk ? '100% Verified' : `${totalSubjects - totalSubmittedCount} Awaiting`}</span>
-                                </div>
-                            </div>
 
-                            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-                                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b pb-4">
-                                    <div>
-                                        <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
-                                            <span>📝</span> 3. Question Paper Receiving & Submission Tick Matrix
-                                        </h3>
-                                        <p class="text-xs text-slate-500">Tick checkmarks as setters hand over sealed envelopes in the Exam Cell.</p>
-                                    </div>
-                                </div>
-                                <div class="overflow-x-auto border rounded-xl shadow-2xs">
-                                    <table class="w-full text-xs text-left text-slate-700">
-                                        <thead class="bg-indigo-950 text-white uppercase font-semibold">
-                                            <tr>
-                                                <th class="p-3">Class & Subject</th>
-                                                <th class="p-3">Appointed Setter</th>
-                                                <th class="p-3 text-center">Designation</th>
-                                                <th class="p-3 text-center bg-indigo-900">Sealed QP Received?</th>
-                                                <th class="p-3 text-center bg-indigo-900">Answer Key Received?</th>
-                                                <th class="p-3 text-center">Receipt Date</th>
-                                                <th class="p-3 text-center">Vault Clearance</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y bg-white">
-                                            ${subjectsList.map(sub => {
-                                                let rec = qpSubmissionsTracker[sub.key] || { qpReceived: false, answerKeyReceived: false, receivedDate: '' };
-                                                let isComplete = rec.qpReceived && rec.answerKeyReceived;
-                                                return `
-                                                    <tr class="hover:bg-slate-50 border-b">
-                                                        <td class="p-3 font-bold text-indigo-950">
-                                                            Class ${formatClass(sub.cls)} - <span class="bg-indigo-50 border border-indigo-100 text-indigo-800 px-2 py-0.5 rounded">${sub.subject}</span>
-                                                        </td>
-                                                        <td class="p-3 font-bold text-slate-800">👤 ${sub.setterName}</td>
-                                                        <td class="p-3 text-center font-semibold text-slate-600">${sub.desig}</td>
-                                                        <td class="p-3 text-center bg-indigo-50/40">
-                                                            <label class="inline-flex items-center gap-1.5 cursor-pointer font-bold ${rec.qpReceived ? 'text-emerald-700' : 'text-slate-400'}">
-                                                                <input type="checkbox" ${rec.qpReceived ? 'checked' : ''} onchange="toggleQpSubmissionTick('${sub.key}', 'qpReceived')" class="w-4 h-4 text-emerald-600 rounded">
-                                                                ${rec.qpReceived ? '✅ Received' : '⏳ Pending'}
-                                                            </label>
-                                                        </td>
-                                                        <td class="p-3 text-center bg-indigo-50/40">
-                                                            <label class="inline-flex items-center gap-1.5 cursor-pointer font-bold ${rec.answerKeyReceived ? 'text-emerald-700' : 'text-slate-400'}">
-                                                                <input type="checkbox" ${rec.answerKeyReceived ? 'checked' : ''} onchange="toggleQpSubmissionTick('${sub.key}', 'answerKeyReceived')" class="w-4 h-4 text-emerald-600 rounded">
-                                                                ${rec.answerKeyReceived ? '✅ Received' : '⏳ Pending'}
-                                                            </label>
-                                                        </td>
-                                                        <td class="p-3 text-center font-bold text-slate-700">${rec.receivedDate || '-'}</td>
-                                                        <td class="p-3 text-center">
-                                                            ${isComplete ? `<span class="bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-1 rounded-full border border-emerald-300">🟢 READY</span>` : `<span class="bg-amber-100 text-amber-800 font-bold px-2.5 py-1 rounded-full border border-amber-300">🔴 AWAITING</span>`}
-                                                        </td>
-                                                    </tr>
-                                                `;
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                                    <!-- RIGHT SIGNATURE: PRINCIPAL -->
+                                    <div class="space-y-3 bg-slate-50/80 p-4 rounded-xl border border-slate-200 text-right">
+                                        <h5 class="text-xs font-extrabold text-indigo-950 uppercase border-b pb-1 text-right">Right Signatory: Principal</h5>
+                                        
+                                        <!-- Principal Name Input -->
+                                        <div class="no-print text-left">
+                                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Principal Name</label>
+                                            <input type="text" value="${officeOrderSignatures.principalName}" onchange="updateSignatureField('principalName', this.value)" class="w-full text-xs p-1.5 border rounded bg-white font-bold">
+                                        </div>
 
-                            <!-- INTERACTIVE VAULT OK REPORT CANVAS -->
-                            <div class="bg-slate-50 border-2 border-emerald-300 rounded-2xl p-6 space-y-5 shadow-sm">
-                                <div class="flex justify-between items-center border-b border-emerald-200 pb-3 flex-wrap gap-2">
-                                    <div>
-                                        <h3 class="text-base font-bold text-emerald-950 flex items-center gap-2">
-                                            <span>📄</span> Vault "OK Report" Draft & Manual Clearance
-                                        </h3>
-                                        <p class="text-xs text-slate-600">Edit clearance fields, serial seal logs, and official signatures on-screen before generating the print view.</p>
-                                    </div>
-                                    <span class="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-300">✏️ EDITABLE CLEARANCE CANVAS</span>
-                                </div>
+                                        <!-- e-Sign Upload & Display -->
+                                        <div class="space-y-1 flex flex-col items-end">
+                                            <label class="block text-[10px] font-bold text-slate-600 uppercase no-print">e-Sign Upload</label>
+                                            ${officeOrderSignatures.principalEsign ? `
+                                                <div class="relative w-36 h-16 border rounded bg-white flex items-center justify-center overflow-hidden">
+                                                    <img src="${officeOrderSignatures.principalEsign}" class="max-h-full max-w-full object-contain" alt="Principal e-Sign">
+                                                    <button type="button" onclick="clearESignature('principal')" class="no-print absolute top-0 right-0 bg-red-600 text-white text-[9px] px-1 font-bold">✕</button>
+                                                </div>
+                                            ` : `
+                                                <input type="file" accept="image/*" onchange="uploadESignature(event, 'principal')" class="no-print text-xs text-slate-500">
+                                                <div class="h-12 border-b-2 border-dashed border-slate-400 w-36 print-show-block"></div>
+                                            `}
+                                        </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Envelope Seal Series Number(s)</label>
-                                        <input type="text" value="${vaultOkReportDraft.sealSeries}" onchange="updateVaultOkReportDraftField('sealSeries', this.value)" class="w-full text-xs p-2.5 border rounded-lg bg-white font-semibold focus:ring-2 focus:ring-emerald-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Safe Storage Unit / Locker ID</label>
-                                        <input type="text" value="${vaultOkReportDraft.lockerId}" onchange="updateVaultOkReportDraftField('lockerId', this.value)" class="w-full text-xs p-2.5 border rounded-lg bg-white font-semibold focus:ring-2 focus:ring-emerald-500">
+                                        <!-- Name & Designation Display -->
+                                        <div>
+                                            <input type="text" value="${officeOrderSignatures.principalName}" onchange="updateSignatureField('principalName', this.value)" class="w-full text-xs font-bold text-slate-900 border-b p-1 text-right bg-transparent">
+                                            <input type="text" value="${officeOrderSignatures.principalDesig}" onchange="updateSignatureField('principalDesig', this.value)" class="w-full text-[11px] font-semibold text-slate-600 border-b p-1 text-right bg-transparent mt-0.5">
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Verification Remarks / Discrepancy Note</label>
-                                    <textarea onchange="updateVaultOkReportDraftField('remarks', this.value)" class="w-full text-xs p-2.5 border rounded-lg bg-white font-semibold focus:ring-2 focus:ring-emerald-500" rows="2">${vaultOkReportDraft.remarks}</textarea>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-200">
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Exam Cell Member Signatory</label>
-                                        <input type="text" value="${vaultOkReportDraft.examCellMember}" onchange="updateVaultOkReportDraftField('examCellMember', this.value)" class="w-full text-xs p-2 border rounded bg-white">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Exam In-Charge (IC) Signatory</label>
-                                        <input type="text" value="${vaultOkReportDraft.examIC}" onchange="updateVaultOkReportDraftField('examIC', this.value)" class="w-full text-xs p-2 border rounded bg-white">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Principal Signatory</label>
-                                        <input type="text" value="${vaultOkReportDraft.principalName}" onchange="updateVaultOkReportDraftField('principalName', this.value)" class="w-full text-xs p-2 border rounded bg-white">
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     ` : ''}
 
-                    <!-- SUB-TAB 4: QP PRINTING DEMAND (+5%) & PROGRESS TRACKER -->
-                    ${activePreExamSubTab === 'qp-printing' ? `
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                            <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2">
-                                <div>
-                                    <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
-                                        <span>🖨️</span> 4. QP Printing Demand Indent Sheet (+5%) & Progress Tracker
-                                    </h3>
-                                    <p class="text-xs text-slate-500">Live student strength calculations with manual overrides, buffer percent adjustments, and printable notes.</p>
-                                </div>
-                                <span class="text-xs font-bold bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full border border-indigo-300">✏️ MANUAL EDITING ACTIVE</span>
-                            </div>
-
-                            <div class="overflow-x-auto border rounded-xl shadow-2xs">
-                                <table class="w-full text-xs text-left text-slate-700">
-                                    <thead class="bg-indigo-950 text-white uppercase font-semibold">
-                                        <tr>
-                                            <th class="p-3">Class</th>
-                                            <th class="p-3">Subject</th>
-                                            <th class="p-3 text-center w-32">Enrolled (Override)</th>
-                                            <th class="p-3 text-center w-32">Buffer %</th>
-                                            <th class="p-3 text-center">Calculated Copies</th>
-                                            <th class="p-3">Special Instructions / Printing Notes (Editable)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y bg-white">
-                                        ${subjectsList.map(sub => {
-                                            let draft = qpPrintingDemandDraft[sub.key] || { strengthOverride: null, bufferPercent: 5, notes: 'Standard Confidential Copy' };
-                                            let autoCount = students.filter(s => String(s.class) === String(sub.cls)).length || 35;
-                                            let finalEnrolled = draft.strengthOverride !== null && draft.strengthOverride !== undefined ? draft.strengthOverride : autoCount;
-                                            let bufferQty = Math.ceil(finalEnrolled * ((draft.bufferPercent || 5) / 100));
-                                            let totalCopies = finalEnrolled + bufferQty;
-                                            return `
-                                                <tr class="hover:bg-slate-50 border-b">
-                                                    <td class="p-3 font-bold text-indigo-900">Class ${formatClass(sub.cls)}</td>
-                                                    <td class="p-3 font-bold text-slate-800">${sub.subject}</td>
-                                                    <td class="p-3 text-center">
-                                                        <input type="number" value="${finalEnrolled}" onchange="updateQpDemandDraftField('${sub.key}', 'strengthOverride', this.value)" class="w-24 text-center font-bold p-1 border rounded bg-amber-50 border-amber-300">
-                                                    </td>
-                                                    <td class="p-3 text-center">
-                                                        <input type="number" value="${draft.bufferPercent || 5}" onchange="updateQpDemandDraftField('${sub.key}', 'bufferPercent', this.value)" class="w-20 text-center font-bold p-1 border rounded bg-indigo-50 border-indigo-300"> %
-                                                    </td>
-                                                    <td class="p-3 text-center font-extrabold text-emerald-900 bg-emerald-50/50">
-                                                        ${totalCopies} Copies <span class="text-[10px] text-slate-500 font-normal block">(+${bufferQty} Buffer)</span>
-                                                    </td>
-                                                    <td class="p-3">
-                                                        <input type="text" value="${draft.notes || 'Standard Confidential Copy'}" onchange="updateQpDemandDraftField('${sub.key}', 'notes', this.value)" class="w-full text-xs p-1.5 border rounded bg-white font-medium focus:ring-2 focus:ring-indigo-500">
-                                                    </td>
-                                                </tr>
-                                            `;
-                                        }).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    ` : ''}
+                    ${activePreExamSubTab === 'datesheet-orders' ? `<div class="bg-white p-6 rounded-xl border"><h3 class="font-bold">2. Datesheet Office Orders</h3></div>` : ''}
+                    ${activePreExamSubTab === 'qp-submissions' ? `<div class="bg-white p-6 rounded-xl border"><h3 class="font-bold">3. QP Submissions & Vault OK Report</h3></div>` : ''}
+                    ${activePreExamSubTab === 'qp-printing' ? `<div class="bg-white p-6 rounded-xl border"><h3 class="font-bold">4. QP Printing Demand (+5%)</h3></div>` : ''}
                 </div>
             `;
         }
 
-        // =========================================================================
-        // 📋 MAIN LIFECYCLE HUB VIEW
-        // =========================================================================
         function renderMainLifecycleHub() {
             return `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                    <div class="border-b pb-4 space-y-3">
-                        <div class="flex justify-between items-center flex-wrap gap-2">
-                            <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                <span>📌</span> Create Exam & End-to-End Lifecycle Operations Hub
-                            </h2>
-                            <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Secondary Wing (VI-XII)</span>
-                        </div>
-                    </div>
-
-                    <!-- CREATED EXAMINATIONS VAULT LIST -->
-                    <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3 shadow-md">
-                        <div class="flex justify-between items-center flex-wrap gap-2 border-b border-slate-700 pb-2.5">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">
-                                📚 Created Examinations Vault List (${archivedExams.length} Records)
-                            </h3>
-                            <button type="button" onclick="startNewExamSetup()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3.5 py-1.5 rounded">
-                                ➕ Create New Exam
-                            </button>
-                        </div>
-                        ${archivedExams.length === 0 ? `
-                            <p class="text-xs text-slate-400 italic py-2">No exam schedules created yet. Click 'Create New Exam' above to start!</p>
-                        ` : `
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-xs text-left text-slate-200">
-                                    <thead class="bg-slate-800 uppercase font-semibold text-slate-300">
-                                        <tr>
-                                            <th class="px-3 py-2.5">Exam Title</th>
-                                            <th class="px-3 py-2.5">Duration</th>
-                                            <th class="px-3 py-2.5 text-center">Days</th>
-                                            <th class="px-3 py-2.5 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-800">
-                                        ${archivedExams.map((ex) => `
-                                            <tr class="hover:bg-slate-800/60">
-                                                <td class="px-3 py-2.5 font-bold text-amber-300">${ex.title}</td>
-                                                <td class="px-3 py-2.5">${ex.fromDate} to ${ex.toDate}</td>
-                                                <td class="px-3 py-2.5 text-center font-bold">${ex.totalDays} Days</td>
-                                                <td class="px-3 py-2.5 text-right space-x-1">
-                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold px-3 py-1 rounded">✏️ Edit</button>
-                                                    <button type="button" onclick="openPreExamFullPageWorkspace()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-3 py-1 rounded">🚀 Open Pre-Exam Hub</button>
-                                                </td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        `}
-                    </div>
-
-                    ${isExamConfigOpen ? `
-                        <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-5 space-y-5 shadow-sm">
-                            <div class="flex justify-between items-center border-b border-indigo-200 pb-2">
-                                <h3 class="text-xs font-bold text-indigo-900 uppercase">📋 Main Examination Title & Dates</h3>
-                                <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded">💾 Save</button>
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                                <div class="col-span-1 sm:col-span-2">
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Name of the Exam</label>
-                                    <select id="exam-name-select" onchange="handleExamNameSelect(this)" class="w-full text-xs p-2.5 border rounded bg-white font-semibold">
-                                        ${examOptionsList.map(opt => `<option value="${opt.id}" ${mainHeaderConfig.name === opt.id ? 'selected' : ''}>${opt.label}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">From Date</label>
-                                    <input type="date" id="exam-from-date" value="${mainHeaderConfig.fromDate}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded bg-white">
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">To Date</label>
-                                    <input type="date" id="exam-to-date" value="${mainHeaderConfig.toDate}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded bg-white">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div id="datesheet-days-container" class="space-y-3"></div>
-                            <button type="button" onclick="addNextDatesheetDay()" class="bg-emerald-600 text-white font-bold text-xs px-5 py-3 rounded-lg shadow-xs">➕ Add Next Day</button>
-                        </div>
-
-                        <div class="pt-4 border-t flex justify-between">
-                            <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-200 text-slate-800 font-bold text-xs px-5 py-2.5 rounded-lg">📁 Minimize Workspace</button>
-                            <button type="button" onclick="bindupAndSaveExamRecord()" class="bg-purple-700 text-white font-bold text-xs px-6 py-3 rounded-lg shadow-md">💾 Save Full Exam & Vault Record</button>
-                        </div>
-                    ` : ''}
-
-                    <!-- LIFECYCLE HUBS -->
-                    <div class="border-t pt-6 space-y-4">
-                        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">📊 Operational Tasks & Lifecycle Management</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="bg-indigo-50/80 border border-indigo-200 p-4 rounded-xl space-y-3 flex flex-col justify-between shadow-xs">
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <h4 class="text-xs font-bold text-indigo-900 uppercase">1️⃣ Pre-Exam Needs</h4>
-                                        <span class="bg-emerald-200 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Ready</span>
-                                    </div>
-                                    <p class="text-[11px] text-slate-600">Office order to QP Setters, datesheet orders, tick matrix & printing demand.</p>
-                                </div>
-                                <button type="button" onclick="openPreExamFullPageWorkspace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded shadow transition">
-                                    🚀 Open Full Pre-Exam Hub
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-900">PMSHRI KV No-1 Itanagar — Exam Lifecycle Hub</h2>
+                    <button type="button" onclick="openPreExamFullPageWorkspace()" class="mt-4 bg-indigo-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow">
+                        🚀 Open Full Pre-Exam Hub
+                    </button>
                 </div>
             `;
         }
-
-        function renderDatesheetDaysContainer() {
-            const container = document.getElementById('datesheet-days-container');
-            if (!container) return;
-            container.innerHTML = '';
-            const classesList = getAllUniqueClasses();
-            datesheetDays.forEach((dayObj) => {
-                let dDate = new Date(dayObj.dateStr);
-                const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' };
-                let dateDisplay = isNaN(dDate.getTime()) ? `Day ${dayObj.id}` : new Intl.DateTimeFormat('en-IN', options).format(dDate);
-                if (!dayObj.paperSlots) dayObj.paperSlots = [];
-                let slotsHtml = '';
-                dayObj.paperSlots.forEach((slot, sIdx) => {
-                    let availableSubjects = getUniqueSubjectsForClass(slot.cls);
-                    let mappedSections = getAllSectionsWithSubject(slot.cls, slot.subject);
-                    let classOptions = classesList.map(c => `<option value="${c}" ${slot.cls === String(c) ? 'selected' : ''}>Class ${formatClass(c)}</option>`).join('');
-                    let subOptions = availableSubjects.map(sub => `<option value="${sub}" ${slot.subject === sub ? 'selected' : ''}>${sub}</option>`).join('');
-                    let sectionCheckboxes = mappedSections.map(sec => {
-                        let isChecked = slot.selectedSections.includes(sec);
-                        return `
-                            <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-white px-2 py-1 rounded border border-indigo-200 cursor-pointer">
-                                <input type="checkbox" value="${sec}" ${isChecked ? 'checked' : ''} onchange="toggleSlotSection(${dayObj.id}, ${slot.slotId}, '${sec}', this.checked)" class="text-indigo-600 rounded">
-                                Sec ${sec}
-                            </label>
-                        `;
-                    }).join('');
-                    slotsHtml += `
-                        <div class="bg-white p-4 rounded-xl border border-indigo-200 space-y-3">
-                            <div class="flex justify-between items-center border-b border-indigo-100 pb-2">
-                                <span class="bg-indigo-900 text-white text-[10px] font-bold px-2 py-0.5 rounded">SLOT ${sIdx + 1}</span>
-                                <button type="button" onclick="removePaperSlotFromDay(${dayObj.id}, ${slot.slotId})" class="text-red-600 text-xs font-bold">🗑️ Remove</button>
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Standard</label>
-                                    <select onchange="handleSlotClassChange(${dayObj.id}, ${slot.slotId}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-slate-50 text-indigo-900">${classOptions}</select>
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Subject</label>
-                                    <select onchange="handleSlotSubjectChange(${dayObj.id}, ${slot.slotId}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-white text-indigo-900">${subOptions}</select>
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Duration</label>
-                                    <select onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'duration', this.value)" class="w-full text-xs p-2 border rounded bg-white"><option value="3 Hours">3 Hours</option></select>
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Max Marks</label>
-                                    <input type="number" value="${slot.maxMarks}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'maxMarks', this.value)" class="w-full text-xs p-2 border rounded bg-white">
-                                </div>
-                            </div>
-                            <div class="bg-indigo-50/60 p-2 rounded border border-indigo-100 flex flex-wrap gap-2">
-                                ${sectionCheckboxes}
-                            </div>
-                        </div>
-                    `;
-                });
-                let dayCard = document.createElement('div');
-                dayCard.className = `border rounded-xl overflow-hidden shadow-xs ${dayObj.saved ? 'bg-slate-100 border-slate-400' : 'bg-slate-50 border-indigo-300'}`;
-                dayCard.innerHTML = `
-                    <div onclick="toggleDayAccordion(${dayObj.id})" class="p-3.5 flex items-center justify-between cursor-pointer border-b bg-slate-100 hover:bg-indigo-50">
-                        <div class="flex items-center gap-3">
-                            <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
-                            <span class="bg-indigo-900 text-white text-xs font-extrabold px-2.5 py-1 rounded">DAY ${dayObj.id}</span>
-                            <h4 class="text-xs font-bold text-slate-800">${dateDisplay}</h4>
-                        </div>
-                        <div class="flex items-center gap-2" onclick="event.stopPropagation()">
-                            ${dayObj.saved ? `<button type="button" onclick="editDayConfig(${dayObj.id})" class="text-xs bg-amber-600 text-white font-bold px-3 py-1 rounded">✏️ Edit</button>` : `<button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded">💾 Save Day</button>`}
-                        </div>
-                    </div>
-                    <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-4">
-                        <button type="button" onclick="addPaperSlotToDay(${dayObj.id})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded">➕ Add Scheduled Paper Slot</button>
-                        <div class="space-y-3">${slotsHtml}</div>
-                    </div>
-                `;
-                container.appendChild(dayCard);
-            });
-        }
-
-        // --- CSV & Student Functions ---
-        function downloadCSVTemplate() {
-            const cls = document.getElementById('filter-class').value; 
-            const sec = document.getElementById('filter-section').value;
-            const subs = sectionConfigs[`${cls}-${sec}`] || [];
-            let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n1,101,Sample Student,` + subs.map(() => '-').join(',') + `\n`;
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `VEMS_Template_Class_${formatClass(cls)}_${sec}.csv`; a.click();
-        }
-
-        function downloadClassCSV() {
-            const cls = document.getElementById('filter-class').value; 
-            const sec = document.getElementById('filter-section').value;
-            const subs = sectionConfigs[`${cls}-${sec}`] || [];
-            const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
-            let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n`;
-            filtered.forEach((s, idx) => {
-                let rowArr = [s.sno || (idx+1), s.roll, `"${s.name}"`];
-                subs.forEach((_, subIdx) => rowArr.push(`"${sanitizeText(s.subjects ? s.subjects[subIdx] : '-')}"`));
-                csv += rowArr.join(',') + '\n';
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Class_${formatClass(cls)}_Sec_${sec}_Students.csv`; a.click();
-        }
-
-        function uploadCSV(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const cls = document.getElementById('filter-class').value; 
-            const sec = document.getElementById('filter-section').value;
-            const expectedSubs = sectionConfigs[`${cls}-${sec}`] || [];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const text = e.target.result.replace(/\r/g, '');
-                const lines = text.split('\n');
-                if (lines.length === 0 || !lines[0].trim()) {
-                    alert("❌ Upload Aborted: Empty CSV file.");
-                    event.target.value = '';
-                    return;
-                }
-                const headerCols = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim().toUpperCase());
-                const uploadedSubs = headerCols.slice(3);
-                const expectedClean = expectedSubs.map(s => s.trim().toUpperCase());
-                const uploadedClean = uploadedSubs.map(s => s.trim().toUpperCase());
-                let isHeaderMatch = expectedClean.length === uploadedClean.length && expectedClean.every((sub, i) => sub === uploadedClean[i]);
-                if (!isHeaderMatch) {
-                    alert(`❌ CSV Subject Header Mismatch Error!\nExpected: ${expectedClean.join(', ')}\nUploaded: ${uploadedClean.join(', ')}`);
-                    event.target.value = '';
-                    return;
-                }
-                let parsedRows = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if(!line) continue;
-                    const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
-                    if (cols.length >= 3) {
-                        let studentMappedSubs = [];
-                        for (let subIdx = 0; subIdx < expectedClean.length; subIdx++) {
-                            let val = cols[3 + subIdx] ? cols[3 + subIdx].trim().toUpperCase() : '-';
-                            if (val && val !== '-' && val !== 'NIL' && val !== 'NONE') {
-                                studentMappedSubs.push(val);
-                            } else {
-                                studentMappedSubs.push('-');
-                            }
-                        }
-                        parsedRows.push({ sno: parseInt(cols[0]) || (parsedRows.length + 1), roll: parseInt(cols[1]) || 0, name: cols[2], class: cls, section: sec, subjects: studentMappedSubs });
-                    }
-                }
-                let updates = {};
-                parsedRows.forEach(row => {
-                    const newKey = db.ref(`students/${cls}/${sec}`).push().key;
-                    row.id = newKey;
-                    updates[newKey] = row;
-                });
-                db.ref(`students/${cls}/${sec}`).set(updates).then(() => {
-                    alert(`✅ CSV Uploaded & Synced Successfully! ${parsedRows.length} records loaded.`);
-                    event.target.value = '';
-                    switchTab('students');
-                });
-            };
-            reader.readAsText(file);
-        }
-
-        function generateStudentPDFReport() { window.print(); }
-        function openStudentModal(id = null) { document.getElementById('student-modal').classList.remove('hidden'); }
-        function closeStudentModal() { document.getElementById('student-modal').classList.add('hidden'); }
-        function saveStudent(e) { e.preventDefault(); closeStudentModal(); }
-        function editStudent(id) { openStudentModal(id); }
-        function deleteStudent(id) { if(confirm("Delete record?")) db.ref(`students`).remove(); }
-
-        // --- Faculty Functions ---
-        function initTeacherFormSelectors() { if(document.getElementById('teaching-allotments-container').children.length === 0) addTeachingRow(); }
-        function getDutyOptionsHtml(selectedVal = 'Self') {
-            let options = `<option value="Self" ${selectedVal === 'Self' ? 'selected' : ''}>Self (Same as Teacher)</option>`;
-            teachers.forEach(t => { options += `<option value="${t.name}" ${selectedVal === t.name ? 'selected' : ''}>${t.name} (${t.desig})</option>`; });
-            return options;
-        }
-        function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self') {
-            const container = document.getElementById('teaching-allotments-container');
-            const div = document.createElement('div'); div.className = "grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded border teaching-row items-center";
-            div.innerHTML = `
-                <div class="md:col-span-2"><select class="text-xs p-1.5 border rounded cls-sel bg-white font-medium w-full" onchange="updateRowSectionsAndSubjects(this)"><option value="6" ${selCls=='6'?'selected':''}>Class VI</option><option value="7" ${selCls=='7'?'selected':''}>Class VII</option><option value="8" ${selCls=='8'?'selected':''}>Class VIII</option><option value="9" ${selCls=='9'?'selected':''}>Class IX</option><option value="10" ${selCls=='10'?'selected':''}>Class X</option><option value="11" ${selCls=='11'?'selected':''}>Class XI</option><option value="12" ${selCls=='12'?'selected':''}>Class XII</option></select></div>
-                <div class="md:col-span-2"><select class="text-xs p-1.5 border rounded sec-sel bg-white font-medium w-full" onchange="updateRowSubjects(this)"></select></div>
-                <div class="md:col-span-3"><select class="text-xs p-1.5 border rounded sub-sel bg-white font-medium w-full"></select></div>
-                <div class="md:col-span-2"><select class="text-xs p-1.5 border rounded qp-sel bg-white font-medium w-full">${getDutyOptionsHtml(qpVal)}</select></div>
-                <div class="md:col-span-2"><select class="text-xs p-1.5 border rounded eval-sel bg-white font-medium w-full">${getDutyOptionsHtml(evalVal)}</select></div>
-                <div class="md:col-span-1 text-right"><button type="button" onclick="this.closest('.teaching-row').remove()" class="text-red-600 font-bold px-2.5 py-1 bg-red-50 rounded border hover:bg-red-100">✕</button></div>`;
-            container.appendChild(div);
-            updateRowSectionsAndSubjects(div.querySelector('.cls-sel'), selSec, selSub);
-        }
-        function updateRowSectionsAndSubjects(clsElem, preSec = null, preSub = null) {
-            const row = clsElem.closest('.teaching-row'); const cls = clsElem.value; const secSel = row.querySelector('.sec-sel'); secSel.innerHTML = '';
-            (cls === '11' || cls === '12' ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D']).forEach(s => { secSel.innerHTML += `<option value="${s}" ${preSec==s?'selected':''}>Sec ${s}</option>`; });
-            updateRowSubjects(secSel, preSub);
-        }
-        function updateRowSubjects(secElem, preSub = null) {
-            const row = secElem.closest('.teaching-row'); const cls = row.querySelector('.cls-sel').value; const sec = secElem.value; const subSel = row.querySelector('.sub-sel'); subSel.innerHTML = '';
-            (sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE']).forEach(sub => { subSel.innerHTML += `<option value="${sub}" ${preSub==sub?'selected':''}>${sub}</option>`; });
-        }
-        function saveTeacherDirect(e) {
-            e.preventDefault();
-            const name = document.getElementById('tch-name-input').value.trim();
-            const desig = document.getElementById('tch-desig-input').value.trim();
-            const editIndex = document.getElementById('tch-edit-index').value;
-            let allotments = [];
-            document.querySelectorAll('.teaching-row').forEach(row => {
-                allotments.push({ cls: row.querySelector('.cls-sel').value, sec: row.querySelector('.sec-sel').value, subject: row.querySelector('.sub-sel').value, qpSetter: row.querySelector('.qp-sel').value || 'Self', evaluator: row.querySelector('.eval-sel').value || 'Self' });
-            });
-            const teacherData = { id: editIndex !== '' ? teachers[editIndex].id : Date.now(), name, desig, allotments };
-            if(editIndex !== '') teachers[editIndex] = teacherData; else teachers.push(teacherData);
-            saveData(); resetTeacherForm(); renderTeachers(); renderClassTeacherCoordinationTable();
-            alert("Faculty assignment saved!"); switchTab('teachers');
-        }
-        function resetTeacherForm() {
-            document.getElementById('tch-edit-index').value = ''; document.getElementById('tch-name-input').value = ''; document.getElementById('tch-desig-input').value = ''; document.getElementById('teaching-allotments-container').innerHTML = ''; addTeachingRow();
-        }
-        function editTeacher(id) {
-            const idx = teachers.findIndex(t => t.id === id); if(idx === -1) return;
-            const t = teachers[idx];
-            document.getElementById('tch-edit-index').value = idx; document.getElementById('tch-name-input').value = t.name; document.getElementById('tch-desig-input').value = t.desig;
-            const container = document.getElementById('teaching-allotments-container'); container.innerHTML = '';
-            if(t.allotments && t.allotments.length > 0) t.allotments.forEach(al => addTeachingRow(al.cls, al.sec, al.subject, al.qpSetter || 'Self', al.evaluator || 'Self')); else addTeachingRow();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        function deleteTeacher(id) { if(confirm("Remove assignment?")) { teachers = teachers.filter(t => t.id !== id); saveData(); renderTeachers(); renderClassTeacherCoordinationTable(); switchTab('teachers'); } }
-        function renderTeachers() {
-            const tbody = document.getElementById('teacher-table-body'); if(!tbody) return; tbody.innerHTML = '';
-            teachers.forEach((t) => {
-                let totalStudentsAllotted = 0; let allotmentsHtml = ''; let dutiesHtml = '';
-                if(t.allotments) {
-                    t.allotments.forEach(al => {
-                        let count = students.filter(s => String(s.class) === String(al.cls) && String(s.section) === String(al.sec)).length;
-                        totalStudentsAllotted += count;
-                        allotmentsHtml += `<div class="text-[11px]">• Class ${formatClass(al.cls)}-${al.sec}: <strong class="text-indigo-900">${al.subject}</strong> (${count} Booklets)</div>`;
-                        dutiesHtml += `<div class="text-[11px]">• Class ${formatClass(al.cls)}-${al.sec}: QP: <strong class="text-indigo-900">${al.qpSetter}</strong> | Eval: <strong class="text-indigo-900">${al.evaluator}</strong></div>`;
-                    });
-                }
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 border-b">
-                        <td class="px-4 py-3 font-semibold">${t.name}<br><span class="px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${t.desig}</span></td>
-                        <td class="px-4 py-3">${allotmentsHtml || '<i>No allotments</i>'}</td>
-                        <td class="px-4 py-3">${dutiesHtml || '<i>No duties</i>'}</td>
-                        <td class="px-4 py-3 text-center bg-indigo-50/50 font-bold text-indigo-900">${totalStudentsAllotted} Booklets</td>
-                        <td class="px-4 py-3 text-center bg-emerald-50/50 font-bold text-emerald-900">${t.allotments ? t.allotments.length : 0} Bundle(s)</td>
-                        <td class="px-4 py-3 text-right space-x-2"><button type="button" onclick="editTeacher(${t.id})" class="text-indigo-600 font-bold">Edit</button><button type="button" onclick="deleteTeacher(${t.id})" class="text-red-600 font-bold">Delete</button></td>
-                    </tr>`;
-            });
-        }
-        function renderClassTeacherCoordinationTable() {
-            const tbody = document.getElementById('ct-coordination-tbody'); if(!tbody) return; tbody.innerHTML = '';
-            ['6', '7', '8', '9', '10', '11', '12'].forEach(cls => {
-                (['A', 'B', 'C', 'D']).forEach(sec => {
-                    let key = `${cls}-${sec}`;
-                    let facOptions = '<option value="">-- Select --</option>';
-                    teachers.forEach(f => { facOptions += `<option value="${f.name}">${f.name} (${f.desig})</option>`; });
-                    tbody.innerHTML += `<tr class="border-b"><td class="px-4 py-2 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td><td class="px-4 py-2"><select id="ct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td><td class="px-4 py-2"><select id="coct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td><td class="px-4 py-2 bg-indigo-50/30"><select id="onduty-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td></tr>`;
-                });
-            });
-        }
-        function saveClassTeacherAssignments() { saveData(); alert("Saved assignments!"); switchTab('teachers'); }
-        function saveSectionConfig(e) { e.preventDefault(); saveData(); alert("Saved Configuration!"); switchTab('config'); }
-        function updatePassword(e, roleKey) { e.preventDefault(); alert("Password updated!"); switchTab('settings'); }
-        function startNewExamSetup() { activeExamId = Date.now(); isExamConfigOpen = true; syncActiveExamDraftToVault(); renderExamCreatorModule(); }
-        function saveMainHeaderConfig() { syncActiveExamDraftToVault(); alert("Main Exam Title Saved!"); }
-        function saveOrUpdateDayConfig(dayId) { let dayObj = datesheetDays.find(d => d.id === dayId); if (dayObj) { dayObj.saved = true; dayObj.isCollapsed = true; syncActiveExamDraftToVault(); renderDatesheetDaysContainer(); } }
-        function editDayConfig(dayId) { let dayObj = datesheetDays.find(d => d.id === dayId); if (dayObj) { dayObj.saved = false; dayObj.isCollapsed = false; renderDatesheetDaysContainer(); } }
-        function loadArchivedExamToEdit(id) { const target = archivedExams.find(ex => ex.id === id); if (!target) return; activeExamId = target.id; isExamConfigOpen = true; renderExamCreatorModule(); }
-        function minimizeActiveWorkspace() { isExamConfigOpen = false; renderExamCreatorModule(); }
-        function bindupAndSaveExamRecord() { isExamConfigOpen = false; saveData(); alert("Full Exam Saved to Vault!"); renderExamCreatorModule(); }
-        function toggleDayAccordion(dayId) { let day = datesheetDays.find(d => d.id === dayId); if (day) { day.isCollapsed = !day.isCollapsed; renderDatesheetDaysContainer(); } }
-        function updateExamDates() { syncActiveExamDraftToVault(); renderDatesheetDaysContainer(); }
-        function handleExamNameSelect(selElem) { mainHeaderConfig.name = selElem.value; syncActiveExamDraftToVault(); }
-        function addNextDatesheetDay() { datesheetDays.push({ id: datesheetDays.length + 1, dateStr: new Date().toISOString().split('T')[0], isCollapsed: false, saved: false, paperSlots: [] }); syncActiveExamDraftToVault(); renderDatesheetDaysContainer(); }
-        function addPaperSlotToDay(dayId) { let dayObj = datesheetDays.find(d => d.id === dayId); if (!dayObj) return; if (!dayObj.paperSlots) dayObj.paperSlots = []; dayObj.paperSlots.push({ slotId: Date.now(), cls: '11', subject: 'ENGLISH', selectedSections: ['A', 'B'], duration: '3 Hours', maxMarks: 80 }); syncActiveExamDraftToVault(); renderDatesheetDaysContainer(); }
-        function removePaperSlotFromDay(dayId, slotId) { let dayObj = datesheetDays.find(d => d.id === dayId); if (!dayObj) return; dayObj.paperSlots = dayObj.paperSlots.filter(s => s.slotId !== slotId); syncActiveExamDraftToVault(); renderDatesheetDaysContainer(); }
-        function getAllSectionsWithSubject(cls, subject) { return ['A', 'B', 'C']; }
-        function handleSlotClassChange(dayId, slotId, clsVal) { syncActiveExamDraftToVault(); renderDatesheetDaysContainer(); }
-        function handleSlotSubjectChange(dayId, slotId, subVal) { syncActiveExamDraftToVault(); renderDatesheetDaysContainer(); }
-        function toggleSlotSection(dayId, slotId, secVal, isChecked) { syncActiveExamDraftToVault(); }
-        function updateSlotField(dayId, slotId, fieldName, val) { syncActiveExamDraftToVault(); }
     </script>
 </body>
 </html>
