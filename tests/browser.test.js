@@ -237,11 +237,16 @@ async function main() {
         await a.evaluate(async () => {
             studentRecords = { '10': { A: {
                 seat1: { id: 'seat1', class: '10', section: 'A', roll: 1, name: 'Seat Student One' },
-                seat2: { id: 'seat2', class: '10', section: 'A', roll: 2, name: 'Seat Student Two' }
+                seat2: { id: 'seat2', class: '10', section: 'A', roll: 2, name: 'Seat Student Two' },
+                inactive1: { id: 'inactive1', class: '10', section: 'A', roll: 3, name: 'Transferred Student', active: false, deactivationReason: 'Transfer Certificate (TC)', deactivatedOn: '2026-10-22' }
             } } };
             await saveData(['students']);
             switchPreExamSubTab('seating');
         });
+        assert.equal(await a.evaluate(() => seatingCandidates(archivedExams.find(ex=>ex.id===100),'2026-11-01').candidates.length), 2, 'inactive student must be excluded from seating');
+        await a.evaluate(() => { switchTab('students'); toggleStudentStatusPanel(true); document.getElementById('student-status-search').value='Transferred Student'; renderStudentStatusSearch(); });
+        assert.match(await a.locator('#student-status-results').innerText(), /INACTIVE/);
+        await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); switchPreExamSubTab('seating'); });
         await a.locator('.seating-room-check[value="classroom-10-A"]').check();
         await a.locator('button', { hasText: 'Generate & Save Seating' }).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);

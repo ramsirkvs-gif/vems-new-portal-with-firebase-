@@ -249,6 +249,7 @@
                     <div class="flex flex-wrap gap-2">
                         <button type="button" onclick="downloadClassCSV()" class="bg-emerald-600 text-white text-xs font-medium px-3 py-2 rounded">📥 Download CSV</button>
                         <label class="bg-sky-600 text-white text-xs font-medium px-3 py-2 rounded cursor-pointer">📤 Upload CSV<input type="file" id="csv-file-input" accept=".csv" onchange="uploadCSV(event)" class="hidden"></label>
+                        <button type="button" onclick="toggleStudentStatusPanel()" class="bg-amber-600 text-white text-xs font-medium px-3 py-2 rounded">🔎 Search / Deactivate</button>
                         <button type="button" onclick="generateStudentPDFReport()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded flex items-center gap-1 shadow">
                             <span>🖨️</span> PDF / Print Report
                         </button>
@@ -260,6 +261,14 @@
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Select Section</label><select id="filter-section" onchange="rememberStudentLocation(); filterStudents()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Stream</label><div id="stream-indicator" class="text-xs font-bold p-2 bg-white rounded border">General</div></div>
                     <div><label class="block text-xs font-medium text-slate-700 mb-1">Strength</label><div id="student-count-badge" class="text-xs font-bold text-indigo-700 p-2 bg-indigo-50 rounded border">Total: 0</div></div>
+                </div>
+                <div id="student-status-panel" class="hidden no-print bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div><h3 class="text-sm font-bold text-amber-950">Student Search & Active Status</h3><p class="text-[11px] text-amber-800">Inactive students remain in school records but are excluded from exam strength, QP demand and seating.</p></div>
+                        <button type="button" onclick="toggleStudentStatusPanel(false)" class="self-start text-xs bg-white border px-3 py-2 rounded">Close</button>
+                    </div>
+                    <div class="flex flex-wrap gap-2"><input id="student-status-search" oninput="renderStudentStatusSearch()" placeholder="Search name, roll, class or section" class="flex-1 min-w-56 text-xs p-2.5 border rounded bg-white"><select id="student-status-filter" onchange="renderStudentStatusSearch()" class="text-xs p-2.5 border rounded bg-white"><option value="all">All students</option><option value="active">Active only</option><option value="inactive">Inactive only</option></select></div>
+                    <div class="max-h-72 overflow-auto border rounded bg-white"><table class="w-full text-xs"><thead class="sticky top-0 bg-amber-900 text-white"><tr><th class="p-2 text-left">Student</th><th class="p-2 text-left">Class / Roll</th><th class="p-2 text-left">Status / Reason</th><th class="p-2 text-right">Action</th></tr></thead><tbody id="student-status-results"></tbody></table></div>
                 </div>
                 <div class="overflow-x-auto border rounded-lg print:border-none">
                     <table class="w-full text-xs text-left text-slate-600">
@@ -489,6 +498,7 @@
             if (!cleaned || cleaned === '-' || cleaned === '—' || cleaned === '–' || cleaned === '?' || cleaned === 'NIL' || cleaned.toLowerCase() === 'none') return '-';
             return cleaned.toUpperCase();
         }
+        function isStudentActive(student) { return student?.active !== false; }
 
         const ROMAN_MAP = { '1': 'I', '2': 'II', '3': 'III', '4': 'IV', '5': 'V', '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || `Class ${cls}`; }
@@ -508,6 +518,7 @@
         let sectionConfigs = {};
         let publishedSubjectDirectories = {};
         let students = [];
+        let studentDeactivationTarget = null;
         let teachers = [];
         let classTeacherAssignments = {};
         let isExamConfigOpen = false;
@@ -920,6 +931,36 @@
             if(cls&&sec) localStorage.setItem(`vems_student_section_${cls}`,sec);
         }
 
+        function toggleStudentStatusPanel(show) {
+            const panel=document.getElementById('student-status-panel'); if(!panel)return;
+            const open=show===undefined?panel.classList.contains('hidden'):show;
+            panel.classList.toggle('hidden',!open);
+            if(open){ studentDeactivationTarget=null; renderStudentStatusSearch(); setTimeout(()=>document.getElementById('student-status-search')?.focus(),0); }
+        }
+
+        function renderStudentStatusSearch() {
+            const body=document.getElementById('student-status-results'); if(!body)return;
+            const term=(document.getElementById('student-status-search')?.value||'').trim().toLowerCase();
+            const filter=document.getElementById('student-status-filter')?.value||'all';
+            const matches=students.filter(student => {
+                const active=isStudentActive(student);
+                if(filter==='active'&&!active||filter==='inactive'&&active)return false;
+                return !term||`${student.name} ${student.roll} ${student.class} ${formatClass(student.class)} ${student.section}`.toLowerCase().includes(term);
+            }).sort((a,b)=>Number(a.class)-Number(b.class)||String(a.section).localeCompare(String(b.section))||Number(a.roll)-Number(b.roll));
+            body.innerHTML=matches.length?matches.map(student => {
+                const active=isStudentActive(student), editing=studentDeactivationTarget===String(student.id);
+                return `<tr class="border-b ${active?'':'bg-slate-100 text-slate-500'}"><td class="p-2 font-bold">${escapeHtml(student.name)}</td><td class="p-2">Class ${escapeHtml(formatClass(student.class))}-${escapeHtml(student.section)} · Roll ${escapeHtml(student.roll)}</td><td class="p-2">${active?'<span class="text-emerald-700 font-bold">ACTIVE</span>':`<span class="text-red-700 font-bold">INACTIVE</span><br><span class="text-[10px]">${escapeHtml(student.deactivationReason||'Reason not recorded')}${student.deactivatedOn?` · ${escapeHtml(formatOrderDate(student.deactivatedOn))}`:''}</span>`}</td><td class="p-2 text-right">${editing?`<div class="flex flex-wrap justify-end gap-1"><select id="deactivate-reason-${escapeHtml(student.id)}" class="border rounded p-1.5 text-xs bg-white"><option value="Transfer Certificate (TC)">Transfer Certificate (TC)</option><option value="Other">Other reason</option></select><input id="deactivate-note-${escapeHtml(student.id)}" placeholder="Optional details" class="border rounded p-1.5 text-xs bg-white w-36"><button onclick="saveStudentActiveStatus(${jsArg(student.id)},false)" class="bg-red-700 text-white px-2 py-1.5 rounded font-bold">Confirm</button><button onclick="studentDeactivationTarget=null;renderStudentStatusSearch()" class="bg-slate-200 px-2 py-1.5 rounded">Cancel</button></div>`:active?`<button onclick="studentDeactivationTarget=${jsArg(student.id)};renderStudentStatusSearch()" class="bg-amber-600 text-white px-3 py-1.5 rounded font-bold">Deactivate</button>`:`<button onclick="saveStudentActiveStatus(${jsArg(student.id)},true)" class="bg-emerald-700 text-white px-3 py-1.5 rounded font-bold">Reactivate</button>`}</td></tr>`;
+            }).join(''):'<tr><td colspan="4" class="p-5 text-center text-slate-400">No matching students found.</td></tr>';
+        }
+
+        async function saveStudentActiveStatus(id, makeActive) {
+            const student=students.find(item=>String(item.id)===String(id)); if(!student)return;
+            const record=studentRecords?.[student.class]?.[student.section]?.[student.id]; if(!record)return;
+            if(makeActive){ record.active=true; delete record.deactivationReason; delete record.deactivationNote; delete record.deactivatedOn; }
+            else { const reason=document.getElementById(`deactivate-reason-${student.id}`)?.value||'Other'; const note=document.getElementById(`deactivate-note-${student.id}`)?.value.trim()||''; record.active=false; record.deactivationReason=reason; record.deactivationNote=note; record.deactivatedOn=new Date().toISOString().slice(0,10); }
+            if(await saveData(['students'])){ studentDeactivationTarget=null; filterStudents(); renderStudentStatusSearch(); }
+        }
+
         function updateStudentTableHeaders() {
             const cls = document.getElementById('filter-class')?.value || '10';
             const sec = document.getElementById('filter-section')?.value || 'A';
@@ -937,7 +978,8 @@
             updateStudentTableHeaders();
             const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
             const countBadge = document.getElementById('student-count-badge');
-            if(countBadge) countBadge.textContent = `Total: ${filtered.length}`;
+            const activeCount=filtered.filter(isStudentActive).length, inactiveCount=filtered.length-activeCount;
+            if(countBadge) countBadge.textContent = `Active: ${activeCount}${inactiveCount?` · Inactive: ${inactiveCount}`:''}`;
             const streamBadge = document.getElementById('stream-indicator');
             if(streamBadge) streamBadge.textContent = getSectionStream(cls, sec);
             const activeSubs = sectionConfigs[`${cls}-${sec}`] || [];
@@ -949,13 +991,14 @@
                 return;
             }
             filtered.forEach((s, idx) => {
-                let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${escapeHtml(s.sno || (idx + 1))}</td><td class="px-2 py-3 font-bold">${escapeHtml(s.roll)}</td><td class="px-3 py-3 font-semibold">${escapeHtml(s.name)}</td>`;
+                const active=isStudentActive(s);
+                let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${escapeHtml(s.sno || (idx + 1))}</td><td class="px-2 py-3 font-bold">${escapeHtml(s.roll)}</td><td class="px-3 py-3 font-semibold">${escapeHtml(s.name)}${active?'':`<br><span class="text-[10px] text-red-700 font-bold">INACTIVE — ${escapeHtml(s.deactivationReason||'Reason not recorded')}</span>`}</td>`;
                 activeSubs.forEach((_, subIdx) => { 
                     let subVal = sanitizeText(s.subjects ? s.subjects[subIdx] : '-');
                     rowHtml += `<td class="px-2 py-3 text-slate-700">${escapeHtml(subVal)}</td>`;
                 });
                 rowHtml += `<td class="px-3 py-3 text-right space-x-2 no-print"><button type="button" onclick="editStudent(${jsArg(s.id)})" class="text-indigo-600 hover:underline">Edit</button><button type="button" onclick="deleteStudent(${jsArg(s.id)})" class="text-red-600 hover:underline">Delete</button></td>`;
-                let tr = document.createElement('tr'); tr.className = "hover:bg-slate-50 border-b"; tr.innerHTML = rowHtml;
+                let tr = document.createElement('tr'); tr.className = active ? "hover:bg-slate-50 border-b" : "bg-slate-100 text-slate-400 border-b"; tr.innerHTML = rowHtml;
                 tbody.appendChild(tr);
             });
         }
@@ -1119,6 +1162,9 @@
                 }
                 let updates = {};
                 parsedRows.forEach(row => {
+                    const previous=Object.values(studentRecords?.[cls]?.[sec]||{}).find(item=>Number(item.roll)===Number(row.roll));
+                    if(previous?.active===false){ row.active=false; row.deactivationReason=previous.deactivationReason||'Other'; row.deactivationNote=previous.deactivationNote||''; row.deactivatedOn=previous.deactivatedOn||''; }
+                    else row.active=true;
                     const newKey = db.ref(`students/${cls}/${sec}`).push().key;
                     row.id = newKey;
                     updates[newKey] = row;
@@ -1169,6 +1215,7 @@
             const studentRef = id ? db.ref(`students/${cls}/${sec}/${id}`) : db.ref(`students/${cls}/${sec}`).push();
             const stuId = id || studentRef.key;
             
+            const previousStudent=id ? studentRecords?.[cls]?.[sec]?.[id] : null;
             const stuData = { 
                 id: stuId, 
                 sno: parseInt(document.getElementById('stu-sno').value), 
@@ -1176,7 +1223,9 @@
                 name: document.getElementById('stu-name').value, 
                 class: cls, 
                 section: sec, 
-                subjects: studentSubjects 
+                subjects: studentSubjects,
+                active: previousStudent?.active !== false,
+                ...(previousStudent?.active===false ? {deactivationReason:previousStudent.deactivationReason||'Other',deactivationNote:previousStudent.deactivationNote||'',deactivatedOn:previousStudent.deactivatedOn||''} : {})
             };
             studentRecords[cls] ||= {};
             studentRecords[cls][sec] ||= {};
@@ -1360,7 +1409,7 @@
                 
                 if(t.allotments) {
                     t.allotments.forEach(al => {
-                        let count = students.filter(s => String(s.class) === String(al.cls) && String(s.section) === String(al.sec)).length;
+                        let count = students.filter(s => isStudentActive(s) && String(s.class) === String(al.cls) && String(s.section) === String(al.sec)).length;
                         totalStudentsAllotted += count;
                         allotmentsHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> (${count} Booklets)</div>`;
                         
@@ -2138,7 +2187,7 @@
             const subjectsList = getExamSubjectsListForVault(selectedPreExamVaultId);
             
             let tableRowsHtml = subjectsList.map((q, idx) => {
-                let count = students.filter(student => String(student.class) === String(q.cls)
+                let count = students.filter(student => isStudentActive(student) && String(student.class) === String(q.cls)
                     && (!q.sections?.length || q.sections.includes(String(student.section)))).length;
                 let buffer = Math.ceil(count * 0.05);
                 let finalDemand = count + buffer;
@@ -2154,9 +2203,9 @@
                     </tr>
                 `;
             }).join('');
-            let totEnrolled = subjectsList.reduce((total, q) => total + students.filter(student => String(student.class) === String(q.cls)
+            let totEnrolled = subjectsList.reduce((total, q) => total + students.filter(student => isStudentActive(student) && String(student.class) === String(q.cls)
                 && (!q.sections?.length || q.sections.includes(String(student.section)))).length, 0);
-            let totBuffer = subjectsList.reduce((total, q) => { const count=students.filter(student => String(student.class) === String(q.cls)
+            let totBuffer = subjectsList.reduce((total, q) => { const count=students.filter(student => isStudentActive(student) && String(student.class) === String(q.cls)
                 && (!q.sections?.length || q.sections.includes(String(student.section)))).length; return total + Math.ceil(count * 0.05); }, 0);
             let totFinal = totEnrolled + totBuffer;
             printWin.document.write(`
@@ -2265,7 +2314,7 @@
         }
 
         function examSlotCandidateCount(slot) {
-            return students.filter(student => String(student.class) === String(slot.cls)
+            return students.filter(student => isStudentActive(student) && String(student.class) === String(slot.cls)
                 && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section)))).length;
         }
 
@@ -2284,7 +2333,7 @@
             if (repeated.size) return { error: `Same class and same subject is repeated on ${formatDateWithDay(date)}: ${[...repeated].join(', ')}`, candidates: [] };
             const result = [];
             const seenStudents = new Set();
-            slots.forEach(slot => students.filter(student => String(student.class) === String(slot.cls)
+            slots.forEach(slot => students.filter(student => isStudentActive(student) && String(student.class) === String(slot.cls)
                 && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section)))).forEach(student => {
                     const id = String(student.id ?? `${student.class}-${student.section}-${student.roll}`);
                     if (seenStudents.has(id)) return;
@@ -2680,7 +2729,7 @@
                                     </thead>
                                     <tbody class="divide-y bg-white">
                                         ${subjectsList.map(sub => {
-                                            let count = students.filter(student => String(student.class) === String(sub.cls)
+                                            let count = students.filter(student => isStudentActive(student) && String(student.class) === String(sub.cls)
                                                 && (!sub.sections?.length || sub.sections.includes(String(student.section)))).length;
                                             let buffer = Math.ceil(count * 0.05), final = count + buffer;
                                             let status = qpPrintingTracker[sub.key] || 'Pending';
