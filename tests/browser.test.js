@@ -187,6 +187,9 @@ async function main() {
         while (await instructionInputs.count() > 1) await instructionInputs.last().locator('xpath=..').locator('button').click();
         await a.locator('button', { hasText: 'Add Instruction' }).click();
         await instructionInputs.nth(1).fill('Submit both Word and PDF files.');
+        await a.waitForTimeout(150);
+        assert.equal(await instructionInputs.count(), 2, 'realtime refresh must not discard a newly added instruction row');
+        assert.equal(await instructionInputs.nth(1).inputValue(), 'Submit both Word and PDF files.');
         await a.evaluate(() => saveQpInstructionsAsDefault());
         assert.deepEqual(data.qpOfficeOrderSettings.defaultInstructions, ['Use the approved blueprint.', 'Submit both Word and PDF files.']);
         assert.match(await a.locator('text=Auto-linked from Faculty Manager').first().textContent(), /Auto-linked/);

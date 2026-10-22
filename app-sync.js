@@ -144,12 +144,13 @@ function refreshSharedViews() {
     filterStudents();
     renderTeachers();
     if (!editorBaselines.assignments) renderClassTeacherCoordinationTable();
-    renderExamCreatorModule();
+    if (!qpOfficeOrderFormDirty) renderExamCreatorModule();
     populateLegacyExamOptions();
 }
 document.addEventListener('focusout', scheduleSharedRender);
 document.addEventListener('input', event => {
     if (event.target.matches('.cfg-sub-input')) sectionFormDirty = true;
+    if (event.target.closest('#qp-instructions-list') || event.target.id?.startsWith('qp-order-')) qpOfficeOrderFormDirty = true;
 });
 document.addEventListener('focusin', event => {
     if (activeExamId !== null && event.target.closest('#exam-creator-mount-prin, #exam-creator-mount-sec, #exam-creator-mount-pri')
