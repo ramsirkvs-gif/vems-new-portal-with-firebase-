@@ -86,13 +86,13 @@
 
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full space-y-6">
-        <!-- PUBLIC DISPLAY BOARD -->
+        <!-- AREA 1: PUBLIC DISPLAY BOARD -->
         <div id="area-public-display" class="space-y-6">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <div>
                         <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                            <span>📢</span> PMSHRI KV No-1 Itanagar — Examination Notice Board
+                            <span>📢</span> PMSHRI KV No-1 Itanagar — Live Examination Notice Board
                         </h2>
                         <p class="text-xs text-slate-500">Public notice area for staff room display screens and teacher mobile view.</p>
                     </div>
@@ -101,16 +101,17 @@
             </div>
         </div>
 
-        <!-- PRINCIPAL WORKSPACE -->
+        <!-- AREA 2: PRINCIPAL WORKSPACE -->
         <div id="area-principal" class="hidden space-y-6">
             <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
-                <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping</button>
+                <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Subject Mapping</button>
                 <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV</button>
                 <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager</button>
                 <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam & Lifecycle Hub</button>
                 <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System Settings</button>
             </div>
             
+            <!-- MODULE 1: SUBJECT MAPPING -->
             <section id="sec-config" class="space-y-6">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                     <div class="flex justify-between items-center border-b pb-4">
@@ -138,20 +139,87 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- DIRECTORY -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <h3 class="text-base font-bold text-slate-900">📚 Consolidated Subject Directory</h3>
+                        <input type="text" id="master-subject-search" oninput="renderMasterSubjectDirectory()" placeholder="🔍 Search..." class="text-xs p-2 border rounded-lg bg-slate-50 shadow-sm w-64">
+                    </div>
+                    <div class="overflow-x-auto border rounded-lg shadow-sm">
+                        <table class="w-full text-xs text-left text-slate-700">
+                            <thead class="bg-indigo-900 text-white uppercase font-semibold">
+                                <tr>
+                                    <th class="px-4 py-3">Class & Section</th>
+                                    <th class="px-4 py-3">Subjects List</th>
+                                    <th class="px-4 py-3 text-center">Total</th>
+                                    <th class="px-4 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="master-subject-directory-tbody" class="divide-y bg-white"></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
+            <!-- MODULE 2: STUDENTS -->
             <section id="sec-students" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
-                <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV</h2>
+                <div class="flex justify-between items-center border-b pb-4">
+                    <h2 class="text-xl font-bold text-slate-900">👨‍🎓 2. Student Master Data & CSV</h2>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="downloadCSVTemplate()" class="bg-slate-600 text-white text-xs px-3 py-2 rounded">📑 Template</button>
+                        <button type="button" onclick="downloadClassCSV()" class="bg-emerald-600 text-white text-xs px-3 py-2 rounded">📥 Download</button>
+                        <label class="bg-sky-600 text-white text-xs px-3 py-2 rounded cursor-pointer">📤 Upload<input type="file" id="csv-file-input" accept=".csv" onchange="uploadCSV(event)" class="hidden"></label>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-lg border grid grid-cols-4 gap-4">
+                    <div><label class="block text-xs font-medium mb-1">Class</label><select id="filter-class" onchange="handleClassChange()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
+                    <div><label class="block text-xs font-medium mb-1">Section</label><select id="filter-section" onchange="filterStudents()" class="w-full text-xs p-2 border rounded bg-white"></select></div>
+                    <div><label class="block text-xs font-medium mb-1">Stream</label><div id="stream-indicator" class="text-xs font-bold p-2 bg-white rounded border">General</div></div>
+                    <div><label class="block text-xs font-medium mb-1">Strength</label><div id="student-count-badge" class="text-xs font-bold text-indigo-700 p-2 bg-indigo-50 rounded border">Total: 0</div></div>
+                </div>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-xs text-left text-slate-600">
+                        <thead class="bg-slate-100 uppercase font-semibold border-b" id="student-table-header-row"></thead>
+                        <tbody id="student-table-body" class="divide-y bg-white"></tbody>
+                    </table>
+                </div>
             </section>
 
+            <!-- MODULE 3: TEACHERS -->
             <section id="sec-teachers" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-8 hidden">
-                <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager</h2>
+                <div class="border-b pb-4">
+                    <h2 class="text-xl font-bold text-slate-900">👩‍🏫 3. Faculty Manager</h2>
+                </div>
+                <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-5 space-y-4">
+                    <h3 class="text-xs font-bold text-indigo-900 uppercase">➕ Add / Edit Faculty Member</h3>
+                    <form onsubmit="saveTeacherDirect(event)" class="space-y-4">
+                        <input type="hidden" id="tch-edit-index" value="">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-bold mb-1">Teacher Full Name</label><input type="text" id="tch-name-input" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required></div>
+                            <div><label class="block text-xs font-bold mb-1">Designation & Subject</label><input type="text" id="tch-desig-input" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required></div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2 border-t">
+                            <button type="submit" class="px-5 py-2 text-xs bg-indigo-600 text-white rounded font-semibold shadow">💾 Save Faculty</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-xs text-left text-slate-600">
+                        <thead class="bg-indigo-900 text-white uppercase font-semibold">
+                            <tr><th class="px-4 py-3">Name & Desig</th><th class="px-4 py-3 text-right">Actions</th></tr>
+                        </thead>
+                        <tbody id="teacher-table-body" class="divide-y bg-white"></tbody>
+                    </table>
+                </div>
             </section>
 
+            <!-- MODULE 4: EXAM CREATOR -->
             <section id="sec-exam-creator-prin" class="space-y-6 hidden">
                 <div id="exam-creator-mount-prin"></div>
             </section>
 
+            <!-- SETTINGS -->
             <section id="sec-settings" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
                 <h2 class="text-xl font-bold text-slate-900">🛡️ System Settings</h2>
             </section>
@@ -202,9 +270,16 @@
 
         let currentActiveRole = localStorage.getItem('vems_active_role') || 'public';
         let currentActiveTab = localStorage.getItem('vems_active_tab') || 'config';
-        let appPasswords = JSON.parse(localStorage.getItem('vems_passwords')) || { principal: 'master777', 'sec-ic': 'Exam123', 'pri-ic': 'Primary123' };
+        
+        let defaultSectionConfigs = {};
+        ['6', '7', '8'].forEach(cls => { ['A', 'B', 'C', 'D'].forEach(sec => { defaultSectionConfigs[`${cls}-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE']; }); });
+        ['A', 'B', 'C', 'D'].forEach(sec => {
+            defaultSectionConfigs[`9-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
+            defaultSectionConfigs[`10-${sec}`] = ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
+        });
+        ['11-A', '11-B', '12-A', '12-B'].forEach(key => { defaultSectionConfigs[key] = ['PHYSICS', 'CHEMISTRY', 'ENGLISH', 'MATHS', 'BIOLOGY', 'C.S', 'HINDI CORE', 'AI']; });
 
-        let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || {};
+        let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || defaultSectionConfigs;
         let students = [];
         let teachers = JSON.parse(localStorage.getItem('vems_teachers')) || [
             { id: 1, name: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS' },
@@ -219,7 +294,6 @@
         let selectedPreExamVaultId = null;
         let qpSubmissionDeadline = '2026-11-05';
 
-        // OFFICE ORDER CONFIGURATION DATA (PRESERVED IN LOCALSTORAGE & FIREBASE)
         let officeOrderDirectives = JSON.parse(localStorage.getItem('vems_office_order_directives')) || [
             "Submit 02 balanced Question Paper sets along with detailed Answer Keys & Marking Schemes in sealed confidential envelopes.",
             "Strictly adhere to the prescribed CBSE/KVS Blueprint and class syllabus weightage.",
@@ -229,27 +303,61 @@
         let officeOrderSignatures = JSON.parse(localStorage.getItem('vems_office_order_signatures')) || {
             examICName: 'Dr. Ramkumar Singh',
             examICDesig: 'Exam In-Charge / PGT Physics',
-            examICEsign: '', // Base64 data URL
+            examICEsign: '',
             principalName: 'Principal',
             principalDesig: 'Principal, PMSHRI KV No-1 Itanagar',
-            principalEsign: '' // Base64 data URL
+            principalEsign: ''
         };
 
         let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
 
-        function saveData() {
-            localStorage.setItem('vems_office_order_directives', JSON.stringify(officeOrderDirectives));
-            localStorage.setItem('vems_office_order_signatures', JSON.stringify(officeOrderSignatures));
-            localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
-            db.ref('officeOrderDirectives').set(officeOrderDirectives);
-            db.ref('officeOrderSignatures').set(officeOrderSignatures);
-            renderExamCreatorModule();
+        function initFirebaseListeners() {
+            db.ref('students').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    students = [];
+                    Object.keys(data).forEach(clsKey => {
+                        Object.keys(data[clsKey]).forEach(secKey => {
+                            Object.keys(data[clsKey][secKey]).forEach(stuKey => {
+                                students.push(data[clsKey][secKey][stuKey]);
+                            });
+                        });
+                    });
+                }
+                filterStudents();
+                renderExamCreatorModule();
+            });
+            db.ref('sectionConfigs').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    sectionConfigs = data;
+                    localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
+                    initCfgSections();
+                    renderMasterSubjectDirectory();
+                }
+            });
         }
+        initFirebaseListeners();
 
         window.addEventListener('DOMContentLoaded', () => {
             activateArea(currentActiveRole);
+            if(currentActiveRole === 'principal') switchTab(currentActiveTab);
             renderExamCreatorModule();
         });
+
+        function saveData() {
+            localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
+            localStorage.setItem('vems_teachers', JSON.stringify(teachers));
+            localStorage.setItem('vems_office_order_directives', JSON.stringify(officeOrderDirectives));
+            localStorage.setItem('vems_office_order_signatures', JSON.stringify(officeOrderSignatures));
+            localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
+            db.ref('sectionConfigs').set(sectionConfigs);
+            db.ref('officeOrderDirectives').set(officeOrderDirectives);
+            db.ref('officeOrderSignatures').set(officeOrderSignatures);
+            db.ref('archivedExams').set(archivedExams);
+            renderMasterSubjectDirectory();
+            renderExamCreatorModule();
+        }
 
         function switchPortalArea(area) {
             if (area === 'public') activateArea('public');
@@ -273,6 +381,7 @@
 
         function logoutSession() { 
             currentActiveRole = 'public'; 
+            localStorage.removeItem('vems_active_role');
             activateArea('public'); 
         }
 
@@ -281,18 +390,270 @@
             document.getElementById('area-principal').classList.toggle('hidden', area !== 'principal');
             document.getElementById('area-sec-ic').classList.toggle('hidden', area !== 'sec-ic');
             document.getElementById('area-pri-ic').classList.toggle('hidden', area !== 'pri-ic');
+            const badge = document.getElementById('active-role-badge');
+            
+            if (area === 'public') {
+                badge.textContent = "📢 Public Mode";
+                badge.className = "bg-emerald-600 text-white px-3 py-1 rounded-full font-medium";
+            } else if (area === 'principal') {
+                badge.textContent = "👔 Principal (Master Access)";
+                badge.className = "bg-indigo-600 text-white px-3 py-1 rounded-full font-medium";
+                switchTab(currentActiveTab);
+            } else if (area === 'sec-ic') {
+                badge.textContent = "🎓 Secondary IC Active";
+                badge.className = "bg-indigo-700 text-white px-3 py-1 rounded-full font-medium";
+            } else if (area === 'pri-ic') {
+                badge.textContent = "🧸 Primary IC Active";
+                badge.className = "bg-amber-600 text-white px-3 py-1 rounded-full font-medium";
+            }
             renderExamCreatorModule();
         }
 
         function switchTab(tab) {
             currentActiveTab = tab;
+            localStorage.setItem('vems_active_tab', tab);
             document.getElementById('sec-config').classList.toggle('hidden', tab !== 'config');
             document.getElementById('sec-students').classList.toggle('hidden', tab !== 'students');
             document.getElementById('sec-teachers').classList.toggle('hidden', tab !== 'teachers');
             document.getElementById('sec-exam-creator-prin').classList.toggle('hidden', tab !== 'exam-creator-prin');
             document.getElementById('sec-settings').classList.toggle('hidden', tab !== 'settings');
+            
+            if(tab === 'config') initCfgSections();
+            if(tab === 'students') initSelectors();
+            if(tab === 'teachers') renderTeachers();
+            if(tab === 'exam-creator-prin') renderExamCreatorModule();
         }
 
+        function getAllUniqueClasses() {
+            let clsSet = new Set();
+            Object.keys(sectionConfigs).forEach(k => {
+                let parts = k.split('-');
+                if(parts.length > 0) clsSet.add(parts[0]);
+            });
+            let arr = Array.from(clsSet);
+            arr.sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0));
+            return arr.length > 0 ? arr : ['6', '7', '8', '9', '10', '11', '12'];
+        }
+
+        function getAllSectionsForClass(cls) {
+            let secSet = new Set();
+            Object.keys(sectionConfigs).forEach(k => {
+                let parts = k.split('-');
+                if(parts[0] === String(cls)) secSet.add(parts[1]);
+            });
+            let arr = Array.from(secSet);
+            arr.sort();
+            return arr.length > 0 ? arr : ['A', 'B', 'C', 'D'];
+        }
+
+        function initCfgSections() { 
+            const clsSel = document.getElementById('cfg-class');
+            if(!clsSel) return;
+            clsSel.innerHTML = '';
+            getAllUniqueClasses().forEach(cls => {
+                clsSel.innerHTML += `<option value="${cls}">Class ${formatClass(cls)}</option>`;
+            });
+            updateCfgSections(); 
+        }
+
+        function updateCfgSections() {
+            const cls = document.getElementById('cfg-class').value;
+            const secSel = document.getElementById('cfg-section');
+            if(!secSel || !cls) return;
+            secSel.innerHTML = '';
+            getAllSectionsForClass(cls).forEach(s => {
+                secSel.innerHTML += `<option value="${s}">Section ${s}</option>`;
+            });
+            loadSectionConfigDetails();
+        }
+
+        function loadSectionConfigDetails() {
+            const cls = document.getElementById('cfg-class').value;
+            const sec = document.getElementById('cfg-section').value;
+            if(!cls || !sec) return;
+            renderConfigSubjectInputs(sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE']);
+        }
+
+        function renderConfigSubjectInputs(subjects) {
+            const container = document.getElementById('cfg-subjects-container');
+            if(!container) return;
+            container.innerHTML = '';
+            subjects.forEach((sub, idx) => {
+                container.innerHTML += `<div class="flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm"><div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${sub}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 text-red-600 text-xs p-2 rounded border">🗑️</button></div>`;
+            });
+        }
+
+        function addNewSubjectField() {
+            const container = document.getElementById('cfg-subjects-container');
+            if(!container) return;
+            let idx = container.children.length;
+            container.innerHTML += `<div class="flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm"><div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="NEW SUBJECT" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 text-red-600 text-xs p-2 rounded border">🗑️</button></div>`;
+        }
+
+        function saveSectionConfig(e) {
+            e.preventDefault();
+            const cls = document.getElementById('cfg-class').value;
+            const sec = document.getElementById('cfg-section').value;
+            let subs = [];
+            document.querySelectorAll('.cfg-sub-input').forEach(inp => { if(inp.value.trim()) subs.push(inp.value.trim().toUpperCase()); });
+            sectionConfigs[`${cls}-${sec}`] = subs;
+            saveData();
+            alert("Section configuration saved successfully!");
+        }
+
+        function renderMasterSubjectDirectory() {
+            const tbody = document.getElementById('master-subject-directory-tbody');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            getAllUniqueClasses().forEach(cls => {
+                getAllSectionsForClass(cls).forEach(sec => {
+                    let key = `${cls}-${sec}`;
+                    let subs = sectionConfigs[key] || [];
+                    if(subs.length === 0) return;
+                    let subBadges = subs.map(s => `<span class="inline-block bg-indigo-50 border text-indigo-800 text-[11px] font-semibold px-2 py-0.5 rounded m-0.5">${s}</span>`).join('');
+                    tbody.innerHTML += `<tr class="hover:bg-slate-50 border-b"><td class="px-4 py-3 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td><td class="px-4 py-3">${subBadges}</td><td class="px-4 py-3 text-center font-bold">${subs.length}</td><td class="px-4 py-3 text-right"><button type="button" onclick="switchTab('config')" class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded text-xs font-semibold">✏️ Edit</button></td></tr>`;
+                });
+            });
+        }
+
+        function initSelectors() {
+            const classSel = document.getElementById('filter-class');
+            if(!classSel) return;
+            classSel.innerHTML = '';
+            getAllUniqueClasses().forEach(cls => { classSel.innerHTML += `<option value="${cls}">Class ${formatClass(cls)}</option>`; });
+            handleClassChange();
+        }
+
+        function handleClassChange() {
+            const cls = document.getElementById('filter-class').value;
+            const secSel = document.getElementById('filter-section');
+            if(!secSel || !cls) return;
+            secSel.innerHTML = '';
+            getAllSectionsForClass(cls).forEach(sec => { secSel.innerHTML += `<option value="${sec}">Section ${sec}</option>`; });
+            filterStudents();
+        }
+
+        function filterStudents() {
+            const cls = document.getElementById('filter-class')?.value;
+            const sec = document.getElementById('filter-section')?.value;
+            if(!cls || !sec) return;
+            const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
+            document.getElementById('student-count-badge').textContent = `Total: ${filtered.length}`;
+            
+            const subs = sectionConfigs[`${cls}-${sec}`] || [];
+            let headerHtml = `<th class="px-2 py-3 text-center">S.No</th><th class="px-2 py-3">Roll</th><th class="px-3 py-3">Student Name</th>`;
+            subs.forEach(sub => headerHtml += `<th class="px-2 py-3 bg-indigo-50/50">${sub}</th>`);
+            document.getElementById('student-table-header-row').innerHTML = headerHtml;
+            
+            const tbody = document.getElementById('student-table-body');
+            tbody.innerHTML = '';
+            filtered.forEach((s, idx) => {
+                let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${s.sno || (idx + 1)}</td><td class="px-2 py-3 font-bold">${s.roll}</td><td class="px-3 py-3 font-semibold">${s.name}</td>`;
+                subs.forEach((_, subIdx) => { 
+                    let subVal = s.subjects && s.subjects[subIdx] ? s.subjects[subIdx] : '-';
+                    rowHtml += `<td class="px-2 py-3 text-slate-700">${subVal}</td>`; 
+                });
+                tbody.innerHTML += `<tr class="hover:bg-slate-50 border-b">${rowHtml}</tr>`;
+            });
+        }
+
+        function downloadCSVTemplate() {
+            const cls = document.getElementById('filter-class').value; 
+            const sec = document.getElementById('filter-section').value;
+            const subs = sectionConfigs[`${cls}-${sec}`] || [];
+            let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n1,101,Sample Student,` + subs.map(() => '-').join(',') + `\n`;
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `VEMS_Template_Class_${formatClass(cls)}_${sec}.csv`; a.click();
+        }
+
+        function downloadClassCSV() {
+            const cls = document.getElementById('filter-class').value; 
+            const sec = document.getElementById('filter-section').value;
+            const subs = sectionConfigs[`${cls}-${sec}`] || [];
+            const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
+            let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n`;
+            filtered.forEach((s, idx) => {
+                let rowArr = [s.sno || (idx+1), s.roll, `"${s.name}"`];
+                subs.forEach((_, subIdx) => rowArr.push(`"${s.subjects ? s.subjects[subIdx] : '-'}"`));
+                csv += rowArr.join(',') + '\n';
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Class_${formatClass(cls)}_Sec_${sec}_Students.csv`; a.click();
+        }
+
+        function uploadCSV(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const cls = document.getElementById('filter-class').value; 
+            const sec = document.getElementById('filter-section').value;
+            const expectedSubs = sectionConfigs[`${cls}-${sec}`] || [];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const text = e.target.result.replace(/\r/g, '');
+                const lines = text.split('\n');
+                if (lines.length === 0 || !lines[0].trim()) { alert("Empty CSV"); return; }
+                const headerCols = lines[0].split(',').map(c => c.replace(/^"|"$/g, '').trim().toUpperCase());
+                let parsedRows = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if(!line) continue;
+                    const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                    if (cols.length >= 3) {
+                        let studentMappedSubs = [];
+                        for (let subIdx = 0; subIdx < expectedSubs.length; subIdx++) {
+                            let val = cols[3 + subIdx] ? cols[3 + subIdx].trim().toUpperCase() : '-';
+                            studentMappedSubs.push(val && val !== '-' ? val : '-');
+                        }
+                        parsedRows.push({ sno: parseInt(cols[0]) || (parsedRows.length + 1), roll: parseInt(cols[1]) || 0, name: cols[2], class: cls, section: sec, subjects: studentMappedSubs });
+                    }
+                }
+                let updates = {};
+                parsedRows.forEach(row => {
+                    const newKey = db.ref(`students/${cls}/${sec}`).push().key;
+                    row.id = newKey;
+                    updates[newKey] = row;
+                });
+                db.ref(`students/${cls}/${sec}`).set(updates).then(() => {
+                    alert(`✅ CSV Uploaded Successfully! ${parsedRows.length} records loaded.`);
+                    switchTab('students');
+                });
+            };
+            reader.readAsText(file);
+        }
+
+        function saveTeacherDirect(e) {
+            e.preventDefault();
+            const name = document.getElementById('tch-name-input').value.trim();
+            const desig = document.getElementById('tch-desig-input').value.trim();
+            const editIndex = document.getElementById('tch-edit-index').value;
+            const teacherData = { id: editIndex !== '' ? teachers[editIndex].id : Date.now(), name, desig };
+            if(editIndex !== '') teachers[editIndex] = teacherData; else teachers.push(teacherData);
+            saveData(); 
+            document.getElementById('tch-name-input').value = '';
+            document.getElementById('tch-desig-input').value = '';
+            document.getElementById('tch-edit-index').value = '';
+            renderTeachers();
+            alert("Faculty saved successfully!");
+        }
+
+        function deleteTeacher(id) {
+            if(confirm("Delete teacher?")) {
+                teachers = teachers.filter(t => t.id !== id);
+                saveData();
+                renderTeachers();
+            }
+        }
+
+        function renderTeachers() {
+            const tbody = document.getElementById('teacher-table-body');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            teachers.forEach(t => {
+                tbody.innerHTML += `<tr class="hover:bg-slate-50 border-b"><td class="px-4 py-3 font-semibold">${t.name}<br><span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded">${t.desig}</span></td><td class="px-4 py-3 text-right"><button type="button" onclick="deleteTeacher(${t.id})" class="text-red-600 font-bold">Delete</button></td></tr>`;
+            });
+        }
+
+        // --- PRE-EXAM WORKSPACE & OFFICE ORDER FUNCTIONS ---
         function openPreExamFullPageWorkspace() {
             isPreExamFullPageOpen = true;
             renderExamCreatorModule();
@@ -308,7 +669,6 @@
             renderExamCreatorModule();
         }
 
-        // --- DIRECTIVE MANAGEMENT FUNCTIONS ---
         function updateDirectiveText(index, text) {
             officeOrderDirectives[index] = text;
             saveData();
@@ -324,7 +684,6 @@
             saveData();
         }
 
-        // --- SIGNATURE & E-SIGN FUNCTIONS ---
         function handleExamICSelect(teacherName) {
             let found = teachers.find(t => t.name === teacherName);
             officeOrderSignatures.examICName = teacherName;
@@ -376,16 +735,12 @@
             if (secMount) secMount.innerHTML = htmlContent;
         }
 
-        // =========================================================================
-        // WORKSPACE CANVAS FOR TAB 1 (OFFICE ORDER DIRECTIVE SHEET)
-        // =========================================================================
         function renderFullPagePreExamWorkstation() {
             const subjectsList = getExamSubjectsListForVault();
 
             return `
                 <div class="space-y-6">
-                    <!-- FULL PAGE HEADER BAR -->
-                    <div class="bg-indigo-950 text-white p-5 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-indigo-800">
+                    <div class="bg-indigo-950 text-white p-5 rounded-2xl shadow-xl flex justify-between items-center border border-indigo-800">
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="bg-indigo-800 text-indigo-200 text-xs font-bold px-3 py-1 rounded-full uppercase">Full Workspace</span>
@@ -398,7 +753,6 @@
                         </button>
                     </div>
 
-                    <!-- WORKSPACE SUB-NAVIGATION TABS -->
                     <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-2 flex overflow-x-auto gap-2 no-print">
                         <button type="button" onclick="switchPreExamSubTab('office-order')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition flex items-center justify-center gap-2 ${activePreExamSubTab === 'office-order' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">
                             <span>📄</span> 1. Office Order to QP Setters
@@ -417,7 +771,7 @@
                     <!-- SUB-TAB 1: OFFICE ORDER TO QP SETTERS -->
                     ${activePreExamSubTab === 'office-order' ? `
                         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
-                            <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-2 no-print">
+                            <div class="flex justify-between items-center border-b pb-3 no-print">
                                 <div>
                                     <h3 class="text-base font-bold text-indigo-950 flex items-center gap-2">
                                         <span>📄</span> 1. Office Order Directive Sheet for Question Paper Setters
@@ -429,10 +783,7 @@
                                 </button>
                             </div>
 
-                            <!-- LIVE PRINTABLE DRAFT CANVAS FOR OFFICE ORDER -->
                             <div class="bg-white border-2 border-slate-300 rounded-2xl p-8 space-y-6 shadow-sm print:border-none print:p-0">
-                                
-                                <!-- 1. HEADING WITH SCHOOL NAME: PMSHRI KV No-1 Itanagar -->
                                 <div class="text-center border-b-2 border-slate-900 pb-4 space-y-1">
                                     <h2 class="text-xl font-black uppercase text-indigo-950 tracking-wider">PMSHRI KV NO-1 ITANAGAR</h2>
                                     <p class="text-xs font-extrabold text-slate-800 tracking-wide uppercase">CONFIDENTIAL OFFICE ORDER & DIRECTIVE SHEET FOR QUESTION PAPER SETTERS</p>
@@ -443,7 +794,6 @@
                                     </div>
                                 </div>
 
-                                <!-- 2. CAPTURED EXAM CONTEXT -->
                                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                                     <h4 class="text-xs font-bold text-indigo-950 uppercase">📌 Captured Examination Context</h4>
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -453,7 +803,6 @@
                                     </div>
                                 </div>
 
-                                <!-- 3. MAPPED SUBJECT SETTERS TABLE -->
                                 <div class="space-y-2">
                                     <h4 class="text-xs font-bold text-slate-900 uppercase">📋 Mapped Question Paper Setters List (Auto-Captured)</h4>
                                     <div class="overflow-x-auto border rounded-xl shadow-2xs bg-white">
@@ -484,7 +833,6 @@
                                     </div>
                                 </div>
 
-                                <!-- 4. EDITABLE MANDATORY DIRECTIVES WITH 'ADD NEW' OPTION -->
                                 <div class="bg-amber-50/80 border border-amber-200 p-5 rounded-2xl space-y-3 text-xs text-slate-800">
                                     <div class="flex justify-between items-center border-b border-amber-300 pb-2">
                                         <h4 class="font-extrabold text-amber-950 uppercase flex items-center gap-1.5">
@@ -499,29 +847,22 @@
                                             <div class="flex items-start gap-2">
                                                 <span class="font-bold text-amber-900 mt-1.5">${index + 1}.</span>
                                                 <input type="text" value="${directiveText}" onchange="updateDirectiveText(${index}, this.value)" class="flex-grow text-xs p-1.5 border border-amber-300 rounded bg-white font-medium focus:ring-2 focus:ring-amber-500">
-                                                <button type="button" onclick="removeDirectiveItem(${index})" class="no-print text-red-600 hover:text-red-800 text-xs font-bold px-2 py-1 bg-red-100 rounded border border-red-200">
-                                                    🗑️
-                                                </button>
+                                                <button type="button" onclick="removeDirectiveItem(${index})" class="no-print text-red-600 text-xs font-bold px-2 py-1 bg-red-100 rounded border">🗑️</button>
                                             </div>
                                         `).join('')}
                                     </div>
                                 </div>
 
-                                <!-- 5. SIGNATURE BLOCK: LEFT (EXAM IC) & RIGHT (PRINCIPAL) -->
+                                <!-- SIGNATURE BLOCK -->
                                 <div class="pt-8 border-t-2 border-slate-300 grid grid-cols-2 gap-8">
-                                    <!-- LEFT SIGNATURE: EXAM IC -->
                                     <div class="space-y-3 bg-slate-50/80 p-4 rounded-xl border border-slate-200">
                                         <h5 class="text-xs font-extrabold text-indigo-950 uppercase border-b pb-1">Left Signatory: Exam In-Charge (IC)</h5>
-                                        
-                                        <!-- Faculty Selector Dropdown -->
                                         <div class="no-print">
-                                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Select Faculty from Roster</label>
+                                            <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Select Faculty</label>
                                             <select onchange="handleExamICSelect(this.value)" class="w-full text-xs p-1.5 border rounded bg-white font-bold">
                                                 ${teachers.map(t => `<option value="${t.name}" ${officeOrderSignatures.examICName === t.name ? 'selected' : ''}>${t.name} (${t.desig})</option>`).join('')}
                                             </select>
                                         </div>
-
-                                        <!-- e-Sign Upload & Display -->
                                         <div class="space-y-1">
                                             <label class="block text-[10px] font-bold text-slate-600 uppercase no-print">e-Sign Upload</label>
                                             ${officeOrderSignatures.examICEsign ? `
@@ -534,25 +875,18 @@
                                                 <div class="h-12 border-b-2 border-dashed border-slate-400 w-36 print-show-block"></div>
                                             `}
                                         </div>
-
-                                        <!-- Name & Designation -->
                                         <div>
                                             <input type="text" value="${officeOrderSignatures.examICName}" onchange="updateSignatureField('examICName', this.value)" class="w-full text-xs font-bold text-slate-900 border-b p-1 bg-transparent">
                                             <input type="text" value="${officeOrderSignatures.examICDesig}" onchange="updateSignatureField('examICDesig', this.value)" class="w-full text-[11px] font-semibold text-slate-600 border-b p-1 bg-transparent mt-0.5">
                                         </div>
                                     </div>
 
-                                    <!-- RIGHT SIGNATURE: PRINCIPAL -->
                                     <div class="space-y-3 bg-slate-50/80 p-4 rounded-xl border border-slate-200 text-right">
                                         <h5 class="text-xs font-extrabold text-indigo-950 uppercase border-b pb-1 text-right">Right Signatory: Principal</h5>
-                                        
-                                        <!-- Principal Name Input -->
                                         <div class="no-print text-left">
                                             <label class="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">Principal Name</label>
                                             <input type="text" value="${officeOrderSignatures.principalName}" onchange="updateSignatureField('principalName', this.value)" class="w-full text-xs p-1.5 border rounded bg-white font-bold">
                                         </div>
-
-                                        <!-- e-Sign Upload & Display -->
                                         <div class="space-y-1 flex flex-col items-end">
                                             <label class="block text-[10px] font-bold text-slate-600 uppercase no-print">e-Sign Upload</label>
                                             ${officeOrderSignatures.principalEsign ? `
@@ -565,15 +899,12 @@
                                                 <div class="h-12 border-b-2 border-dashed border-slate-400 w-36 print-show-block"></div>
                                             `}
                                         </div>
-
-                                        <!-- Name & Designation Display -->
                                         <div>
                                             <input type="text" value="${officeOrderSignatures.principalName}" onchange="updateSignatureField('principalName', this.value)" class="w-full text-xs font-bold text-slate-900 border-b p-1 text-right bg-transparent">
                                             <input type="text" value="${officeOrderSignatures.principalDesig}" onchange="updateSignatureField('principalDesig', this.value)" class="w-full text-[11px] font-semibold text-slate-600 border-b p-1 text-right bg-transparent mt-0.5">
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     ` : ''}
