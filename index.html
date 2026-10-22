@@ -1603,7 +1603,7 @@
             }
             qpSubmissionsTracker[key][field] = !qpSubmissionsTracker[key][field];
             if (qpSubmissionsTracker[key].qpReceived && qpSubmissionsTracker[key].answerKeyReceived) {
-                qpSubmissionsTracker[key].receivedDate = new Date().toLocaleDateString('en-IN');
+                qpSubmissionsTracker[key].receivedDate = formatOrderDate(new Date().toISOString().slice(0, 10));
             }
             return saveData(['qpSubmissionsTracker']);
         }
@@ -1630,7 +1630,7 @@
             const answerKeyReceived = document.getElementById(`ms-received-${key}`)?.checked || false;
             qpSubmissionsTracker[key] = {
                 ...(qpSubmissionsTracker[key] || {}), qpReceived, answerKeyReceived,
-                receivedDate: qpReceived && answerKeyReceived ? (qpSubmissionsTracker[key]?.receivedDate || new Date().toLocaleDateString('en-IN')) : ''
+                receivedDate: qpReceived && answerKeyReceived ? (qpSubmissionsTracker[key]?.receivedDate || formatOrderDate(new Date().toISOString().slice(0, 10))) : ''
             };
             if (await saveData(['qpSubmissionsTracker'])) renderExamCreatorModule();
         }
@@ -1790,8 +1790,18 @@
 
         function formatOrderDate(value) {
             if (!value) return '—';
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return value;
             const [year, month, day] = value.split('-');
+            if (!year || !month || !day) return value;
             return `${day}/${month}/${year}`;
+        }
+
+        function formatDateWithDay(value) {
+            if (!value) return '—';
+            const iso = /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : value.split('/').reverse().join('-');
+            const date = new Date(`${iso}T12:00:00`);
+            const day = Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-IN', { weekday: 'long' });
+            return `${formatOrderDate(value)}${day ? ` (${day})` : ''}`;
         }
 
         function buildQpSetterOfficeOrderHtml(order = currentQpOfficeOrder()) {
@@ -2113,12 +2123,12 @@
 
         function renderSeatingOverview(exam) {
             const rows = (exam.datesheetSnapshot || []).flatMap(day => (day.paperSlots || []).map(slot => ({ day, slot, count: examSlotCandidateCount(slot) })));
-            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">🪑 Seating Arrangement Planner</h3><p class="text-xs text-slate-500">Candidates are calculated automatically from Student Master for the classes and sections scheduled on each exam day.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Class / Sections</th><th class="p-3 text-left">Paper</th><th class="p-3 text-center">Candidates</th><th class="p-3 text-left">Room Allocation</th></tr></thead><tbody class="divide-y">${rows.map(({day,slot,count}) => `<tr><td class="p-3 font-bold">${escapeHtml(day.dateStr)}</td><td class="p-3">Class ${escapeHtml(formatClass(slot.cls))} (${escapeHtml((slot.selectedSections || []).join(', ') || 'All')})</td><td class="p-3 font-bold">${escapeHtml(slot.subject)}</td><td class="p-3 text-center font-black">${count}</td><td class="p-3 text-amber-700 font-bold">Room setup required</td></tr>`).join('') || '<tr><td colspan="5" class="p-5 text-center text-slate-500">No scheduled papers found.</td></tr>'}</tbody></table></div></div>`;
+            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">🪑 Seating Arrangement Planner</h3><p class="text-xs text-slate-500">Candidates are calculated automatically from Student Master for the classes and sections scheduled on each exam day.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Class / Sections</th><th class="p-3 text-left">Paper</th><th class="p-3 text-center">Candidates</th><th class="p-3 text-left">Room Allocation</th></tr></thead><tbody class="divide-y">${rows.map(({day,slot,count}) => `<tr><td class="p-3 font-bold">${escapeHtml(formatDateWithDay(day.dateStr))}</td><td class="p-3">Class ${escapeHtml(formatClass(slot.cls))} (${escapeHtml((slot.selectedSections || []).join(', ') || 'All')})</td><td class="p-3 font-bold">${escapeHtml(slot.subject)}</td><td class="p-3 text-center font-black">${count}</td><td class="p-3 text-amber-700 font-bold">Room setup required</td></tr>`).join('') || '<tr><td colspan="5" class="p-5 text-center text-slate-500">No scheduled papers found.</td></tr>'}</tbody></table></div></div>`;
         }
 
         function renderInvigilationOverview(exam) {
             const rows = (exam.datesheetSnapshot || []).flatMap(day => (day.paperSlots || []).map((slot, index) => ({ day, slot, teacher: teachers[index % Math.max(teachers.length, 1)] })));
-            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">👩‍🏫 Daywise Invigilation Duty Planner</h3><p class="text-xs text-slate-500">Dates and papers come from Exam Creator; available faculty come from Faculty Manager.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Paper</th><th class="p-3 text-left">Reporting</th><th class="p-3 text-left">Suggested Faculty</th><th class="p-3 text-left">Room</th></tr></thead><tbody class="divide-y">${rows.map(({day,slot,teacher}) => `<tr><td class="p-3 font-bold">${escapeHtml(day.dateStr)}</td><td class="p-3">Class ${escapeHtml(formatClass(slot.cls))} — ${escapeHtml(slot.subject)}</td><td class="p-3">${escapeHtml(slot.repTime || '—')}</td><td class="p-3 font-bold">${escapeHtml(teacher?.name || 'Faculty data required')}</td><td class="p-3 text-amber-700 font-bold">Assign after seating plan</td></tr>`).join('') || '<tr><td colspan="5" class="p-5 text-center text-slate-500">No exam days found.</td></tr>'}</tbody></table></div></div>`;
+            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">👩‍🏫 Daywise Invigilation Duty Planner</h3><p class="text-xs text-slate-500">Dates and papers come from Exam Creator; available faculty come from Faculty Manager.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Paper</th><th class="p-3 text-left">Reporting</th><th class="p-3 text-left">Suggested Faculty</th><th class="p-3 text-left">Room</th></tr></thead><tbody class="divide-y">${rows.map(({day,slot,teacher}) => `<tr><td class="p-3 font-bold">${escapeHtml(formatDateWithDay(day.dateStr))}</td><td class="p-3">Class ${escapeHtml(formatClass(slot.cls))} — ${escapeHtml(slot.subject)}</td><td class="p-3">${escapeHtml(slot.repTime || '—')}</td><td class="p-3 font-bold">${escapeHtml(teacher?.name || 'Faculty data required')}</td><td class="p-3 text-amber-700 font-bold">Assign after seating plan</td></tr>`).join('') || '<tr><td colspan="5" class="p-5 text-center text-slate-500">No exam days found.</td></tr>'}</tbody></table></div></div>`;
         }
 
         function renderInventoryOverview(exam) {
@@ -2198,7 +2208,7 @@
             const instructions = currentDateSheetInstructions(exam.id);
             return `<div class="bg-gradient-to-br from-sky-50 via-white to-indigo-50 rounded-2xl border border-indigo-100 shadow-sm p-5 md:p-7 space-y-5">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-indigo-100 pb-4"><div><h3 class="text-xl font-black text-indigo-950">📅 Date Sheet</h3><p class="text-xs text-slate-500 mt-1">Automatically generated from the selected Vault Exam: <b>${escapeHtml(exam.title)}</b></p></div><button type="button" onclick="previewSelectedDateSheet()" ${rows.length ? '' : 'disabled'} class="bg-indigo-700 hover:bg-indigo-800 disabled:bg-slate-300 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow">👁️ Preview & PDF</button></div>
-                <div class="bg-white/80 rounded-xl border border-indigo-100 p-4 text-center"><h4 class="font-black text-indigo-950 uppercase">${escapeHtml(exam.title)}</h4><p class="text-xs text-slate-500 mt-1">${escapeHtml(exam.fromDate)} to ${escapeHtml(exam.toDate)} • Session 2026–27</p></div>
+                <div class="bg-white/80 rounded-xl border border-indigo-100 p-4 text-center"><h4 class="font-black text-indigo-950 uppercase">${escapeHtml(exam.title)}</h4><p class="text-xs text-slate-500 mt-1">${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))} • Session 2026–27</p></div>
                 <div class="overflow-x-auto rounded-xl border border-indigo-100 bg-white"><table class="w-full text-xs"><thead class="bg-indigo-900 text-white uppercase"><tr><th class="p-3 text-left">Date & Day</th><th class="p-3 text-left">Class / Sections</th><th class="p-3 text-left">Subject</th><th class="p-3 text-center">Reporting</th><th class="p-3 text-center">Reading</th><th class="p-3 text-center">Exam Time</th><th class="p-3 text-center">Duration</th><th class="p-3 text-center">Max Marks</th></tr></thead><tbody class="divide-y divide-indigo-50">${rows.map((row,index) => `<tr class="${index % 2 ? 'bg-sky-50/50' : 'bg-white'}"><td class="p-3 font-bold text-indigo-950">${escapeHtml(formatOrderDate(row.dateStr))}<br><span class="text-[10px] font-normal text-slate-500">${escapeHtml(dateSheetDay(row.dateStr))}</span></td><td class="p-3 font-bold">Class ${escapeHtml(formatClass(row.cls))}<br><span class="text-[10px] text-slate-500">Sections: ${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</span></td><td class="p-3 font-bold text-indigo-900">${escapeHtml(row.subject)}</td><td class="p-3 text-center">${escapeHtml(row.repTime || '—')}</td><td class="p-3 text-center">${escapeHtml(row.readTime || '—')}</td><td class="p-3 text-center font-bold">${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</td><td class="p-3 text-center">${escapeHtml(row.duration || '—')}</td><td class="p-3 text-center font-bold">${escapeHtml(row.maxMarks ?? '—')}</td></tr>`).join('') || '<tr><td colspan="8" class="p-8 text-center text-slate-500">No dated papers are available in this examination.</td></tr>'}</tbody></table></div>
                 <div class="rounded-xl bg-amber-50 border border-amber-200 p-4 space-y-3"><div class="flex items-center justify-between gap-2"><h4 class="text-xs font-black text-amber-900 uppercase">Important Instructions</h4><button type="button" onclick="addDateSheetInstructionRow()" class="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg px-3 py-1.5 text-xs font-bold">＋ Add Instruction</button></div><div id="datesheet-instructions-list" class="space-y-2">${instructions.map((instruction,index) => `<div class="datesheet-instruction-row flex items-start gap-2"><span class="datesheet-instruction-number w-7 pt-2.5 text-right text-xs font-black text-indigo-900">${index + 1}.</span><textarea rows="1" class="datesheet-instruction-input flex-1 min-h-[42px] border rounded-lg p-2.5 text-xs leading-5 bg-white">${escapeHtml(instruction)}</textarea><button type="button" onclick="this.closest('.datesheet-instruction-row').remove(); renumberDateSheetInstructionRows(); captureDateSheetInstructionDraft()" class="mt-1 bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-2 text-xs font-bold">✕</button></div>`).join('')}</div><div class="flex flex-wrap justify-end gap-2"><button type="button" onclick="saveDateSheetInstructions(false)" class="bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg">💾 Save for This Date Sheet</button><button type="button" onclick="saveDateSheetInstructions(true)" class="bg-indigo-800 text-white text-xs font-bold px-4 py-2 rounded-lg">🔄 Save & Set as Default</button></div></div>
             </div>`;
@@ -2251,7 +2261,7 @@
                             <div class="bg-indigo-900/90 p-2 rounded-xl border border-indigo-700/80 flex-grow md:flex-grow-0">
                                 <label class="block text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-0.5">Selected Vault Exam</label>
                                 <select onchange="handlePreExamVaultSelection(this.value)" class="bg-white text-slate-900 text-xs font-bold p-2 rounded w-full md:w-64">
-                                    ${currentExamList.map(ex => `<option value="${escapeHtml(ex.id)}" ${ex.id === selectedExam.id ? 'selected' : ''}>${escapeHtml(ex.title)} (${escapeHtml(ex.fromDate)})</option>`).join('')}
+                                    ${currentExamList.map(ex => `<option value="${escapeHtml(ex.id)}" ${ex.id === selectedExam.id ? 'selected' : ''}>${escapeHtml(ex.title)} (${escapeHtml(formatOrderDate(ex.fromDate))})</option>`).join('')}
                                 </select>
                             </div>
                             <button type="button" onclick="closePreExamFullPageWorkspace()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-3 rounded-xl shadow transition whitespace-nowrap">🔙 Exit</button>
@@ -2454,7 +2464,7 @@
                                         ${archivedExams.map(ex => `
                                             <tr>
                                                 <td class="px-3 py-2 font-bold text-amber-300">${escapeHtml(ex.title)}</td>
-                                                <td class="px-3 py-2">${escapeHtml(ex.fromDate)} to ${escapeHtml(ex.toDate)}</td>
+                                                <td class="px-3 py-2">${escapeHtml(formatOrderDate(ex.fromDate))} to ${escapeHtml(formatOrderDate(ex.toDate))}</td>
                                                 <td class="px-3 py-2 text-right space-x-1">
                                                     <button type="button" onclick="loadArchivedExamToEdit(${Number(ex.id)})" class="bg-indigo-600 text-white text-[11px] px-3 py-1 rounded">✏️ Edit</button>
                                                     <button type="button" onclick="openPreExamFullPageWorkspace(${Number(ex.id)})" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded">🚀 Pre-Exam Hub</button>
@@ -2514,9 +2524,8 @@
             container.innerHTML = '';
             const classesList = getAllUniqueClasses();
             datesheetDays.forEach((dayObj) => {
-                let dDate = new Date(dayObj.dateStr);
-                const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' };
-                let dateDisplay = isNaN(dDate.getTime()) ? `Day ${dayObj.id}` : new Intl.DateTimeFormat('en-IN', options).format(dDate);
+                let dDate = new Date(`${dayObj.dateStr}T12:00:00`);
+                let dateDisplay = isNaN(dDate.getTime()) ? `Day ${dayObj.id}` : formatDateWithDay(dayObj.dateStr);
                 if (!dayObj.paperSlots) dayObj.paperSlots = [];
                 let slotsHtml = '';
                 dayObj.paperSlots.forEach((slot, sIdx) => {

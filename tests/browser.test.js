@@ -170,6 +170,8 @@ async function main() {
         await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); });
         await a.evaluate(() => switchPreExamSubTab('datesheet-orders'));
         assert.match(await a.locator('h3', { hasText: 'Date Sheet' }).textContent(), /Date Sheet/);
+        assert.match(await a.locator('text=01/11/2026').first().textContent(), /01\/11\/2026/);
+        assert.match(await a.locator('text=Sunday').first().textContent(), /Sunday/);
         assert.equal(await a.locator('text=Teacher Staff Room Office Order').count(), 0);
         await a.locator('button', { hasText: 'Preview & PDF' }).click();
         await a.locator('#date-sheet-preview iframe').waitFor();
