@@ -151,6 +151,7 @@ async function main() {
         await a.evaluate(() => document.getElementById('subject-directory-preview').remove());
         await a.evaluate(() => publishSubjectDirectory());
         await b.waitForFunction(() => publishedSubjectDirectories.current?.sections?.['10-A']?.includes('MATHS'));
+        await a.waitForFunction(() => document.getElementById('subject-publish-toggle')?.textContent.includes('Stop Publishing'));
         await b.evaluate(() => { switchPortalArea('public'); renderPublicSubjectDirectory(); });
         assert.deepEqual(await b.locator('#public-subject-class option').allTextContents(), ['All Classes','Class X']);
         await b.selectOption('#public-subject-class','10');

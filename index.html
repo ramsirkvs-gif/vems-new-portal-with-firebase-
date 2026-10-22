@@ -219,7 +219,7 @@
                         <div class="flex flex-wrap gap-2 w-full md:w-auto">
                             <input type="text" id="master-subject-search" oninput="renderMasterSubjectDirectory()" placeholder="🔍 Search Class or Subject..." class="w-full text-xs p-2.5 border border-indigo-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 shadow-sm">
                             <button type="button" onclick="previewSubjectDirectoryPDF()" class="text-xs bg-rose-700 text-white px-3 py-2 rounded">🖨 PDF Preview</button>
-                            <button type="button" onclick="publishSubjectDirectory()" class="text-xs bg-emerald-700 text-white px-3 py-2 rounded">📢 Publish to Public View</button>
+                            <button id="subject-publish-toggle" type="button" onclick="toggleSubjectDirectoryPublishing()" class="text-xs bg-emerald-700 text-white px-3 py-2 rounded">📢 Publish to Public View</button>
                         </div>
                     </div>
                     
@@ -755,7 +755,10 @@
         }
         function previewSubjectDirectoryPDF(){ showSubjectDirectoryPreview(buildSubjectDirectoryHtml()); }
         function printPublishedSubjectDirectory(){ const current=publishedSubjectDirectories.current; if(!current?.sections){alert('No subject directory has been published yet.');return;} showSubjectDirectoryPreview(buildSubjectDirectoryHtml(current.sections,current.publishedAt),'Published Subject Directory'); }
-        async function publishSubjectDirectory(){ if(!subjectDirectoryRows().length){alert('Add and save subject mappings before publishing.');return;} publishedSubjectDirectories={current:{publishedAt:new Date().toISOString(),publishedBy:authorizedRole,sections:cloneData(sectionConfigs)}}; if(await saveData(['publishedSubjectDirectories'])){renderPublicSubjectDirectory();alert('Subject directory published to the Public view.');} }
+        function updateSubjectPublishButton(){const button=document.getElementById('subject-publish-toggle');if(!button)return;const published=!!publishedSubjectDirectories.current;button.textContent=published?'⛔ Stop Publishing':'📢 Publish to Public View';button.className=`text-xs ${published?'bg-red-700':'bg-emerald-700'} text-white px-3 py-2 rounded`;}
+        async function publishSubjectDirectory(){ if(!subjectDirectoryRows().length){alert('Add and save subject mappings before publishing.');return;} publishedSubjectDirectories={current:{publishedAt:new Date().toISOString(),publishedBy:authorizedRole,sections:cloneData(sectionConfigs)}}; if(await saveData(['publishedSubjectDirectories'])){renderPublicSubjectDirectory();updateSubjectPublishButton();alert('Subject directory published to the Public view.');} }
+        async function stopPublishingSubjectDirectory(){if(!publishedSubjectDirectories.current)return;if(!confirm('Stop showing the Subject Directory on the Public portal?'))return;publishedSubjectDirectories={};if(await saveData(['publishedSubjectDirectories'])){renderPublicSubjectDirectory();updateSubjectPublishButton();}}
+        function toggleSubjectDirectoryPublishing(){return publishedSubjectDirectories.current?stopPublishingSubjectDirectory():publishSubjectDirectory();}
         function renderPublicSubjectDirectory(){ const body=document.getElementById('public-subject-directory-body'); if(!body)return; const current=publishedSubjectDirectories.current, term=(document.getElementById('public-subject-search')?.value||'').toLowerCase(), classSelect=document.getElementById('public-subject-class'); const allRows=subjectDirectoryRows(current?.sections||{}); if(classSelect){const selected=classSelect.value; const classes=[...new Set(allRows.map(r=>r.cls))].sort((a,b)=>Number(a)-Number(b)); classSelect.innerHTML='<option value="">All Classes</option>'+classes.map(cls=>`<option value="${escapeHtml(cls)}">Class ${escapeHtml(formatClass(cls))}</option>`).join(''); if(classes.includes(selected))classSelect.value=selected;} const selectedClass=classSelect?.value||''; const rows=allRows.filter(r=>(!selectedClass||r.cls===selectedClass)&&`${formatClass(r.cls)} ${r.sec} ${r.stream} ${r.subjects.join(' ')}`.toLowerCase().includes(term)); body.innerHTML=rows.length?rows.map(r=>`<tr class="border-b"><td class="p-2 font-bold">Class ${escapeHtml(formatClass(r.cls))}-${escapeHtml(r.sec)}</td><td class="p-2">${escapeHtml(r.stream)}</td><td class="p-2">${escapeHtml(r.subjects.join(', '))}</td></tr>`).join(''):`<tr><td colspan="3" class="p-4 text-center text-slate-400">${current?'No matching mapping.':'No subject directory has been published.'}</td></tr>`; document.getElementById('public-subject-published-at').textContent=current?.publishedAt?`Published: ${new Date(current.publishedAt).toLocaleString('en-IN')}`:''; }
         function createTextPdfBlob(lines) {
             const clean=value=>String(value??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,'-').replace(/([\\()])/g,'\\$1');
@@ -913,6 +916,7 @@
             if (foundCount === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-slate-400 italic">No matching class or subject configurations found.</td></tr>`;
             }
+            updateSubjectPublishButton();
         }
 
         function jumpToEditConfig(cls, sec) {
