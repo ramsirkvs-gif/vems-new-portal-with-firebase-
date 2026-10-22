@@ -41,14 +41,54 @@
                 color: black !important;
             }
         }
+        html { scroll-behavior: smooth; }
+        body { overflow-x: hidden; }
+        #login-modal, #student-modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
+        button, select, input, textarea { transition: border-color .18s ease, box-shadow .18s ease, transform .12s ease; }
+        button:active { transform: translateY(1px); }
+        button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid rgba(59,130,246,.28); outline-offset: 1px; }
+        @media (max-width: 767px) {
+            .app-header-row { padding: .65rem .75rem; gap: .65rem; }
+            .app-brand-zone { width: 100%; display: block; }
+            .portal-identity { text-align: center; margin-bottom: .6rem; }
+            .portal-identity h1 { justify-content: center; font-size: 1.1rem; }
+            .role-switcher { width: 100%; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .35rem; }
+            .role-switcher button { justify-content: center; min-height: 38px; padding: .4rem .3rem; font-size: 10px; line-height: 1.15; white-space: normal; }
+            .session-zone { width: 100%; justify-content: center; flex-wrap: wrap; }
+            .session-zone > * { min-height: 34px; display: inline-flex; align-items: center; }
+            #sync-status, #sync-error { padding: .55rem .75rem; font-size: 11px; }
+            main { padding: .75rem !important; }
+            main .p-6 { padding: 1rem !important; }
+            main .p-5 { padding: .9rem !important; }
+            main .gap-4 { gap: .65rem !important; }
+            main .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem !important; }
+            main .justify-between { flex-wrap: wrap; gap: .6rem; }
+            main button, main select, main input:not([type="checkbox"]):not([type="radio"]) { min-height: 40px; }
+            main button { line-height: 1.2; }
+            main h2 { line-height: 1.25; }
+            .module-tabs { gap: .25rem; scroll-snap-type: x proximity; padding-bottom: .25rem; }
+            .module-tabs button { scroll-snap-align: start; min-height: 42px; padding: .55rem .75rem; }
+            .overflow-x-auto { -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+            .overflow-x-auto table { min-width: 620px; }
+            #student-status-panel table, #area-public-display table { min-width: 540px; }
+            [id$="-preview"] > div:first-child { flex-wrap: wrap; gap: .5rem; }
+            [id$="-preview"] > div:first-child > div:last-child { width: 100%; }
+            [id$="-preview"] > div:first-child button { flex: 1; }
+        }
+        @media (min-width: 768px) and (max-width: 1100px) {
+            .app-header-row { align-items: flex-start; }
+            .app-brand-zone { flex: 1 1 100%; justify-content: space-between; }
+            .session-zone { margin-left: auto; }
+            main { padding-left: 1rem !important; padding-right: 1rem !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col">
     <!-- Header -->
     <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-50 no-print">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-4">
-                <div>
+        <div class="app-header-row max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+            <div class="app-brand-zone flex items-center gap-4">
+                <div class="portal-identity">
                     <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
                         <span>🏫</span> VEMS Portal
                     </h1>
@@ -56,7 +96,7 @@
                     <p class="text-[9px] text-indigo-200 hidden sm:block">Vidyalaya Examination Management System</p>
                 </div>
                 <!-- 3-Tier Login Switcher -->
-                <div class="flex items-center gap-1.5 bg-indigo-950/60 p-1.5 rounded-lg border border-indigo-700/50 flex-wrap">
+                <div class="role-switcher flex items-center gap-1.5 bg-indigo-950/60 p-1.5 rounded-lg border border-indigo-700/50 flex-wrap">
                     <button type="button" onclick="switchPortalArea('public')" id="btn-icon-public" class="flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-800 text-white transition">
                         <span>📢</span> Public
                     </button>
@@ -71,7 +111,7 @@
                     </button>
                 </div>
             </div>
-            <div class="flex items-center gap-2 text-xs">
+            <div class="session-zone flex items-center gap-2 text-xs">
                 <span class="bg-indigo-800 text-indigo-100 px-3 py-1 rounded-full font-medium">Session: 2026–27</span>
                 <span id="active-role-badge" class="bg-emerald-600 text-white px-3 py-1 rounded-full font-medium">📢 Public Mode</span>
                 <button id="logout-btn" type="button" onclick="logoutSession()" class="hidden bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded font-semibold transition">
@@ -152,7 +192,7 @@
 
         <!-- AREA 2: PRINCIPAL WORKSPACE -->
         <div id="area-principal" class="hidden space-y-6">
-            <div class="flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
+            <div class="module-tabs flex border-b border-slate-300 gap-2 text-sm font-semibold text-slate-600 overflow-x-auto no-print">
                 <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping (Secondary)</button>
                 <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV (Secondary)</button>
                 <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager (Secondary)</button>
