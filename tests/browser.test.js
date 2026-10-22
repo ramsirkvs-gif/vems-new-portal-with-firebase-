@@ -190,6 +190,13 @@ async function main() {
         const trackerKey = await a.evaluate(() => qpRecordKey(100, '10', 'SCIENCE'));
         await a.evaluate(key => toggleQpSubmissionTick(key, 'qpReceived'), trackerKey);
         await b.waitForFunction(key => qpSubmissionsTracker[key]?.qpReceived === true, trackerKey);
+        await a.evaluate(() => switchPreExamSubTab('qp-receiving'));
+        assert.match(await a.locator(`[id^="receiving-status-"]`).textContent(), /QP RECEIVED · MS NOT YET/);
+        await a.locator(`[id^="ms-received-"]`).check();
+        await a.locator('button', { hasText: 'Save / Update' }).click();
+        await b.waitForFunction(key => qpSubmissionsTracker[key]?.answerKeyReceived === true, trackerKey);
+        await a.evaluate(() => switchPreExamSubTab('qp-printing'));
+        assert.equal(await a.locator('select').last().isDisabled(), false);
         await a.evaluate(() => saveSubmissionDeadline('2026-11-05'));
         await b.waitForFunction(() => qpSubmissionDeadlines['100'] === '2026-11-05');
         await a.evaluate(key => updateQpPrintingStatus(key, 'Completed'), trackerKey);
@@ -197,6 +204,7 @@ async function main() {
         assert.notEqual(await a.evaluate(() => qpRecordKey(100, '10', 'SCIENCE')), await a.evaluate(() => qpRecordKey(200, '10', 'SCIENCE')));
         console.log('PASS: exam-scoped QP submission, printing, and deadlines synchronize');
 
+        await a.evaluate(() => switchPreExamSubTab('qp-setters'));
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
         await a.fill('#qp-order-deadline-at', '2026-11-04T15:30');
         await a.selectOption('#qp-order-method', "Email from the QP setter's personal secure email with Word file and PDF");

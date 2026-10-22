@@ -502,7 +502,7 @@
         const defaultQpSetterInstructions = [
             'Prepare the question paper strictly according to the prescribed syllabus, blueprint and approved marks distribution.',
             'Maintain complete confidentiality during preparation, printing and submission of the question paper.',
-            'Submit the question paper together with its complete marking scheme and answer key.',
+            'Submit the question paper together with its complete marking scheme.',
             'Verify marks, question numbering, spelling, diagrams and formatting before final submission.',
             'Do not include any question outside the prescribed syllabus or disclose the paper through an unauthorized channel.',
             'Report any difficulty immediately to the Examination Cell.'
@@ -1608,6 +1608,33 @@
             return saveData(['qpSubmissionsTracker']);
         }
 
+        function qpReceivingStatus(rec = {}) {
+            if (rec.qpReceived && rec.answerKeyReceived) return { label: 'QP & MS RECEIVED', short: 'READY', ready: true, style: 'bg-emerald-100 text-emerald-800' };
+            if (rec.qpReceived) return { label: 'QP RECEIVED · MS NOT YET', short: 'MS NOT YET', ready: false, style: 'bg-amber-100 text-amber-900' };
+            if (rec.answerKeyReceived) return { label: 'MS RECEIVED · QP NOT YET', short: 'QP NOT YET', ready: false, style: 'bg-sky-100 text-sky-900' };
+            return { label: 'QP & MS NOT YET', short: 'PENDING', ready: false, style: 'bg-slate-100 text-slate-700' };
+        }
+
+        function previewQpReceivingStatus(key) {
+            const rec = {
+                qpReceived: document.getElementById(`qp-received-${key}`)?.checked || false,
+                answerKeyReceived: document.getElementById(`ms-received-${key}`)?.checked || false
+            };
+            const status = qpReceivingStatus(rec);
+            const badge = document.getElementById(`receiving-status-${key}`);
+            if (badge) { badge.textContent = status.label; badge.className = `${status.style} font-bold px-2 py-1 rounded text-[10px] whitespace-nowrap`; }
+        }
+
+        async function saveQpReceivingStatus(key) {
+            const qpReceived = document.getElementById(`qp-received-${key}`)?.checked || false;
+            const answerKeyReceived = document.getElementById(`ms-received-${key}`)?.checked || false;
+            qpSubmissionsTracker[key] = {
+                ...(qpSubmissionsTracker[key] || {}), qpReceived, answerKeyReceived,
+                receivedDate: qpReceived && answerKeyReceived ? (qpSubmissionsTracker[key]?.receivedDate || new Date().toLocaleDateString('en-IN')) : ''
+            };
+            if (await saveData(['qpSubmissionsTracker'])) renderExamCreatorModule();
+        }
+
         function updateQpPrintingStatus(key, status) {
             qpPrintingTracker[key] = status;
             return saveData(['qpPrintingTracker']);
@@ -1818,7 +1845,7 @@
                     </div>
                     <div class="title">OFFICE ORDER — ${escapeHtml(currentExam.title)}</div>
                     <div class="content">
-                        The following faculty members are hereby appointed as Question Paper Setters for <b>${escapeHtml(currentExam.title)}</b>. They shall submit the question papers, complete answer keys and marking schemes by <b>${escapeHtml(formatOrderDate(order.deadlineDate))} at ${escapeHtml(order.deadlineTime)}</b> <b>${escapeHtml(submissionText)}</b>.
+                        The following faculty members are hereby appointed as Question Paper Setters for <b>${escapeHtml(currentExam.title)}</b>. They shall submit the question papers and complete marking schemes by <b>${escapeHtml(formatOrderDate(order.deadlineDate))} at ${escapeHtml(order.deadlineTime)}</b> <b>${escapeHtml(submissionText)}</b>.
                     </div>
                     <table>
                         <thead>
@@ -1914,7 +1941,7 @@
                         <h2>KENDRIYA VIDYALAYA EXAMINATION CELL</h2>
                         <p style="margin:4px 0 0 0; font-weight:bold;">CONFIDENTIAL CLEARANCE & RECEIVING "OK REPORT"</p>
                     </div>
-                    <div class="box">✅ CERTIFIED: 100% QUESTION PAPERS & ANSWER KEYS RECEIVED IN SEALED VAULT</div>
+                    <div class="box">✅ CERTIFIED: 100% QUESTION PAPERS & MARKING SCHEMES RECEIVED IN SEALED VAULT</div>
                     <p style="font-size: 13px;"><b>Exam Title:</b> ${escapeHtml(currentExam.title)} | <b>Clearance Date:</b> ${new Date().toLocaleDateString('en-IN')}</p>
                     <table>
                         <thead>
@@ -1922,7 +1949,7 @@
                                 <th>Class & Subject</th>
                                 <th>Appointed QP Setter</th>
                                 <th style="text-align: center;">QP Status</th>
-                                <th style="text-align: center;">Answer Key Status</th>
+                                <th style="text-align: center;">Marking Scheme Status</th>
                                 <th style="text-align: center;">Received On</th>
                             </tr>
                         </thead>
@@ -2323,21 +2350,23 @@
                                                 <th class="p-3">Class & Subject</th>
                                                 <th class="p-3">Setter</th>
                                                 <th class="p-3 text-center">QP Received?</th>
-                                                <th class="p-3 text-center">Answer Key?</th>
+                                                <th class="p-3 text-center">Marking Scheme (MS)?</th>
                                                 <th class="p-3 text-center">Status</th>
+                                                <th class="p-3 text-center">Save / Update</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y bg-white">
                                             ${subjectsList.map(sub => {
                                                 let rec = qpSubmissionsTracker[sub.key] || { qpReceived: false, answerKeyReceived: false, receivedDate: '' };
-                                                let isComplete = rec.qpReceived && rec.answerKeyReceived;
+                                                const receiving = qpReceivingStatus(rec);
                                                 return `
                                                     <tr class="hover:bg-slate-50 border-b">
                                                         <td class="p-3 font-bold">Class ${escapeHtml(formatClass(sub.cls))} - ${escapeHtml(sub.subject)}</td>
                                                         <td class="p-3 font-bold">${escapeHtml(sub.setterName)}</td>
-                                                        <td class="p-3 text-center"><input type="checkbox" ${rec.qpReceived ? 'checked' : ''} onchange="toggleQpSubmissionTick('${sub.key}', 'qpReceived')" class="w-4 h-4 text-emerald-600 rounded"></td>
-                                                        <td class="p-3 text-center"><input type="checkbox" ${rec.answerKeyReceived ? 'checked' : ''} onchange="toggleQpSubmissionTick('${sub.key}', 'answerKeyReceived')" class="w-4 h-4 text-emerald-600 rounded"></td>
-                                                        <td class="p-3 text-center">${isComplete ? '<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">READY</span>' : '<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">PENDING</span>'}</td>
+                                                        <td class="p-3 text-center"><input id="qp-received-${escapeHtml(sub.key)}" type="checkbox" ${rec.qpReceived ? 'checked' : ''} onchange="previewQpReceivingStatus('${sub.key}')" class="w-4 h-4 text-emerald-600 rounded"></td>
+                                                        <td class="p-3 text-center"><input id="ms-received-${escapeHtml(sub.key)}" type="checkbox" ${rec.answerKeyReceived ? 'checked' : ''} onchange="previewQpReceivingStatus('${sub.key}')" class="w-4 h-4 text-emerald-600 rounded"></td>
+                                                        <td class="p-3 text-center"><span id="receiving-status-${escapeHtml(sub.key)}" class="${receiving.style} font-bold px-2 py-1 rounded text-[10px] whitespace-nowrap">${receiving.label}</span></td>
+                                                        <td class="p-3 text-center"><button type="button" onclick="saveQpReceivingStatus('${sub.key}')" class="bg-indigo-700 hover:bg-indigo-800 text-white text-[10px] font-bold px-3 py-2 rounded">💾 Save / Update</button></td>
                                                     </tr>
                                                 `;
                                             }).join('')}
@@ -2362,6 +2391,7 @@
                                             <th class="p-3 text-center">Enrolled</th>
                                             <th class="p-3 text-center">Buffer (+5%)</th>
                                             <th class="p-3 text-center">Final Print Order</th>
+                                            <th class="p-3 text-center">QP / MS Source Status</th>
                                             <th class="p-3 text-center">Status</th>
                                         </tr>
                                     </thead>
@@ -2371,14 +2401,16 @@
                                                 && (!sub.sections?.length || sub.sections.includes(String(student.section)))).length;
                                             let buffer = Math.ceil(count * 0.05), final = count + buffer;
                                             let status = qpPrintingTracker[sub.key] || 'Pending';
+                                            const receiving = qpReceivingStatus(qpSubmissionsTracker[sub.key]);
                                             return `
                                                 <tr class="hover:bg-slate-50 border-b">
                                                     <td class="p-3 font-bold">Class ${escapeHtml(formatClass(sub.cls))} - ${escapeHtml(sub.subject)}</td>
                                                     <td class="p-3 text-center font-bold">${count}</td>
                                                     <td class="p-3 text-center font-bold text-amber-800">+${buffer}</td>
                                                     <td class="p-3 text-center font-extrabold text-emerald-900">${final} Copies</td>
+                                                    <td class="p-3 text-center"><span class="${receiving.style} font-bold px-2 py-1 rounded text-[10px]">${receiving.label}</span></td>
                                                     <td class="p-3 text-center">
-                                                        <select onchange="updateQpPrintingStatus('${sub.key}', this.value)" class="text-xs font-bold p-1 border rounded">
+                                                        <select onchange="updateQpPrintingStatus('${sub.key}', this.value)" ${receiving.ready ? '' : 'disabled'} class="text-xs font-bold p-1 border rounded disabled:bg-slate-100 disabled:text-slate-400">
                                                             <option value="Pending" ${status === 'Pending' ? 'selected' : ''}>Pending</option>
                                                             <option value="In-Printing" ${status === 'In-Printing' ? 'selected' : ''}>In-Printing</option>
                                                             <option value="Completed" ${status === 'Completed' ? 'selected' : ''}>Sealed in Vault</option>
