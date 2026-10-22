@@ -92,6 +92,7 @@ async function main() {
         }
         const a = await pageFor({ legacy: true });
         const b = await pageFor({ mobile: true, forgedRole: true });
+        assert.equal(await b.getByText('PM SHRI Kendriya Vidyalaya No. 1, Itanagar', {exact:true}).isVisible(), true, 'school name must remain visible on mobile');
         assert.equal(await b.locator('#area-principal').isVisible(), false, 'a local role flag cannot grant access');
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
