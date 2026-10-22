@@ -348,7 +348,7 @@
                     <p class="text-xs text-slate-500">Manage your account and safely import data from the old version.</p>
                 </div>
                 <div class="space-y-4 text-sm">
-                    <p>Staff accounts and passwords are managed securely by Firebase Authentication. Each person signs in with their own email and password on any device.</p>
+                    <p>Role passcodes are managed securely by Firebase Authentication. Select a staff role and enter its passcode on any device. Firebase verifies the passcode for that role.</p>
                     <button type="button" onclick="sendPasswordReset()" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded">Email me a password reset link</button>
                     <div class="border-t pt-4 space-y-3">
                         <h3 class="font-bold text-indigo-900">Move records from an older browser</h3>
@@ -372,16 +372,7 @@
 
         <!-- AREA 4: PRIMARY EXAM IC WORKSPACE -->
         <div id="area-pri-ic" class="hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 space-y-6">
-                <div class="flex justify-between items-center border-b pb-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                            <span>🧸</span> Primary Exam IC Workspace (Classes I to V)
-                        </h2>
-                        <p class="text-xs text-slate-500">Manage primary assessment schedules, formative evaluations, and co-scholastic grading.</p>
-                    </div>
-                </div>
-            </div>
+            <div id="exam-creator-mount-pri"></div>
         </div>
     </main>
 
@@ -391,19 +382,16 @@
             <div class="text-center space-y-1">
                 <span class="text-3xl">🔐</span>
                 <h3 class="text-base font-bold text-slate-800" id="login-modal-title">Portal Login</h3>
-                <p class="text-xs text-slate-500">Sign in with your staff Firebase account</p>
+                <p class="text-xs text-slate-500">Enter the passcode for the selected staff role</p>
             </div>
             <form onsubmit="handleLogin(event)" class="space-y-3">
                 <input type="hidden" id="login-target-role">
+                <input type="hidden" id="login-account-name" autocomplete="username">
                 <div>
-                    <label for="login-email" class="block text-xs font-medium text-slate-700">Staff email</label>
-                    <input type="email" id="login-email" autocomplete="username" required placeholder="Your staff email" class="w-full text-xs p-2.5 border rounded mt-1">
+                    <label class="block text-xs font-medium text-slate-700">Passcode</label>
+                    <input type="password" id="login-password" autocomplete="current-password" required placeholder="Enter role passcode" class="w-full text-xs p-2.5 border rounded mt-1 focus:ring-2 focus:ring-indigo-500">
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-700">Password</label>
-                    <input type="password" id="login-password" autocomplete="current-password" required placeholder="Enter Password" class="w-full text-xs p-2.5 border rounded mt-1 focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <p id="login-error-msg" class="text-xs text-red-600 hidden font-medium text-center">Incorrect Password! Try again.</p>
+                <p id="login-error-msg" class="text-xs text-red-600 hidden font-medium text-center">Incorrect passcode for this role. Try again.</p>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeLoginModal()" class="px-3 py-1.5 text-xs bg-slate-200 rounded">Cancel</button>
                     <button type="submit" class="px-4 py-1.5 text-xs bg-indigo-600 text-white rounded">Login</button>
@@ -467,7 +455,7 @@
             return cleaned.toUpperCase();
         }
 
-        const ROMAN_MAP = { '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
+        const ROMAN_MAP = { '1': 'I', '2': 'II', '3': 'III', '4': 'IV', '5': 'V', '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || `Class ${cls}`; }
         
         let currentActiveRole = 'public';
@@ -603,6 +591,7 @@
                 let parts = k.split('-');
                 if(parts.length > 0) clsSet.add(parts[0]);
             });
+            for (let cls = 1; cls <= 12; cls++) clsSet.add(String(cls));
             let arr = Array.from(clsSet);
             arr.sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0));
             return arr.length > 0 ? arr : ['6', '7', '8', '9', '10', '11', '12'];
@@ -629,7 +618,7 @@
             });
             let arr = Array.from(subSet);
             arr.sort();
-            return arr;
+            return arr.length ? arr : (Number(cls) <= 2 ? ['ENGLISH', 'HINDI', 'MATHS'] : Number(cls) <= 5 ? ['ENGLISH', 'HINDI', 'MATHS', 'EVS'] : ['ENGLISH']);
         }
 
         // =========================================================================
@@ -665,7 +654,9 @@
             if(!cls || !sec) return;
             const key = `${cls}-${sec}`;
             let defaultSubs = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE'];
-            if(cls === '10') defaultSubs = ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
+            if(Number(cls) <= 2) defaultSubs = ['ENGLISH', 'HINDI', 'MATHS'];
+            else if(Number(cls) <= 5) defaultSubs = ['ENGLISH', 'HINDI', 'MATHS', 'EVS'];
+            else if(cls === '10') defaultSubs = ['ENGLISH', 'HINDI', 'MATHEMATICS STANDARD', 'MATHEMATICS BASIC', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
             else if(cls === '9') defaultSubs = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE', 'AI'];
             else if((cls === '11' || cls === '12') && sec === 'C') defaultSubs = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI'];
             else if((cls === '11' || cls === '12') && (sec === 'D' || sec === 'E')) defaultSubs = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI'];
@@ -1465,7 +1456,7 @@
             if (!dayObj) return;
             if (!dayObj.paperSlots) dayObj.paperSlots = [];
             let classesList = getAllUniqueClasses();
-            let defaultCls = classesList.includes('11') ? '11' : classesList[0];
+            let defaultCls = currentActiveRole === 'pri-ic' ? '1' : classesList.includes('11') ? '11' : classesList[0];
             let availableSubs = getUniqueSubjectsForClass(defaultCls);
             let defaultSub = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
             let slotId = Date.now() + Math.floor(Math.random() * 1000);
@@ -1829,8 +1820,10 @@
             const htmlContent = isPreExamFullPageOpen ? renderFullPagePreExamWorkstation() : renderMainLifecycleHub();
             let prinMount = document.getElementById('exam-creator-mount-prin');
             let secMount = document.getElementById('exam-creator-mount-sec');
+            let priMount = document.getElementById('exam-creator-mount-pri');
             if (prinMount) prinMount.innerHTML = currentActiveRole === 'principal' ? htmlContent : '';
             if (secMount) secMount.innerHTML = currentActiveRole === 'sec-ic' ? htmlContent : '';
+            if (priMount) priMount.innerHTML = currentActiveRole === 'pri-ic' ? htmlContent : '';
             if (isExamConfigOpen) renderDatesheetDaysContainer();
         }
 

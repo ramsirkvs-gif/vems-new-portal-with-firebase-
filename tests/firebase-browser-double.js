@@ -15,9 +15,10 @@
         async signInWithEmailAndPassword(email, password) {
             const result = await window.testSignIn(email, password);
             if (!result) throw Object.assign(new Error('Invalid test credentials'), { code: 'auth/invalid-credential' });
+            const sameUser = user?.uid === result.uid;
             user = result;
             auth.currentUser = user;
-            authListener?.(user);
+            if (!sameUser) authListener?.(user);
             return { user };
         },
         async signOut() { user = null; auth.currentUser = null; authListener?.(null); },

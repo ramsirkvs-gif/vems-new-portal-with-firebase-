@@ -3,6 +3,13 @@
 const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'archivedExams',
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines'];
 const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList'];
+// Login identifiers only. Firebase stores and verifies each role's passcode.
+// Keep the existing Principal account; the two IC accounts are provisioned once in Firebase Console.
+const roleAccounts = Object.freeze({
+    principal: 'ramsirkvs@gmail.com',
+    'sec-ic': 'secondary@vems-portal.example',
+    'pri-ic': 'primary@vems-portal.example'
+});
 let studentRecords = {};
 let sharedStore = null;
 let authorizedRole = null;
@@ -34,7 +41,7 @@ function showSyncError(message) {
 }
 function showSyncStatus(state) {
     const element = document.getElementById('sync-status');
-    let text = 'Sign in with your staff account to load shared data.';
+    let text = 'Choose your staff role and enter its passcode to load shared data.';
     let good = false;
     if (loadingStaffData) text = 'Signing in and loading shared records…';
     if (authorizedRole && state) {
@@ -51,7 +58,7 @@ function showSyncStatus(state) {
     if (state?.error) showSyncError(state.error);
 }
 function canEditSharedData(required = 'exam') {
-    const allowed = authorizedRole === 'principal' || (required === 'exam' && authorizedRole === 'sec-ic');
+    const allowed = authorizedRole === 'principal' || (required === 'exam' && ['sec-ic', 'pri-ic'].includes(authorizedRole));
     if (!allowed) { showSyncError('Your staff role cannot make this change. Sign in with the appropriate account.'); return false; }
     try { sharedStore.assertWritable(); return true; }
     catch (error) { showSyncError(error.message); return false; }
@@ -143,7 +150,7 @@ document.addEventListener('input', event => {
     if (event.target.matches('.cfg-sub-input')) sectionFormDirty = true;
 });
 document.addEventListener('focusin', event => {
-    if (activeExamId !== null && event.target.closest('#exam-creator-mount-prin, #exam-creator-mount-sec')
+    if (activeExamId !== null && event.target.closest('#exam-creator-mount-prin, #exam-creator-mount-sec, #exam-creator-mount-pri')
         && event.target.matches('input,select,textarea') && !editorBaselines.exam) {
         const record = sharedStore?.view('archivedExams')[String(activeExamId)];
         if (record) editorBaselines.exam = { path: [String(activeExamId)], value: cloneData(record) };
@@ -173,9 +180,11 @@ function switchPortalArea(area) {
     } else openLoginModal(area);
 }
 function openLoginModal(role) {
+    if (!Object.hasOwn(roleAccounts, role)) return;
     pendingLoginRole = role;
     document.getElementById('login-target-role').value = role;
-    document.getElementById('login-modal-title').textContent = `${role === 'principal' ? 'Principal' : role === 'sec-ic' ? 'Secondary IC' : 'Primary IC'} staff sign-in`;
+    document.getElementById('login-modal-title').textContent = `${role === 'principal' ? 'Principal' : role === 'sec-ic' ? 'Secondary IC' : 'Primary IC'} Login`;
+    document.getElementById('login-account-name').value = roleAccounts[role];
     document.getElementById('login-password').value = '';
     document.getElementById('login-error-msg').classList.add('hidden');
     document.getElementById('login-modal').classList.remove('hidden');
@@ -189,15 +198,26 @@ async function handleLogin(event) {
     try {
         if (!db) throw new Error('Firebase scripts could not load. Check your connection.');
         if (sharedStore?.pendingCount) throw new Error('Wait for pending saves before changing accounts.');
+        const role = document.getElementById('login-target-role').value;
+        if (!Object.hasOwn(roleAccounts, role)) throw new Error('Choose a staff role before entering its passcode.');
         loadingStaffData = true;
         showSyncStatus();
-        await firebase.auth().signInWithEmailAndPassword(document.getElementById('login-email').value.trim(), document.getElementById('login-password').value);
+        await firebase.auth().signInWithEmailAndPassword(roleAccounts[role], document.getElementById('login-password').value);
         document.getElementById('login-password').value = '';
-        // The role listener, rather than a browser flag, opens the staff area.
+        // Reauthenticating the same account need not trigger onAuthStateChanged again.
+        if (authorizedRole && sharedStore && (authorizedRole === role || authorizedRole === 'principal')) {
+            loadingStaffData = false;
+            pendingLoginRole = null;
+            currentActiveRole = role;
+            closeLoginModal();
+            activateArea(role);
+            sharedStore.status();
+        }
+        // On an account change, the role listener verifies permissions before opening the workspace.
     } catch (error) {
         loadingStaffData = false;
         errorElement.textContent = error.code?.startsWith('auth/')
-            ? 'Sign-in failed. Check your staff email/password and that Email/Password sign-in is enabled in Firebase.'
+            ? 'Passcode not accepted for this role. Check the passcode or ask the Principal to check its Firebase role-account setup.'
             : error.message;
         errorElement.classList.remove('hidden');
         showSyncStatus();

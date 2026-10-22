@@ -1,6 +1,6 @@
 # Set up shared saving for VEMS
 
-The updated app uses **Firebase Authentication** for staff sign-in and **Firebase Realtime Database** for shared records. Vercel continues to serve the website. There is no application server to install.
+The portal asks for **only the selected role’s passcode**. It uses a fixed account for each role behind the scenes, with **Firebase Authentication** for passcode verification and **Firebase Realtime Database** for shared records. Vercel continues to serve the website. There is no application server to install.
 
 The code changes alone do not configure your Firebase project or update your live Vercel website. Complete the steps below before staff use the updated version. Do not share account passwords, Firebase exports, or student records in chat.
 
@@ -15,11 +15,12 @@ The code changes alone do not configure your Firebase project or update your liv
 
 1. In the same Firebase project, open **Build → Authentication → Get started** (if shown).
 2. Open **Sign-in method → Email/Password**, enable **Email/Password**, and save. You do not need email-link sign-in.
-3. Open **Users → Add user**. Create an account using the principal's email and a strong new password. Create separate accounts for other staff who need access.
-4. Copy each account's **User UID**. This is the identifier Firebase assigns after you create a user; it is not the email address.
-5. Under **Authentication → Settings → Authorized domains**, add `vems-new-portal-with-firebase.vercel.app` if it is absent. Enter just the hostname, without `https://` or `/`.
+3. Keep the Principal account already created. Its login identifier is configured under `roleAccounts.principal` in `app-sync.js`. Create the two IC accounts in **Users → Add user** using `secondary@vems-portal.example` and `primary@vems-portal.example`. These are internal login identifiers; staff never type them in the portal.
+4. Set each role account's Firebase password to the role passcode you want to retain from the previous app. Passcodes are never stored in HTML, JavaScript, localStorage, or the Realtime Database. GitHub commits cannot set or reset Firebase account passwords. For the existing Principal account, use its password reset email if you want to restore a previous passcode.
+5. Copy each account's **User UID**. This is the identifier Firebase assigns after you create a user; it is not the email address.
+6. Under **Authentication → Settings → Authorized domains**, add `vems-new-portal-with-firebase.vercel.app` if it is absent. Enter just the hostname, without `https://` or `/`.
 
-Old shared passwords no longer unlock the app. Passwords are handled by Firebase Authentication; the app never copies them to the database. Password changes apply to that account on every device. Staff can use the password-reset email button; the administrator can also send a reset from Authentication → Users. Existing sessions may remain signed in until their tokens refresh or the user signs out.
+Staff select Principal, Secondary IC, or Primary IC and enter only that role's passcode. Firebase checks the passcode against the corresponding role account. The existing Principal account's current Firebase passcode continues to work; keeping an older app passcode requires setting that same value in Firebase. There is no fallback that allows one role's code to unlock the other roles. IC identifiers above are not real mailboxes, so manage their account passwords in Firebase Console rather than relying on reset-email delivery. The Principal's reset-email button continues to use the real Principal mailbox.
 
 ## 3. Give each staff account a role
 
@@ -41,7 +42,7 @@ This is an illustration of the new child. **Do not import this whole example ove
 | --- | --- |
 | `principal` | Read shared staff records; edit students, subjects, teachers, assignments, exams, and tracking |
 | `sec-ic` | Read shared staff records; edit exams, question-paper tracking, and deadlines |
-| `pri-ic` | Read shared staff records; existing Primary IC workspace remains a placeholder |
+| `pri-ic` | Read shared staff records; create/edit exams, question-paper tracking, and deadlines |
 | Signed out / no role | Public notice page; no access to staff records |
 
 Only someone with Firebase Console administration access can assign roles. Staff cannot promote themselves using the app. This first version grants approved staff read access to all the shared collections; it does not yet split records by school, session, or primary/secondary section. The public notice board remains a placeholder and does not publish private student or faculty records.
@@ -59,7 +60,7 @@ app-sync.js
 1. Upload/commit those three files to `main` in **ramsirkvs-gif/vems-new-portal-with-firebase-** using your usual GitHub workflow. Keep `database.rules.json`, `firebase.json`, this guide, and `tests/` in the repository for future maintenance.
 2. If Vercel is connected to this branch, it should create a deployment automatically. Check the **Vercel → project → Deployments** page and wait for the new deployment to finish.
 3. If automatic deployments are disabled, deploy that updated commit from Vercel.
-4. Open the deployed site and reload it. Click **Principal**, then sign in with the email/password created in step 2.
+4. Open the deployed site and reload it. Click **Principal**, then enter its Firebase passcode. No email input is shown in the portal.
 5. Wait for **Live sync connected** before editing. A saved record is confirmed only when the saving status finishes. A red error means the change was not confirmed.
 
 No npm installation or build command is needed for this static site. The included `firebase.json` supports local emulator testing and rules deployment; it does not deploy to Vercel. No deployment or production rules update was performed automatically during this coding task.
@@ -106,7 +107,7 @@ Updates propagate over an active Firebase connection, usually within seconds; ex
 
 | Message or symptom | What to check |
 | --- | --- |
-| Sign-in failed | Correct email/password, correct Firebase project, and Email/Password provider enabled |
+| Passcode not accepted | Correct role/account mapping and account passcode, correct Firebase project, and Email/Password provider enabled |
 | Account has no staff role | Exact user's UID exists under `roles` with one of the strings above |
 | Permission denied / could not read role | Rules were published in the correct Realtime Database and UID/role matches |
 | Firebase could not load | Browser access to `www.gstatic.com`, then reload |

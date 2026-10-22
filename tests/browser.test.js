@@ -21,6 +21,7 @@ const accounts = {
     'principal1@example.test': 'principal1', 'principal2@example.test': 'principal2',
     'secondary@example.test': 'secondary', 'primary@example.test': 'primary', 'unassigned@example.test': 'unassigned'
 };
+const rolePasscodes = { principal: 'test-principal-passcode', 'sec-ic': 'test-secondary-passcode', 'pri-ic': 'test-primary-passcode' };
 const subscriptions = [];
 const revisions = {};
 let denyWrites = false;
@@ -28,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (role === 'sec-ic' && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -52,7 +53,7 @@ async function main() {
             pages.push(page);
             page.on('pageerror', error => failures.push(error.message));
             page.on('dialog', dialog => { if (dialog.message() === 'XSS') failures.push('Stored script executed'); return dialog.accept(); });
-            await page.exposeFunction('testSignIn', async (email, password) => password === 'test-password' && accounts[email] ? { uid: accounts[email], email } : null);
+            await page.exposeFunction('testSignIn', async (email, password) => accounts[email] && password === rolePasscodes[data.roles[accounts[email]]] ? { uid: accounts[email], email } : null);
             await page.exposeFunction('testSubscribe', async (name, id, uid) => {
                 subscriptions.push({ path: name, id, page });
                 const value = name === '.info/connected' ? true : name.startsWith('roles/') ? data.roles[name.slice(6)] ?? null : data[name] ?? null;
@@ -81,18 +82,25 @@ async function main() {
         }
         async function login(page, email, role = 'principal') {
             await page.evaluate(role => switchPortalArea(role), role);
-            await page.fill('#login-email', email);
-            await page.fill('#login-password', 'test-password');
+            const account = await page.evaluate(role => roleAccounts[role], role);
+            accounts[account] = role === 'principal' ? 'principal1' : role === 'sec-ic' ? 'secondary' : 'primary';
+            assert.equal(await page.locator('#login-modal input[type="email"]').count(), 0);
+            await page.fill('#login-password', rolePasscodes[role]);
             await page.locator('#login-modal button[type="submit"]').click();
             await page.waitForFunction(() => sharedStore?.ready && sharedStore.connected);
-            await page.locator('#login-email').evaluate(element => element.blur());
+            await page.locator('#login-password').evaluate(element => element.blur());
         }
         const a = await pageFor({ legacy: true });
         const b = await pageFor({ mobile: true, forgedRole: true });
         assert.equal(await b.locator('#area-principal').isVisible(), false, 'a local role flag cannot grant access');
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
-        console.log('PASS: Firebase-account role gating, independent PC and mobile sessions');
+        await a.evaluate(() => openLoginModal('principal'));
+        await a.fill('#login-password', rolePasscodes.principal);
+        await a.locator('#login-modal button[type="submit"]').click();
+        await a.waitForFunction(() => document.getElementById('login-modal').classList.contains('hidden'));
+        assert.equal(await a.locator('#login-password').inputValue(), '');
+        console.log('PASS: passcode-only role entry, same-account reauthentication, independent PC and mobile sessions');
 
         await a.evaluate(() => switchTab('teachers'));
         await a.fill('#tch-name-input', 'New Shared Teacher');
@@ -122,7 +130,7 @@ async function main() {
         await b.evaluate(() => document.activeElement.blur());
         console.log('PASS: a stale assignment table merges edits against the snapshot actually displayed');
 
-        await a.evaluate(() => { switchTab('config'); addNewSubjectField(); });
+        await a.evaluate(() => { switchTab('config'); document.getElementById('cfg-class').value = '10'; updateCfgSections(); addNewSubjectField(); });
         await a.locator('.cfg-sub-input').last().fill('MATHS');
         await a.evaluate(() => saveSectionConfig({ preventDefault() {} }));
         await b.waitForFunction(() => sectionConfigs['10-A']?.includes('MATHS'));
@@ -241,6 +249,25 @@ async function main() {
         await secondary.evaluate(() => saveSubmissionDeadline('2026-11-06'));
         await b.waitForFunction(() => qpSubmissionDeadlines['100'] === '2026-11-06');
         console.log('PASS: secondary role can update exams but cannot edit principal master data');
+        const primary = await pageFor();
+        const primaryAccount = await primary.evaluate(() => roleAccounts['pri-ic']);
+        accounts[primaryAccount] = 'primary';
+        await primary.evaluate(() => openLoginModal('pri-ic'));
+        await primary.fill('#login-password', rolePasscodes.principal);
+        await primary.locator('#login-modal button[type="submit"]').click();
+        await primary.waitForFunction(() => !document.getElementById('login-error-msg').classList.contains('hidden'));
+        assert.equal(await primary.evaluate(() => authorizedRole), null);
+        await login(primary, null, 'pri-ic');
+        assert.equal(await primary.locator('#area-pri-ic').isVisible(), true);
+        assert.equal(await primary.locator('#exam-creator-mount-pri').getByRole('button', { name: '➕ Create New Exam' }).count(), 1);
+        await primary.evaluate(() => startNewExamSetup());
+        await primary.evaluate(() => addPaperSlotToDay(1));
+        const primaryId = await primary.evaluate(() => activeExamId);
+        await b.waitForFunction(id => archivedExams.some(exam => exam.id === id && exam.datesheetSnapshot[0].paperSlots[0]?.cls === '1'), primaryId);
+        await primary.evaluate(id => deleteArchivedExam(id), primaryId);
+        assert.equal(await primary.evaluate(() => canEditSharedData('principal')), false);
+        console.log('PASS: primary staff use passcode-only entry and create/save primary exam schedules');
+
 
         slowWrites = true;
         const saving = secondary.evaluate(() => saveSubmissionDeadline('2026-11-07'));
@@ -258,7 +285,7 @@ async function main() {
         assert.equal(await secondary.locator('#area-sec-ic').isVisible(), false);
         console.log('PASS: role revocation clears staff data and closes the workspace');
         assert.deepEqual(failures, [], `Unexpected browser errors: ${failures.join('; ')}`);
-        console.log('Browser integration: 16 scenarios passed (Firebase contract double; no live writes).');
+        console.log('Browser integration: 17 scenarios passed (Firebase contract double; no live writes).');
     } finally {
         await browser.close();
         await new Promise(resolve => server.close(resolve));
