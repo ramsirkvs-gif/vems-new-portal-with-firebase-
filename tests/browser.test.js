@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -176,6 +176,16 @@ async function main() {
         const dateSheetText = await a.locator('#date-sheet-preview iframe').contentFrame().locator('body').textContent();
         assert.match(dateSheetText, /Existing Exam/);
         assert.match(dateSheetText, /SCIENCE/);
+        await a.evaluate(() => document.getElementById('date-sheet-preview').remove());
+        await a.locator('.datesheet-instruction-input').first().fill('Report 20 minutes before the examination.');
+        await a.locator('button', { hasText: 'Add Instruction' }).click();
+        await a.locator('.datesheet-instruction-input').last().fill('Carry the school identity card.');
+        await a.waitForTimeout(100);
+        await a.evaluate(() => saveDateSheetInstructions(true));
+        assert.equal(data.dateSheetSettings.defaultInstructions[0], 'Report 20 minutes before the examination.');
+        await a.locator('button', { hasText: 'Preview & PDF' }).click();
+        const updatedDateSheetText = await a.locator('#date-sheet-preview iframe').contentFrame().locator('body').textContent();
+        assert.match(updatedDateSheetText, /Report 20 minutes before/);
         await a.evaluate(() => { document.getElementById('date-sheet-preview').remove(); switchPreExamSubTab('qp-setters'); });
         const trackerKey = await a.evaluate(() => qpRecordKey(100, '10', 'SCIENCE'));
         await a.evaluate(key => toggleQpSubmissionTick(key, 'qpReceived'), trackerKey);

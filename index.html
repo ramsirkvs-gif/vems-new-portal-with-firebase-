@@ -488,6 +488,16 @@
         let qpOfficeOrderSettings = {};
         let qpOfficeOrderFormDirty = false;
         let qpOfficeOrderFormDrafts = {};
+        let dateSheetInstructions = {};
+        let dateSheetSettings = {};
+        let dateSheetFormDirty = false;
+        let dateSheetInstructionDrafts = {};
+        const defaultDateSheetInstructions = [
+            'Students must report at the stated reporting time.',
+            'Bring the school identity card and required writing materials.',
+            'Electronic devices and unfair means are strictly prohibited.',
+            'Follow the instructions of the invigilator and verify the question paper before writing.'
+        ];
 
         const defaultQpSetterInstructions = [
             'Prepare the question paper strictly according to the prescribed syllabus, blueprint and approved marks distribution.',
@@ -2102,19 +2112,75 @@
             return new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'long' });
         }
 
+        function currentDateSheetInstructions(examId = selectedPreExamVaultId) {
+            return [...(dateSheetInstructionDrafts[String(examId)]
+                || dateSheetInstructions[String(examId)]
+                || dateSheetSettings.defaultInstructions
+                || defaultDateSheetInstructions)];
+        }
+
+        function readDateSheetInstructionRows() {
+            return [...document.querySelectorAll('.datesheet-instruction-input')].map(input => input.value.trim()).filter(Boolean);
+        }
+
+        function captureDateSheetInstructionDraft() {
+            if (!selectedPreExamVaultId || !document.getElementById('datesheet-instructions-list')) return;
+            dateSheetFormDirty = true;
+            dateSheetInstructionDrafts[String(selectedPreExamVaultId)] = readDateSheetInstructionRows();
+        }
+
+        function renumberDateSheetInstructionRows() {
+            document.querySelectorAll('#datesheet-instructions-list .datesheet-instruction-row').forEach((row, index) => {
+                row.querySelector('.datesheet-instruction-number').textContent = `${index + 1}.`;
+            });
+        }
+
+        function addDateSheetInstructionRow() {
+            const list = document.getElementById('datesheet-instructions-list');
+            if (!list) return;
+            const row = document.createElement('div');
+            row.className = 'datesheet-instruction-row flex items-start gap-2';
+            row.innerHTML = '<span class="datesheet-instruction-number w-7 pt-2.5 text-right text-xs font-black text-indigo-900"></span><textarea rows="1" class="datesheet-instruction-input flex-1 min-h-[42px] border rounded-lg p-2.5 text-xs leading-5 bg-white"></textarea><button type="button" class="mt-1 bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-2 text-xs font-bold">✕</button>';
+            row.querySelector('button').onclick = () => { row.remove(); renumberDateSheetInstructionRows(); captureDateSheetInstructionDraft(); };
+            list.appendChild(row);
+            renumberDateSheetInstructionRows();
+            captureDateSheetInstructionDraft();
+            row.querySelector('textarea').focus();
+        }
+
+        async function saveDateSheetInstructions(makeDefault = false) {
+            const instructions = readDateSheetInstructionRows();
+            if (!instructions.length) { alert('Please keep at least one Date Sheet instruction.'); return false; }
+            dateSheetInstructions[String(selectedPreExamVaultId)] = instructions;
+            const names = ['dateSheetInstructions'];
+            if (makeDefault) {
+                dateSheetSettings = { defaultInstructions: [...instructions], updatedAt: new Date().toISOString() };
+                names.push('dateSheetSettings');
+            }
+            const saved = await saveData(names);
+            if (saved) {
+                delete dateSheetInstructionDrafts[String(selectedPreExamVaultId)];
+                dateSheetFormDirty = false;
+                renderExamCreatorModule();
+            }
+            return saved;
+        }
+
         function renderUnifiedDateSheet(exam) {
             const rows = examDatesheetRows(exam);
+            const instructions = currentDateSheetInstructions(exam.id);
             return `<div class="bg-gradient-to-br from-sky-50 via-white to-indigo-50 rounded-2xl border border-indigo-100 shadow-sm p-5 md:p-7 space-y-5">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-indigo-100 pb-4"><div><h3 class="text-xl font-black text-indigo-950">📅 Date Sheet</h3><p class="text-xs text-slate-500 mt-1">Automatically generated from the selected Vault Exam: <b>${escapeHtml(exam.title)}</b></p></div><button type="button" onclick="previewSelectedDateSheet()" ${rows.length ? '' : 'disabled'} class="bg-indigo-700 hover:bg-indigo-800 disabled:bg-slate-300 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow">👁️ Preview & PDF</button></div>
                 <div class="bg-white/80 rounded-xl border border-indigo-100 p-4 text-center"><h4 class="font-black text-indigo-950 uppercase">${escapeHtml(exam.title)}</h4><p class="text-xs text-slate-500 mt-1">${escapeHtml(exam.fromDate)} to ${escapeHtml(exam.toDate)} • Session 2026–27</p></div>
                 <div class="overflow-x-auto rounded-xl border border-indigo-100 bg-white"><table class="w-full text-xs"><thead class="bg-indigo-900 text-white uppercase"><tr><th class="p-3 text-left">Date & Day</th><th class="p-3 text-left">Class / Sections</th><th class="p-3 text-left">Subject</th><th class="p-3 text-center">Reporting</th><th class="p-3 text-center">Reading</th><th class="p-3 text-center">Exam Time</th><th class="p-3 text-center">Duration</th><th class="p-3 text-center">Max Marks</th></tr></thead><tbody class="divide-y divide-indigo-50">${rows.map((row,index) => `<tr class="${index % 2 ? 'bg-sky-50/50' : 'bg-white'}"><td class="p-3 font-bold text-indigo-950">${escapeHtml(formatOrderDate(row.dateStr))}<br><span class="text-[10px] font-normal text-slate-500">${escapeHtml(dateSheetDay(row.dateStr))}</span></td><td class="p-3 font-bold">Class ${escapeHtml(formatClass(row.cls))}<br><span class="text-[10px] text-slate-500">Sections: ${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</span></td><td class="p-3 font-bold text-indigo-900">${escapeHtml(row.subject)}</td><td class="p-3 text-center">${escapeHtml(row.repTime || '—')}</td><td class="p-3 text-center">${escapeHtml(row.readTime || '—')}</td><td class="p-3 text-center font-bold">${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</td><td class="p-3 text-center">${escapeHtml(row.duration || '—')}</td><td class="p-3 text-center font-bold">${escapeHtml(row.maxMarks ?? '—')}</td></tr>`).join('') || '<tr><td colspan="8" class="p-8 text-center text-slate-500">No dated papers are available in this examination.</td></tr>'}</tbody></table></div>
-                <div class="rounded-xl bg-amber-50 border border-amber-200 p-4"><h4 class="text-xs font-black text-amber-900 uppercase mb-2">Important Instructions</h4><ol class="list-decimal pl-5 text-xs text-slate-700 space-y-1"><li>Students must report at the stated reporting time.</li><li>Bring the school identity card and required writing materials.</li><li>Electronic devices and unfair means are strictly prohibited.</li><li>Follow the instructions of the invigilator and verify the question paper before writing.</li></ol></div>
+                <div class="rounded-xl bg-amber-50 border border-amber-200 p-4 space-y-3"><div class="flex items-center justify-between gap-2"><h4 class="text-xs font-black text-amber-900 uppercase">Important Instructions</h4><button type="button" onclick="addDateSheetInstructionRow()" class="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg px-3 py-1.5 text-xs font-bold">＋ Add Instruction</button></div><div id="datesheet-instructions-list" class="space-y-2">${instructions.map((instruction,index) => `<div class="datesheet-instruction-row flex items-start gap-2"><span class="datesheet-instruction-number w-7 pt-2.5 text-right text-xs font-black text-indigo-900">${index + 1}.</span><textarea rows="1" class="datesheet-instruction-input flex-1 min-h-[42px] border rounded-lg p-2.5 text-xs leading-5 bg-white">${escapeHtml(instruction)}</textarea><button type="button" onclick="this.closest('.datesheet-instruction-row').remove(); renumberDateSheetInstructionRows(); captureDateSheetInstructionDraft()" class="mt-1 bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-2 text-xs font-bold">✕</button></div>`).join('')}</div><div class="flex flex-wrap justify-end gap-2"><button type="button" onclick="saveDateSheetInstructions(false)" class="bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg">💾 Save for This Date Sheet</button><button type="button" onclick="saveDateSheetInstructions(true)" class="bg-indigo-800 text-white text-xs font-bold px-4 py-2 rounded-lg">🔄 Save & Set as Default</button></div></div>
             </div>`;
         }
 
         function buildDateSheetHtml(exam) {
             const rows = examDatesheetRows(exam);
-            return `<!doctype html><html><head><title>Date Sheet - ${escapeHtml(exam.title)}</title><style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172554;margin:0}.top{height:5px;background:linear-gradient(90deg,#172554 0 82%,#d4a017 82%);margin-bottom:8px}.head{text-align:center;border-bottom:3px double #172554;padding-bottom:7px}.head h1{font-size:19px;margin:0}.head h2{font-size:13px;letter-spacing:1px;margin:3px 0}.exam{text-align:center;background:#eef2ff;border:1px solid #c7d2fe;padding:7px;margin:10px 0 12px}.exam b{font-size:15px}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#172554;color:white;text-transform:uppercase}th,td{border:1px solid #94a3b8;padding:7px;text-align:left}tbody tr:nth-child(even){background:#f0f9ff}.c{text-align:center}.notes{margin-top:12px;border:1px solid #f5d477;background:#fffbeb;padding:8px;font-size:10px}.notes b{color:#78350f}.notes ol{margin:5px 0 0;padding-left:18px}.sign{display:flex;justify-content:space-between;margin-top:30px;font-size:11px;font-weight:bold}.line{width:180px;border-top:1px solid #172554;text-align:center;padding-top:4px}@media screen{body{padding:12mm;max-width:297mm;min-height:210mm;margin:auto;box-shadow:0 6px 30px #64748b}}</style></head><body><div class="top"></div><div class="head"><h1>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h1><h2>EXAMINATION CELL — DATE SHEET</h2></div><div class="exam"><b>${escapeHtml(exam.title)}</b><br><small>Session 2026–27 • ${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))}</small></div><table><thead><tr><th>Date & Day</th><th>Class / Sections</th><th>Subject</th><th>Reporting</th><th>Reading</th><th>Exam Time</th><th>Duration</th><th>Marks</th></tr></thead><tbody>${rows.map(row => `<tr><td><b>${escapeHtml(formatOrderDate(row.dateStr))}</b><br>${escapeHtml(dateSheetDay(row.dateStr))}</td><td><b>Class ${escapeHtml(formatClass(row.cls))}</b><br>${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</td><td><b>${escapeHtml(row.subject)}</b></td><td class="c">${escapeHtml(row.repTime || '—')}</td><td class="c">${escapeHtml(row.readTime || '—')}</td><td class="c"><b>${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</b></td><td class="c">${escapeHtml(row.duration || '—')}</td><td class="c"><b>${escapeHtml(row.maxMarks ?? '—')}</b></td></tr>`).join('')}</tbody></table><div class="notes"><b>IMPORTANT INSTRUCTIONS</b><ol><li>Students must report at the stated reporting time with their school identity card.</li><li>Electronic devices and unfair means are strictly prohibited.</li><li>Follow the invigilator's instructions and verify the question paper before writing.</li></ol></div><div class="sign"><div class="line">Exam In-Charge</div><div class="line">Principal</div></div></body></html>`;
+            const instructions = currentDateSheetInstructions(exam.id);
+            return `<!doctype html><html><head><title>Date Sheet - ${escapeHtml(exam.title)}</title><style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172554;margin:0}.top{height:5px;background:linear-gradient(90deg,#172554 0 82%,#d4a017 82%);margin-bottom:8px}.head{text-align:center;border-bottom:3px double #172554;padding-bottom:7px}.head h1{font-size:19px;margin:0}.head h2{font-size:13px;letter-spacing:1px;margin:3px 0}.exam{text-align:center;background:#eef2ff;border:1px solid #c7d2fe;padding:7px;margin:10px 0 12px}.exam b{font-size:15px}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#172554;color:white;text-transform:uppercase}th,td{border:1px solid #94a3b8;padding:7px;text-align:left}tbody tr:nth-child(even){background:#f0f9ff}.c{text-align:center}.notes{margin-top:12px;border:1px solid #f5d477;background:#fffbeb;padding:8px;font-size:10px}.notes b{color:#78350f}.notes ol{margin:5px 0 0;padding-left:18px}.sign{display:flex;justify-content:space-between;margin-top:30px;font-size:11px;font-weight:bold}.line{width:180px;border-top:1px solid #172554;text-align:center;padding-top:4px}@media screen{body{padding:12mm;max-width:297mm;min-height:210mm;margin:auto;box-shadow:0 6px 30px #64748b}}</style></head><body><div class="top"></div><div class="head"><h1>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h1><h2>EXAMINATION CELL — DATE SHEET</h2></div><div class="exam"><b>${escapeHtml(exam.title)}</b><br><small>Session 2026–27 • ${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))}</small></div><table><thead><tr><th>Date & Day</th><th>Class / Sections</th><th>Subject</th><th>Reporting</th><th>Reading</th><th>Exam Time</th><th>Duration</th><th>Marks</th></tr></thead><tbody>${rows.map(row => `<tr><td><b>${escapeHtml(formatOrderDate(row.dateStr))}</b><br>${escapeHtml(dateSheetDay(row.dateStr))}</td><td><b>Class ${escapeHtml(formatClass(row.cls))}</b><br>${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</td><td><b>${escapeHtml(row.subject)}</b></td><td class="c">${escapeHtml(row.repTime || '—')}</td><td class="c">${escapeHtml(row.readTime || '—')}</td><td class="c"><b>${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</b></td><td class="c">${escapeHtml(row.duration || '—')}</td><td class="c"><b>${escapeHtml(row.maxMarks ?? '—')}</b></td></tr>`).join('')}</tbody></table><div class="notes"><b>IMPORTANT INSTRUCTIONS</b><ol>${instructions.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol></div><div class="sign"><div class="line">Exam In-Charge</div><div class="line">Principal</div></div></body></html>`;
         }
 
         function previewSelectedDateSheet() {
