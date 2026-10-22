@@ -179,8 +179,7 @@ async function main() {
         console.log('PASS: exam-scoped QP submission, printing, and deadlines synchronize');
 
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
-        await a.fill('#qp-order-deadline', '2026-11-04');
-        await a.fill('#qp-order-time', '15:30');
+        await a.fill('#qp-order-deadline-at', '2026-11-04T15:30');
         assert.match(await a.locator('text=Auto-linked from Faculty Manager').first().textContent(), /Auto-linked/);
         await a.evaluate(() => saveQpOfficeOrder('ISSUED'));
         await b.waitForFunction(() => qpOfficeOrders['100']?.status === 'ISSUED');

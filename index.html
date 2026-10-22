@@ -1601,11 +1601,19 @@
         function currentQpOfficeOrder(examId = selectedPreExamVaultId) {
             const saved = qpOfficeOrders[String(examId)] || {};
             const exam = archivedExams.find(ex => ex.id === examId) || {};
+            let suggestedDeadline = '';
+            if (exam.fromDate) {
+                const date = new Date(`${exam.fromDate}T12:00:00`);
+                if (!Number.isNaN(date.getTime())) {
+                    date.setDate(date.getDate() - 7);
+                    suggestedDeadline = date.toISOString().slice(0, 10);
+                }
+            }
             return {
                 schoolName: saved.schoolName || 'PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR',
                 officeNo: saved.officeNo || `F.KV1/EXAM/${new Date().getFullYear()}-27`,
                 issueDate: saved.issueDate || new Date().toISOString().slice(0, 10),
-                deadlineDate: saved.deadlineDate || qpSubmissionDeadlines[String(examId)] || '',
+                deadlineDate: saved.deadlineDate || qpSubmissionDeadlines[String(examId)] || suggestedDeadline,
                 deadlineTime: saved.deadlineTime || '16:00',
                 submissionMethod: saved.submissionMethod || 'Sealed confidential envelope to the Examination Cell',
                 instructions: Array.isArray(saved.instructions) ? saved.instructions : defaultQpSetterInstructions,
@@ -1622,8 +1630,8 @@
             order.schoolName = value('qp-order-school');
             order.officeNo = value('qp-order-number');
             order.issueDate = value('qp-order-date');
-            order.deadlineDate = value('qp-order-deadline');
-            order.deadlineTime = value('qp-order-time');
+            const deadlineAt = value('qp-order-deadline-at');
+            [order.deadlineDate, order.deadlineTime] = deadlineAt ? deadlineAt.split('T') : ['', ''];
             order.submissionMethod = value('qp-order-method');
             order.instructions = value('qp-order-instructions').split('\n').map(line => line.trim()).filter(Boolean);
             order.setters = {};
@@ -2033,11 +2041,8 @@
                                     <label class="text-xs font-bold text-slate-600">Issue date
                                         <input id="qp-order-date" type="date" value="${escapeHtml(officeOrder.issueDate)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs">
                                     </label>
-                                    <label class="text-xs font-bold text-slate-600">Last submission date
-                                        <input id="qp-order-deadline" type="date" value="${escapeHtml(officeOrder.deadlineDate)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs bg-amber-50">
-                                    </label>
-                                    <label class="text-xs font-bold text-slate-600">Last submission time
-                                        <input id="qp-order-time" type="time" value="${escapeHtml(officeOrder.deadlineTime)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs bg-amber-50">
+                                    <label class="md:col-span-2 text-xs font-bold text-slate-600">Last date and time of submission
+                                        <input id="qp-order-deadline-at" type="datetime-local" required value="${escapeHtml(officeOrder.deadlineDate && officeOrder.deadlineTime ? `${officeOrder.deadlineDate}T${officeOrder.deadlineTime}` : '')}" class="mt-1 w-full border-2 border-amber-300 rounded-lg p-2.5 text-xs font-bold bg-amber-50 text-amber-950">
                                     </label>
                                     <label class="md:col-span-2 text-xs font-bold text-slate-600">Submission method/place
                                         <input id="qp-order-method" value="${escapeHtml(officeOrder.submissionMethod)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs">
