@@ -1946,7 +1946,8 @@
             const subjectsList = getExamSubjectsListForVault(selectedPreExamVaultId);
             
             let tableRowsHtml = subjectsList.map((q, idx) => {
-                let count = 35;
+                let count = students.filter(student => String(student.class) === String(q.cls)
+                    && (!q.sections?.length || q.sections.includes(String(student.section)))).length;
                 let buffer = Math.ceil(count * 0.05);
                 let finalDemand = count + buffer;
                 return `
@@ -2042,10 +2043,14 @@
                                 key: key,
                                 cls: slot.cls,
                                 subject: slot.subject,
+                                sections: [...(slot.selectedSections || [])],
                                 setterName: assignedTeacher ? assignedTeacher.name : 'Subject Faculty',
                                 desig: assignedTeacher ? assignedTeacher.desig : 'TGT/PGT',
                                 teacherId: assignedTeacher?.id ?? assignedTeacher?.teacherId ?? ''
                             });
+                        } else {
+                            const existing = result.find(r => r.key === key);
+                            existing.sections = [...new Set([...(existing.sections || []), ...(slot.selectedSections || [])])];
                         }
                     });
                 }
@@ -2062,6 +2067,28 @@
             if (secMount) secMount.innerHTML = currentActiveRole === 'sec-ic' ? htmlContent : '';
             if (priMount) priMount.innerHTML = currentActiveRole === 'pri-ic' ? htmlContent : '';
             if (isExamConfigOpen) renderDatesheetDaysContainer();
+        }
+
+        function examSlotCandidateCount(slot) {
+            return students.filter(student => String(student.class) === String(slot.cls)
+                && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section)))).length;
+        }
+
+        function renderSeatingOverview(exam) {
+            const rows = (exam.datesheetSnapshot || []).flatMap(day => (day.paperSlots || []).map(slot => ({ day, slot, count: examSlotCandidateCount(slot) })));
+            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">🪑 Seating Arrangement Planner</h3><p class="text-xs text-slate-500">Candidates are calculated automatically from Student Master for the classes and sections scheduled on each exam day.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Class / Sections</th><th class="p-3 text-left">Paper</th><th class="p-3 text-center">Candidates</th><th class="p-3 text-left">Room Allocation</th></tr></thead><tbody class="divide-y">${rows.map(({day,slot,count}) => `<tr><td class="p-3 font-bold">${escapeHtml(day.dateStr)}</td><td class="p-3">Class ${escapeHtml(formatClass(slot.cls))} (${escapeHtml((slot.selectedSections || []).join(', ') || 'All')})</td><td class="p-3 font-bold">${escapeHtml(slot.subject)}</td><td class="p-3 text-center font-black">${count}</td><td class="p-3 text-amber-700 font-bold">Room setup required</td></tr>`).join('') || '<tr><td colspan="5" class="p-5 text-center text-slate-500">No scheduled papers found.</td></tr>'}</tbody></table></div></div>`;
+        }
+
+        function renderInvigilationOverview(exam) {
+            const rows = (exam.datesheetSnapshot || []).flatMap(day => (day.paperSlots || []).map((slot, index) => ({ day, slot, teacher: teachers[index % Math.max(teachers.length, 1)] })));
+            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">👩‍🏫 Daywise Invigilation Duty Planner</h3><p class="text-xs text-slate-500">Dates and papers come from Exam Creator; available faculty come from Faculty Manager.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Paper</th><th class="p-3 text-left">Reporting</th><th class="p-3 text-left">Suggested Faculty</th><th class="p-3 text-left">Room</th></tr></thead><tbody class="divide-y">${rows.map(({day,slot,teacher}) => `<tr><td class="p-3 font-bold">${escapeHtml(day.dateStr)}</td><td class="p-3">Class ${escapeHtml(formatClass(slot.cls))} — ${escapeHtml(slot.subject)}</td><td class="p-3">${escapeHtml(slot.repTime || '—')}</td><td class="p-3 font-bold">${escapeHtml(teacher?.name || 'Faculty data required')}</td><td class="p-3 text-amber-700 font-bold">Assign after seating plan</td></tr>`).join('') || '<tr><td colspan="5" class="p-5 text-center text-slate-500">No exam days found.</td></tr>'}</tbody></table></div></div>`;
+        }
+
+        function renderInventoryOverview(exam) {
+            const daily = (exam.datesheetSnapshot || []).map(day => (day.paperSlots || []).reduce((sum, slot) => sum + examSlotCandidateCount(slot), 0));
+            const peak = Math.max(0, ...daily), buffer = Math.ceil(peak * .05);
+            const items = [['Question papers', peak + buffer, 'copies'], ['Main answer books', peak + buffer, 'books'], ['Supplementary sheets', Math.ceil(peak * 1.5), 'sheets'], ['Attendance sheets', peak ? Math.max(1, Math.ceil(peak / 30)) : 0, 'sheets'], ['Maps / graph sheets', peak, 'as required'], ['Threads / tags', peak + buffer, 'pieces']];
+            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">📦 Room Inventory Planner</h3><p class="text-xs text-slate-500">Suggested quantities use the highest daywise candidate strength and the 5% buffer.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Material</th><th class="p-3 text-center">Suggested Requirement</th><th class="p-3 text-left">Unit</th><th class="p-3 text-left">Status</th></tr></thead><tbody class="divide-y">${items.map(([name,qty,unit]) => `<tr><td class="p-3 font-bold">${name}</td><td class="p-3 text-center font-black">${qty}</td><td class="p-3">${unit}</td><td class="p-3 text-amber-700 font-bold">Stock verification required</td></tr>`).join('')}</tbody></table></div></div>`;
         }
 
         function renderFullPagePreExamWorkstation() {
@@ -2101,12 +2128,16 @@
                     </div>
                     <div class="bg-white rounded-xl shadow-xs border p-2 flex overflow-x-auto gap-2">
                         <button type="button" onclick="switchPreExamSubTab('qp-setters')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-setters' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📝 1. Office Order to QP Setters</button>
-                        <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📜 2. Official Datesheet Office Orders</button>
-                        <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🖨️ 3. QP Printing Demand (+5%)</button>
+                        <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📅 2. Student & Teacher Datesheet</button>
+                        <button type="button" onclick="switchPreExamSubTab('qp-receiving')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-receiving' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📥 3. QP Receiving & Vault</button>
+                        <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🖨️ 4. Printing +5%</button>
+                        <button type="button" onclick="switchPreExamSubTab('seating')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'seating' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🪑 5. Seating</button>
+                        <button type="button" onclick="switchPreExamSubTab('invigilation')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'invigilation' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">👩‍🏫 6. Invigilation</button>
+                        <button type="button" onclick="switchPreExamSubTab('inventory')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'inventory' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📦 7. Room Inventory</button>
                     </div>
-                    ${activePreExamSubTab === 'qp-setters' ? `
+                    ${['qp-setters', 'qp-receiving'].includes(activePreExamSubTab) ? `
                         <div class="space-y-6">
-                            <div class="bg-white rounded-xl shadow-sm border p-5 space-y-5">
+                            <div class="${activePreExamSubTab === 'qp-setters' ? '' : 'hidden'} bg-white rounded-xl shadow-sm border p-5 space-y-5">
                                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
                                     <div>
                                         <h3 class="text-base font-bold text-indigo-950">📄 Office Order to Question Paper Setters</h3>
@@ -2162,7 +2193,7 @@
                                 </div>
                                 <p class="text-[11px] text-slate-500 text-right">The PDF preview opens inside the portal. Use <b>Print / Save PDF</b> after reviewing it.</p>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="${activePreExamSubTab === 'qp-receiving' ? '' : 'hidden'} grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="bg-white p-5 rounded-xl border shadow-xs flex justify-between items-center">
                                     <div><p class="text-xs font-bold text-slate-500 uppercase">Submissions Progress</p><p class="text-2xl font-black text-indigo-900 mt-1">${totalSubmittedCount} / ${totalSubjects} Received</p></div>
                                     <div class="text-3xl">📥</div>
@@ -2176,7 +2207,7 @@
                                     ${isAllOk ? `<button type="button" onclick="generateOkReportPrint()" class="bg-emerald-500 text-slate-950 font-bold text-xs px-3 py-2 rounded">📄 Print OK Report</button>` : ''}
                                 </div>
                             </div>
-                            <div class="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+                            <div class="${activePreExamSubTab === 'qp-receiving' ? '' : 'hidden'} bg-white rounded-xl shadow-sm border p-6 space-y-4">
                                 <div class="flex justify-between items-center border-b pb-4 flex-wrap gap-2">
                                     <h3 class="text-base font-bold text-indigo-950">📋 Question Paper Receiving & Vault Submission Tracker</h3>
                                     ${officeOrder.status === 'ISSUED' ? '<button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded">📥 Generate Issued Order PDF</button>' : ''}
@@ -2248,7 +2279,9 @@
                                     </thead>
                                     <tbody class="divide-y bg-white">
                                         ${subjectsList.map(sub => {
-                                            let count = 35, buffer = 2, final = 37;
+                                            let count = students.filter(student => String(student.class) === String(sub.cls)
+                                                && (!sub.sections?.length || sub.sections.includes(String(student.section)))).length;
+                                            let buffer = Math.ceil(count * 0.05), final = count + buffer;
                                             let status = qpPrintingTracker[sub.key] || 'Pending';
                                             return `
                                                 <tr class="hover:bg-slate-50 border-b">
@@ -2271,6 +2304,9 @@
                             </div>
                         </div>
                     ` : ''}
+                    ${activePreExamSubTab === 'seating' ? renderSeatingOverview(selectedExam) : ''}
+                    ${activePreExamSubTab === 'invigilation' ? renderInvigilationOverview(selectedExam) : ''}
+                    ${activePreExamSubTab === 'inventory' ? renderInventoryOverview(selectedExam) : ''}
                 </div>
             `;
         }
