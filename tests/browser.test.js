@@ -155,6 +155,8 @@ async function main() {
         assert.deepEqual(await b.locator('#public-subject-class option').allTextContents(), ['All Classes','Class X']);
         await b.selectOption('#public-subject-class','10');
         assert.match(await b.locator('#public-subject-directory-body').innerText(), /Class X-A/);
+        assert.equal(await b.locator('button', {hasText:'Share PDF'}).count(), 1);
+        assert.equal(await b.evaluate(async()=>new TextDecoder().decode((await publishedSubjectDirectoryPdfBlob().arrayBuffer()).slice(0,8))), '%PDF-1.4');
         console.log('PASS: stream rules, Subject Mapping PDF, publish and public directory synchronize');
 
         await a.evaluate(async () => { sectionConfigs['10-B']=['SCIENCE']; await saveData(['sectionConfigs']); });

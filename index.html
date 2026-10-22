@@ -138,7 +138,7 @@
                             <label class="text-[10px] font-bold text-slate-600 uppercase">Select Class<select id="public-subject-class" onchange="renderPublicSubjectDirectory()" class="block mt-1 min-w-36 text-xs p-2 border rounded bg-white font-semibold"><option value="">All Classes</option></select></label>
                             <label class="text-[10px] font-bold text-slate-600 uppercase">Search Mapping<input id="public-subject-search" oninput="renderPublicSubjectDirectory()" placeholder="Class, section or subject" class="block mt-1 w-56 max-w-full text-xs p-2 border rounded bg-white font-normal normal-case"></label>
                             <button type="button" onclick="printPublishedSubjectDirectory()" class="text-xs bg-indigo-700 text-white px-3 py-2 rounded">PDF / Print</button>
-                            <button type="button" onclick="sharePublishedSubjectDirectory()" class="text-xs bg-emerald-700 text-white px-3 py-2 rounded">Share</button>
+                            <button type="button" onclick="sharePublishedSubjectDirectory()" class="text-xs bg-emerald-700 text-white px-3 py-2 rounded">Share PDF</button>
                         </div>
                     </div>
                     <div class="max-h-56 overflow-y-auto border rounded">
@@ -758,7 +758,35 @@
         function printPublishedSubjectDirectory(){ const current=publishedSubjectDirectories.current; if(!current?.sections){alert('No subject directory has been published yet.');return;} showSubjectDirectoryPreview(buildSubjectDirectoryHtml(current.sections,current.publishedAt),'Published Subject Directory'); }
         async function publishSubjectDirectory(){ if(!subjectDirectoryRows().length){alert('Add and save subject mappings before publishing.');return;} publishedSubjectDirectories={current:{publishedAt:new Date().toISOString(),publishedBy:authorizedRole,sections:cloneData(sectionConfigs)}}; if(await saveData(['publishedSubjectDirectories'])){renderPublicSubjectDirectory();alert('Subject directory published to the Public view.');} }
         function renderPublicSubjectDirectory(){ const body=document.getElementById('public-subject-directory-body'); if(!body)return; const current=publishedSubjectDirectories.current, term=(document.getElementById('public-subject-search')?.value||'').toLowerCase(), classSelect=document.getElementById('public-subject-class'); const allRows=subjectDirectoryRows(current?.sections||{}); if(classSelect){const selected=classSelect.value; const classes=[...new Set(allRows.map(r=>r.cls))].sort((a,b)=>Number(a)-Number(b)); classSelect.innerHTML='<option value="">All Classes</option>'+classes.map(cls=>`<option value="${escapeHtml(cls)}">Class ${escapeHtml(formatClass(cls))}</option>`).join(''); if(classes.includes(selected))classSelect.value=selected;} const selectedClass=classSelect?.value||''; const rows=allRows.filter(r=>(!selectedClass||r.cls===selectedClass)&&`${formatClass(r.cls)} ${r.sec} ${r.stream} ${r.subjects.join(' ')}`.toLowerCase().includes(term)); body.innerHTML=rows.length?rows.map(r=>`<tr class="border-b"><td class="p-2 font-bold">Class ${escapeHtml(formatClass(r.cls))}-${escapeHtml(r.sec)}</td><td class="p-2">${escapeHtml(r.stream)}</td><td class="p-2">${escapeHtml(r.subjects.join(', '))}</td></tr>`).join(''):`<tr><td colspan="3" class="p-4 text-center text-slate-400">${current?'No matching mapping.':'No subject directory has been published.'}</td></tr>`; document.getElementById('public-subject-published-at').textContent=current?.publishedAt?`Published: ${new Date(current.publishedAt).toLocaleString('en-IN')}`:''; }
-        async function sharePublishedSubjectDirectory(){ if(!publishedSubjectDirectories.current){alert('No subject directory has been published yet.');return;} const data={title:'Secondary Subject Directory',text:'Published subject mapping — PM SHRI KV No. 1 Itanagar',url:location.href}; if(navigator.share){try{await navigator.share(data);}catch(error){if(error.name!=='AbortError')alert('Sharing is not supported on this device.');}}else{await navigator.clipboard.writeText(location.href);alert('Public portal link copied.');} }
+        function createTextPdfBlob(lines) {
+            const clean=value=>String(value??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,'-').replace(/([\\()])/g,'\\$1');
+            const wrapped=[];
+            lines.forEach(line=>{ const words=clean(line).split(/\s+/); let current=''; words.forEach(word=>{ if((current+' '+word).trim().length>88){wrapped.push(current);current=word;}else current=(current+' '+word).trim();}); wrapped.push(current); });
+            const pages=[]; for(let i=0;i<wrapped.length;i+=43) pages.push(wrapped.slice(i,i+43));
+            const objects=['','', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+            const pageIds=[];
+            pages.forEach(pageLines=>{ const pageId=objects.length+1, contentId=pageId+1; pageIds.push(pageId); objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentId} 0 R >>`); const stream=`BT\n/F1 10 Tf\n48 795 Td\n${pageLines.map((line,index)=>`${index?'0 -17 Td\n':''}(${clean(line)}) Tj`).join('\n')}\nET`; objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`); });
+            objects[0]='<< /Type /Catalog /Pages 2 0 R >>'; objects[1]=`<< /Type /Pages /Kids [${pageIds.map(id=>`${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
+            let pdf='%PDF-1.4\n', offsets=[0]; objects.forEach((object,index)=>{offsets[index+1]=pdf.length;pdf+=`${index+1} 0 obj\n${object}\nendobj\n`;}); const xref=pdf.length; pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n${offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n ').join('\n')}\ntrailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+            return new Blob([pdf],{type:'application/pdf'});
+        }
+
+        function publishedSubjectDirectoryPdfBlob() {
+            const current=publishedSubjectDirectories.current;
+            if(!current?.sections)return null;
+            const lines=['PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR','EXAMINATION CELL - SUBJECT MAPPING (SECONDARY)','Session 2026-27',`Published: ${new Date(current.publishedAt).toLocaleString('en-IN')}`,''];
+            subjectDirectoryRows(current.sections).forEach((row,index)=>lines.push(`${index+1}. Class ${formatClass(row.cls)}-${row.sec} | ${row.stream} | ${row.subjects.join(', ')}`));
+            lines.push('','Exam In-Charge                                      Principal');
+            return createTextPdfBlob(lines);
+        }
+
+        async function sharePdfFile(blob, filename, title) {
+            const file=new File([blob],filename,{type:'application/pdf'});
+            if(navigator.share&&navigator.canShare?.({files:[file]})){try{await navigator.share({title,text:title,files:[file]});return;}catch(error){if(error.name==='AbortError')return;}}
+            const url=URL.createObjectURL(blob), link=document.createElement('a'); link.href=url; link.download=filename; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); alert('PDF file downloaded. You can now share it from your device.');
+        }
+
+        async function sharePublishedSubjectDirectory(){ const blob=publishedSubjectDirectoryPdfBlob(); if(!blob){alert('No subject directory has been published yet.');return;} await sharePdfFile(blob,'VEMS-Secondary-Subject-Directory.pdf','Published Secondary Subject Directory'); }
 
         // =========================================================================
         // MODULE 1: SUBJECT SETUP & MASTER DIRECTORY
