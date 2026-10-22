@@ -180,10 +180,23 @@
                                 </div>
                             </div>
                             <div class="flex flex-wrap gap-2">
-                                <button type="button" onclick="addClassSection()" class="text-xs bg-sky-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Class / Section</button>
+                                <button type="button" onclick="toggleAddClassSectionPanel()" class="text-xs bg-sky-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Class / Section</button>
                                 <button type="button" onclick="deleteClassSection()" class="text-xs bg-red-600 text-white font-semibold px-3.5 py-2 rounded shadow-sm">🗑 Delete Section</button>
                                 <button type="button" onclick="addNewSubjectField()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-2 rounded shadow-sm">➕ Add Subject</button>
                             </div>
+                        </div>
+                        <div id="add-class-section-panel" class="hidden bg-sky-50 border border-sky-200 rounded-lg p-3">
+                            <div class="flex flex-wrap items-end gap-3">
+                                <label class="text-[11px] font-bold text-slate-700 uppercase">New Class
+                                    <select id="new-cfg-class" class="block mt-1 text-xs p-2 border rounded bg-white min-w-28"></select>
+                                </label>
+                                <label class="text-[11px] font-bold text-slate-700 uppercase">New Section
+                                    <input id="new-cfg-section" maxlength="2" placeholder="e.g. B" class="block mt-1 w-28 text-xs p-2 border rounded bg-white uppercase">
+                                </label>
+                                <button type="button" onclick="addClassSection()" class="text-xs bg-emerald-700 text-white font-bold px-4 py-2 rounded">✓ Add</button>
+                                <button type="button" onclick="toggleAddClassSectionPanel(false)" class="text-xs bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded">Cancel</button>
+                            </div>
+                            <p class="text-[11px] text-sky-800 mt-2">The new section will appear here immediately. You can then add and save its subjects below.</p>
                         </div>
                         
                         <form onsubmit="saveSectionConfig(event)" class="space-y-4">
@@ -684,15 +697,23 @@
             return 'General';
         }
 
+        function toggleAddClassSectionPanel(show) {
+            const panel=document.getElementById('add-class-section-panel'), select=document.getElementById('new-cfg-class');
+            if(!panel||!select)return;
+            const open=show===undefined?panel.classList.contains('hidden'):show;
+            panel.classList.toggle('hidden',!open);
+            if(open){ const chosen=document.getElementById('cfg-class')?.value||'6'; select.innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}" ${String(i+1)===chosen?'selected':''}>Class ${formatClass(i+1)}</option>`).join(''); document.getElementById('new-cfg-section').value=''; document.getElementById('new-cfg-section').focus(); }
+        }
+
         async function addClassSection() {
-            const cls = (prompt('Enter class number (1 to 12):') || '').trim();
-            if (!/^(?:[1-9]|1[0-2])$/.test(cls)) { if (cls) alert('Enter a class number from 1 to 12.'); return; }
-            const sec = (prompt(`Enter section for Class ${formatClass(cls)} (for example A):`) || '').trim().toUpperCase();
-            if (!/^[A-Z][A-Z0-9]?$/.test(sec)) { if (sec) alert('Enter a valid section such as A, B or C.'); return; }
+            const cls = (document.getElementById('new-cfg-class')?.value || '').trim();
+            const sec = (document.getElementById('new-cfg-section')?.value || '').trim().toUpperCase();
+            if (!/^(?:[1-9]|1[0-2])$/.test(cls)) { alert('Select a class from 1 to 12.'); return; }
+            if (!/^[A-Z][A-Z0-9]?$/.test(sec)) { alert('Enter a valid section such as A, B or C.'); document.getElementById('new-cfg-section')?.focus(); return; }
             const key = `${cls}-${sec}`;
             if (sectionConfigs[key]) { alert(`Class ${formatClass(cls)} - Section ${sec} already exists.`); jumpToEditConfig(cls, sec); return; }
             sectionConfigs[key] = Number(cls) <= 2 ? ['ENGLISH', 'HINDI', 'MATHS'] : Number(cls) <= 5 ? ['ENGLISH', 'HINDI', 'MATHS', 'EVS'] : ['ENGLISH'];
-            if (await saveData(['sectionConfigs'])) { initCfgSections(); document.getElementById('cfg-class').value=cls; updateCfgSections(); document.getElementById('cfg-section').value=sec; loadSectionConfigDetails(); alert('Class and section added. You can now edit its subjects.'); }
+            if (await saveData(['sectionConfigs'])) { localStorage.setItem('vems_cfg_class',cls); localStorage.setItem(`vems_cfg_section_${cls}`,sec); initCfgSections(); document.getElementById('cfg-class').value=cls; updateCfgSections(); document.getElementById('cfg-section').value=sec; rememberConfigLocation(); loadSectionConfigDetails(); toggleAddClassSectionPanel(false); }
         }
 
         async function deleteClassSection() {

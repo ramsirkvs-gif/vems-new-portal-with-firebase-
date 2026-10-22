@@ -135,6 +135,9 @@ async function main() {
         console.log('PASS: a stale assignment table merges edits against the snapshot actually displayed');
 
         await a.evaluate(() => { switchTab('config'); document.getElementById('cfg-class').value = '10'; updateCfgSections(); addNewSubjectField(); });
+        await a.evaluate(() => toggleAddClassSectionPanel(true));
+        assert.equal(await a.locator('#add-class-section-panel').isVisible(), true, 'class/section entry must open inline');
+        await a.evaluate(() => toggleAddClassSectionPanel(false));
         await a.locator('.cfg-sub-input').last().fill('MATHS');
         await a.evaluate(() => saveSectionConfig({ preventDefault() {} }));
         await b.waitForFunction(() => sectionConfigs['10-A']?.includes('MATHS'));
