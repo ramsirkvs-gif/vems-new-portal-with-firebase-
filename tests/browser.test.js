@@ -152,6 +152,8 @@ async function main() {
         await a.evaluate(() => publishSubjectDirectory());
         await b.waitForFunction(() => publishedSubjectDirectories.current?.sections?.['10-A']?.includes('MATHS'));
         await b.evaluate(() => { switchPortalArea('public'); renderPublicSubjectDirectory(); });
+        assert.deepEqual(await b.locator('#public-subject-class option').allTextContents(), ['All Classes','Class X']);
+        await b.selectOption('#public-subject-class','10');
         assert.match(await b.locator('#public-subject-directory-body').innerText(), /Class X-A/);
         console.log('PASS: stream rules, Subject Mapping PDF, publish and public directory synchronize');
 
