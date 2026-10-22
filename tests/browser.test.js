@@ -173,7 +173,7 @@ async function main() {
         assert.match(await a.locator('text=01/11/2026').first().textContent(), /01\/11\/2026/);
         assert.match(await a.locator('text=Sunday').first().textContent(), /Sunday/);
         assert.equal(await a.locator('text=Teacher Staff Room Office Order').count(), 0);
-        await a.locator('button', { hasText: 'Preview & PDF' }).click();
+        await a.locator('button', { hasText: 'Preview & PDF' }).first().click();
         await a.locator('#date-sheet-preview iframe').waitFor();
         const dateSheetText = await a.locator('#date-sheet-preview iframe').contentFrame().locator('body').textContent();
         assert.match(dateSheetText, /Existing Exam/);
@@ -185,7 +185,7 @@ async function main() {
         await a.waitForTimeout(100);
         await a.evaluate(() => saveDateSheetInstructions(true));
         assert.equal(data.dateSheetSettings.defaultInstructions[0], 'Report 20 minutes before the examination.');
-        await a.locator('button', { hasText: 'Preview & PDF' }).click();
+        await a.locator('button', { hasText: 'Preview & PDF' }).last().click();
         const updatedDateSheetText = await a.locator('#date-sheet-preview iframe').contentFrame().locator('body').textContent();
         assert.match(updatedDateSheetText, /Report 20 minutes before/);
         await a.evaluate(() => { document.getElementById('date-sheet-preview').remove(); switchPreExamSubTab('qp-setters'); });
@@ -195,8 +195,15 @@ async function main() {
         await a.evaluate(() => switchPreExamSubTab('qp-receiving'));
         assert.match(await a.locator(`[id^="receiving-status-"]`).textContent(), /QP RECEIVED · MS NOT YET/);
         await a.locator(`[id^="ms-received-"]`).check();
+        await a.waitForTimeout(100);
+        await a.evaluate(() => renderExamCreatorModule());
+        assert.equal(await a.locator(`[id^="qp-received-"]`).isChecked(), true);
+        assert.equal(await a.locator(`[id^="ms-received-"]`).isChecked(), true);
+        assert.match(await a.locator(`[id^="receiving-status-"]`).textContent(), /QP & MS RECEIVED/);
         await a.locator('button', { hasText: 'Save / Update' }).click();
         await b.waitForFunction(key => qpSubmissionsTracker[key]?.answerKeyReceived === true, trackerKey);
+        assert.equal(await a.locator(`[id^="qp-received-"]`).isChecked(), true);
+        assert.equal(await a.locator(`[id^="ms-received-"]`).isChecked(), true);
         await a.evaluate(() => switchPreExamSubTab('qp-printing'));
         assert.equal(await a.locator('select').last().isDisabled(), false);
         await a.evaluate(() => saveSubmissionDeadline('2026-11-05'));

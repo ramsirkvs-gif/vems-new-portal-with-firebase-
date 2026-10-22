@@ -151,7 +151,7 @@ function refreshSharedViews() {
     filterStudents();
     renderTeachers();
     if (!editorBaselines.assignments) renderClassTeacherCoordinationTable();
-    if (!qpOfficeOrderFormDirty && !dateSheetFormDirty) renderExamCreatorModule();
+    if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) renderExamCreatorModule();
     populateLegacyExamOptions();
 }
 document.addEventListener('focusout', scheduleSharedRender);
