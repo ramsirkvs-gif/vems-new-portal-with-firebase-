@@ -38,9 +38,6 @@
                 background-color: #f1f5f9 !important;
                 color: black !important;
             }
-            .print-show-inline {
-                display: inline-block !important;
-            }
             .print-show-block {
                 display: block !important;
             }
@@ -287,8 +284,6 @@
             { id: 3, name: 'Sh. Rajesh Kumar', desig: 'TGT MATHEMATICS' }
         ];
 
-        let isExamConfigOpen = false;
-        let activeExamId = null;
         let isPreExamFullPageOpen = false;
         let activePreExamSubTab = 'office-order'; 
         let qpSubmissionDeadline = '2026-11-05';
@@ -311,7 +306,6 @@
         let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
 
         function initFirebaseListeners() {
-            // Real-time listener for students
             db.ref('students').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -327,10 +321,8 @@
                     students = [];
                 }
                 filterStudents();
-                renderExamCreatorModule();
             });
 
-            // Real-time listener for section configurations
             db.ref('sectionConfigs').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -341,23 +333,21 @@
                 }
             });
 
-            // Real-time listener for office order directives
             db.ref('officeOrderDirectives').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data && Array.isArray(data)) {
                     officeOrderDirectives = data;
                     localStorage.setItem('vems_office_order_directives', JSON.stringify(officeOrderDirectives));
-                    renderExamCreatorModule();
+                    if (isPreExamFullPageOpen) renderExamCreatorModule();
                 }
             });
 
-            // Real-time listener for office order signatures & e-Signs
             db.ref('officeOrderSignatures').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data && typeof data === 'object') {
                     officeOrderSignatures = data;
                     localStorage.setItem('vems_office_order_signatures', JSON.stringify(officeOrderSignatures));
-                    renderExamCreatorModule();
+                    if (isPreExamFullPageOpen) renderExamCreatorModule();
                 }
             });
         }
@@ -382,7 +372,6 @@
             db.ref('archivedExams').set(archivedExams);
             
             renderMasterSubjectDirectory();
-            renderExamCreatorModule();
         }
 
         function switchPortalArea(area) {
