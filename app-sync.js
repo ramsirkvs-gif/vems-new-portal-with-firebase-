@@ -4,9 +4,9 @@ const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssi
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines'];
 const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList'];
 // Login identifiers only. Firebase stores and verifies each role's passcode.
-// Keep the existing Principal account; the two IC accounts are provisioned once in Firebase Console.
+// Dedicated portal accounts are independent of the administrator’s personal account.
 const roleAccounts = Object.freeze({
-    principal: 'ramsirkvs@gmail.com',
+    principal: 'principal@vems-portal.example',
     'sec-ic': 'secondary@vems-portal.example',
     'pri-ic': 'primary@vems-portal.example'
 });
@@ -217,7 +217,7 @@ async function handleLogin(event) {
     } catch (error) {
         loadingStaffData = false;
         errorElement.textContent = error.code?.startsWith('auth/')
-            ? 'Passcode not accepted for this role. Check the passcode or ask the Principal to check its Firebase role-account setup.'
+            ? (error.code === 'auth/network-request-failed' ? 'Unable to reach the sign-in service. Check your internet connection and try again.' : 'Passcode not accepted. Check the selected role and try again.')
             : error.message;
         errorElement.classList.remove('hidden');
         showSyncStatus();
@@ -248,14 +248,6 @@ function clearStaffState() {
     resetTeacherForm();
     activateArea('public');
     showSyncStatus();
-}
-async function sendPasswordReset() {
-    const user = firebase.auth().currentUser;
-    if (!user?.email) return;
-    try {
-        await firebase.auth().sendPasswordResetEmail(user.email);
-        alert(`Password reset email sent to ${user.email}. Follow the link to change your password on every device.`);
-    } catch (error) { showSyncError(`Password reset failed: ${error.message}`); }
 }
 
 const legacyBindings = {

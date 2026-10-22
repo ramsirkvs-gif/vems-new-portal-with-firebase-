@@ -15,12 +15,13 @@ The code changes alone do not configure your Firebase project or update your liv
 
 1. In the same Firebase project, open **Build → Authentication → Get started** (if shown).
 2. Open **Sign-in method → Email/Password**, enable **Email/Password**, and save. You do not need email-link sign-in.
-3. Keep the Principal account already created. Its login identifier is configured under `roleAccounts.principal` in `app-sync.js`. Create the two IC accounts in **Users → Add user** using `secondary@vems-portal.example` and `primary@vems-portal.example`. These are internal login identifiers; staff never type them in the portal.
-4. Set each role account's Firebase password to the role passcode you want to retain from the previous app. Passcodes are never stored in HTML, JavaScript, localStorage, or the Realtime Database. GitHub commits cannot set or reset Firebase account passwords. For the existing Principal account, use its password reset email if you want to restore a previous passcode.
+3. The live portal now has three dedicated application accounts: `principal@vems-portal.example`, `secondary@vems-portal.example`, and `primary@vems-portal.example`. They were provisioned with the requested original role passcodes, and each account's sign-in, role assignment, and a read-only database request were verified. The administrator's personal account was left unchanged. Staff never type account emails on the portal.
+4. For a new Firebase project, create these three accounts in **Users → Add user**, assign the desired role passcodes there, and add their UIDs under `roles` as described below. Never place passcodes in HTML, JavaScript, localStorage, or the Realtime Database.
 5. Copy each account's **User UID**. This is the identifier Firebase assigns after you create a user; it is not the email address.
 6. Under **Authentication → Settings → Authorized domains**, add `vems-new-portal-with-firebase.vercel.app` if it is absent. Enter just the hostname, without `https://` or `/`.
 
-Staff select Principal, Secondary IC, or Primary IC and enter only that role's passcode. Firebase checks the passcode against the corresponding role account. The existing Principal account's current Firebase passcode continues to work; keeping an older app passcode requires setting that same value in Firebase. There is no fallback that allows one role's code to unlock the other roles. IC identifiers above are not real mailboxes, so manage their account passwords in Firebase Console rather than relying on reset-email delivery. The Principal's reset-email button continues to use the real Principal mailbox.
+Staff select Principal, Secondary IC, or Primary IC and enter only that role's passcode. Firebase checks it against the corresponding dedicated portal account. These accounts do not grant Firebase Console access. There is no fallback that allows one role's code to unlock another role. The identifiers above are not real mailboxes: email reset delivery is not available, so the administrator must retain the passcodes securely and manage account recovery. The administrator's personal Firebase/Google account password is separate and was not changed.
+
 
 ## 3. Give each staff account a role
 
