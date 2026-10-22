@@ -1,7 +1,7 @@
 /* Firebase Authentication, live UI updates, and migration from the older local-only app. */
 'use strict';
 const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'archivedExams',
-    'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders'];
+    'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings'];
 const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList'];
 // Login identifiers only. Firebase stores and verifies each role's passcode.
 // Dedicated portal accounts are independent of the administrator’s personal account.
@@ -65,7 +65,7 @@ function canEditSharedData(required = 'exam') {
 }
 function sharedValue(name) {
     return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, archivedExams,
-        examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders })[name];
+        examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings })[name];
 }
 function acceptSharedValue(name, value) {
     switch (name) {
@@ -96,6 +96,7 @@ function acceptSharedValue(name, value) {
         case 'qpPrintingTracker': qpPrintingTracker = value; break;
         case 'qpSubmissionDeadlines': qpSubmissionDeadlines = value; break;
         case 'qpOfficeOrders': qpOfficeOrders = value; break;
+        case 'qpOfficeOrderSettings': qpOfficeOrderSettings = value; break;
     }
     scheduleSharedRender();
 }

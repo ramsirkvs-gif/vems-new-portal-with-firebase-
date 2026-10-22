@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -182,6 +182,9 @@ async function main() {
         await a.fill('#qp-order-deadline-at', '2026-11-04T15:30');
         await a.selectOption('#qp-order-method', "Email from the QP setter's personal secure email with Word file and PDF");
         await a.fill('#qp-order-email', 'examcell@example.test');
+        await a.fill('#qp-order-instructions', 'Use the approved blueprint.\nSubmit both Word and PDF files.');
+        await a.evaluate(() => saveQpInstructionsAsDefault());
+        assert.deepEqual(data.qpOfficeOrderSettings.defaultInstructions, ['Use the approved blueprint.', 'Submit both Word and PDF files.']);
         assert.match(await a.locator('text=Auto-linked from Faculty Manager').first().textContent(), /Auto-linked/);
         await a.evaluate(() => saveQpOfficeOrder('ISSUED'));
         await b.waitForFunction(() => qpOfficeOrders['100']?.status === 'ISSUED');
@@ -201,6 +204,7 @@ async function main() {
         await a.evaluate(() => startNewExamSetup());
         await b.waitForFunction(count => archivedExams.length === count + 1, count);
         const created = Object.values(data.archivedExams).find(exam => exam.id !== 100);
+        assert.equal(await a.evaluate(id => currentQpOfficeOrder(id).instructions[0], created.id), 'Use the approved blueprint.');
         await b.evaluate(id => loadArchivedExamToEdit(id), created.id);
         assert.equal(await b.evaluate(() => datesheetDays.length), 1);
         await a.evaluate(id => deleteArchivedExam(id), created.id);

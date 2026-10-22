@@ -485,6 +485,7 @@
         let qpSubmissionsTracker = {};
         let qpPrintingTracker = {};
         let qpOfficeOrders = {};
+        let qpOfficeOrderSettings = {};
 
         const defaultQpSetterInstructions = [
             'Prepare the question paper strictly according to the prescribed syllabus, blueprint and approved marks distribution.',
@@ -1617,7 +1618,9 @@
                 deadlineTime: saved.deadlineTime || '16:00',
                 submissionMethod: saved.submissionMethod || 'Sealed confidential envelope to the Examination Cell',
                 submissionEmail: saved.submissionEmail || '',
-                instructions: Array.isArray(saved.instructions) ? saved.instructions : defaultQpSetterInstructions,
+                instructions: Array.isArray(saved.instructions) ? saved.instructions
+                    : Array.isArray(qpOfficeOrderSettings.defaultInstructions) ? qpOfficeOrderSettings.defaultInstructions
+                    : defaultQpSetterInstructions,
                 setters: saved.setters || {},
                 status: saved.status || 'DRAFT',
                 issuedAt: saved.issuedAt || '',
@@ -1668,6 +1671,25 @@
             qpOfficeOrders[String(selectedPreExamVaultId)] = order;
             qpSubmissionDeadlines[String(selectedPreExamVaultId)] = order.deadlineDate;
             const saved = await saveData(['qpOfficeOrders', 'qpSubmissionDeadlines']);
+            if (saved) renderExamCreatorModule();
+            return saved;
+        }
+
+        async function saveQpInstructionsAsDefault() {
+            if (!selectedPreExamVaultId) return false;
+            const order = readQpOfficeOrderForm();
+            if (!order.instructions.length) {
+                alert('Please enter at least one instruction before saving the default.');
+                return false;
+            }
+            order.status = 'DRAFT';
+            order.issuedAt = '';
+            qpOfficeOrders[String(selectedPreExamVaultId)] = order;
+            qpOfficeOrderSettings = {
+                defaultInstructions: [...order.instructions],
+                updatedAt: new Date().toISOString()
+            };
+            const saved = await saveData(['qpOfficeOrders', 'qpOfficeOrderSettings']);
             if (saved) renderExamCreatorModule();
             return saved;
         }
@@ -2076,6 +2098,10 @@
                                 <label class="block text-xs font-bold text-slate-600">Instructions — one instruction per line
                                     <textarea id="qp-order-instructions" rows="7" class="mt-1 w-full border rounded-lg p-3 text-xs leading-6">${escapeHtml(officeOrder.instructions.join('\n'))}</textarea>
                                 </label>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+                                    <p class="text-[11px] text-indigo-900"><b>Reusable instructions:</b> Edit the text above, then save it as the default for this and all future exam orders.</p>
+                                    <button type="button" onclick="saveQpInstructionsAsDefault()" class="shrink-0 bg-indigo-800 hover:bg-indigo-900 text-white text-xs font-bold px-4 py-2 rounded-lg">🔄 Save & Set as Default</button>
+                                </div>
                                 <div class="flex flex-wrap justify-end gap-2">
                                     <button type="button" onclick="saveQpOfficeOrder('DRAFT')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save Draft</button>
                                     <button type="button" onclick="previewQpOfficeOrderDraft()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview & PDF</button>
