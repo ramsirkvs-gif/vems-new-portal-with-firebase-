@@ -160,6 +160,17 @@ async function main() {
         await b.evaluate(() => { switchTab('students'); document.getElementById('filter-class').value='10'; handleClassChange(); document.getElementById('filter-section').value='B'; rememberStudentLocation(); filterStudents(); switchTab('students'); });
         assert.equal(await b.locator('#filter-section').inputValue(), 'B', 'same-tab rerender must retain the selected section');
 
+        await a.evaluate(async () => { sectionConfigs['6-A']=['ENGLISH','HINDI','SANSKRIT','MATHS','SCIENCE','SOCIAL SCIENCE']; await saveData(['sectionConfigs']); switchTab('students'); });
+        await a.selectOption('#filter-class','6');
+        await a.selectOption('#filter-section','A');
+        await a.evaluate(() => { window._originalAlert=window.alert; window.alert=message=>{window.csvValidationAlert=message;}; });
+        await a.setInputFiles('#csv-file-input',{name:'class-6-a.csv',mimeType:'text/csv',buffer:Buffer.from('SNo,RollNo,StudentName,ENGLISH,HINDI,SANSKRIT,MATHS,SCIENCE,SOCIAL SCIENCE\n1,6101,Test Child,ENGLISH,HINDI,SANSKRIT,MATHS,SCIENCE,')});
+        await a.waitForFunction(() => window.csvValidationAlert);
+        assert.match(await a.evaluate(() => window.csvValidationAlert), /Empty subject cell.*SOCIAL SCIENCE/s);
+        assert.equal(data.students?.['6']?.A, undefined, 'invalid VI-VIII CSV must not save');
+        await a.evaluate(() => { window.alert=window._originalAlert; delete window._originalAlert; delete window.csvValidationAlert; });
+        console.log('PASS: Classes VI-VIII reject CSV rows with an empty subject cell');
+
         await b.reload();
         await login(b, 'principal2@example.test');
         assert.equal(await b.locator('#filter-section').inputValue(), 'B', 'reload must restore the selected section');
@@ -183,7 +194,7 @@ async function main() {
         await a.fill('#stu-roll', '101');
         await a.evaluate(() => saveStudent({ preventDefault() {} }));
         await b.waitForFunction(() => students.some(s => s.name === 'Test Student'));
-        const studentId = Object.keys(data.students['10'].A)[0];
+        const studentId = Object.values(data.students).flatMap(sections=>Object.values(sections)).flatMap(records=>Object.values(records)).find(student=>student.name==='Test Student').id;
         await a.evaluate(id => deleteStudent(id), studentId);
         await b.waitForFunction(() => students.length === 0);
         console.log('PASS: student creation and deletion propagate, including an empty list');

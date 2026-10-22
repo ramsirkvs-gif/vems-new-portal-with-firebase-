@@ -1150,7 +1150,13 @@
                         seenRolls.add(Number(cols[1]));
                         let studentMappedSubs = [];
                         for (let subIdx = 0; subIdx < expectedClean.length; subIdx++) {
-                            let val = cols[3 + subIdx] ? cols[3 + subIdx].trim().toUpperCase() : '-';
+                            const rawSubjectValue = cols[3 + subIdx]?.trim() || '';
+                            if (['6','7','8'].includes(String(cls)) && !rawSubjectValue) {
+                                alert(`❌ CSV Upload Stopped: Empty subject cell at data row ${i} (Roll No ${cols[1]}).\n\nMissing subject: ${expectedClean[subIdx]}\n\nFor Classes VI to VIII, every subject cell must be filled.`);
+                                event.target.value = '';
+                                return;
+                            }
+                            let val = rawSubjectValue ? rawSubjectValue.toUpperCase() : '-';
                             if (val && val !== '-' && val !== 'NIL' && val !== 'NONE') {
                                 if (val !== expectedClean[subIdx]) {
                                     alert(`❌ CSV Student Data Mismatch Error at Row ${i} (Roll: ${cols[1] || 'Unknown'})!\n\nInvalid subject entry found: "${val}" under column "${expectedClean[subIdx]}".\nUpload Aborted!`);
