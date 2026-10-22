@@ -9,6 +9,8 @@
     <!-- Firebase App & Realtime Database CDN SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="sync-store.js"></script>
     <style>
         @media print {
             header, nav, .no-print, button, label, select, input, .modal-backdrop {
@@ -78,6 +80,9 @@
         </div>
     </header>
 
+    <div id="sync-status" role="status" aria-live="polite" class="no-print px-6 py-3 text-sm bg-amber-100 text-amber-900">Connecting to Firebase…</div>
+    <div id="sync-error" role="alert" class="hidden no-print px-6 py-3 text-sm bg-red-100 text-red-900"></div>
+
     <!-- Printable Header (Hidden in Web View, Visible in Print/PDF) -->
     <div id="print-header" class="hidden print:block p-3 space-y-2 border-b-2 border-slate-800">
         <div class="text-center space-y-0.5">
@@ -108,7 +113,7 @@
                         </h2>
                         <p class="text-xs text-slate-500">Public notice area for staff room display screens and teacher mobile view.</p>
                     </div>
-                    <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full animate-pulse">● CLOUD SYNC ACTIVE</span>
+                    <span class="text-xs bg-indigo-100 text-indigo-800 font-bold px-3 py-1 rounded-full">Sign in to view shared records</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-indigo-50/60 border border-indigo-100 rounded-lg p-4 space-y-2">
@@ -340,29 +345,21 @@
             <section id="sec-settings" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6 hidden">
                 <div class="border-b pb-4">
                     <h2 class="text-xl font-bold text-slate-900">🛡️ System Security & Password Management</h2>
-                    <p class="text-xs text-slate-500">View and update access credentials for all administrative and operational layers.</p>
+                    <p class="text-xs text-slate-500">Manage your account and safely import data from the old version.</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Principal Password</h3>
-                        <form onsubmit="updatePassword(event, 'principal')" class="space-y-3">
-                            <input type="text" id="pass-prin" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Principal</button>
-                        </form>
-                    </div>
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Secondary IC Password</h3>
-                        <form onsubmit="updatePassword(event, 'sec-ic')" class="space-y-3">
-                            <input type="text" id="pass-sec" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Sec IC</button>
-                        </form>
-                    </div>
-                    <div class="bg-slate-50 border p-5 rounded-xl space-y-4 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase">🔑 Primary IC Password</h3>
-                        <form onsubmit="updatePassword(event, 'pri-ic')" class="space-y-3">
-                            <input type="text" id="pass-pri" required class="w-full text-xs p-2.5 border rounded bg-white">
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded">Update Pri IC</button>
-                        </form>
+                <div class="space-y-4 text-sm">
+                    <p>Staff accounts and passwords are managed securely by Firebase Authentication. Each person signs in with their own email and password on any device.</p>
+                    <button type="button" onclick="sendPasswordReset()" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded">Email me a password reset link</button>
+                    <div class="border-t pt-4 space-y-3">
+                        <h3 class="font-bold text-indigo-900">Move records from an older browser</h3>
+                        <p>On the PC where you previously entered data, open this updated app in the same browser. Download a backup first. Import adds missing records and keeps existing cloud values. Old passwords are excluded.</p>
+                        <button type="button" onclick="downloadLegacyBackup()" class="bg-slate-700 text-white px-4 py-2 rounded">1. Download old browser data</button>
+                        <label class="block">Old question-paper trackers belong to this exam:
+                            <select id="legacy-exam-target" class="border rounded p-2"><option value="">Select an exam before importing trackers</option></select>
+                        </label>
+                        <button type="button" onclick="importLegacyBrowserData()" class="bg-emerald-700 text-white px-4 py-2 rounded">2. Import missing browser records</button>
+                        <p id="legacy-import-status" role="status" class="text-slate-600"></p>
+                        <p><a href="SETUP_FIREBASE.md" class="text-indigo-700 underline">Firebase setup and two-device test guide</a></p>
                     </div>
                 </div>
             </section>
@@ -394,13 +391,17 @@
             <div class="text-center space-y-1">
                 <span class="text-3xl">🔐</span>
                 <h3 class="text-base font-bold text-slate-800" id="login-modal-title">Portal Login</h3>
-                <p class="text-xs text-slate-500">Enter password to unlock secure area</p>
+                <p class="text-xs text-slate-500">Sign in with your staff Firebase account</p>
             </div>
             <form onsubmit="handleLogin(event)" class="space-y-3">
                 <input type="hidden" id="login-target-role">
                 <div>
+                    <label for="login-email" class="block text-xs font-medium text-slate-700">Staff email</label>
+                    <input type="email" id="login-email" autocomplete="username" required placeholder="Your staff email" class="w-full text-xs p-2.5 border rounded mt-1">
+                </div>
+                <div>
                     <label class="block text-xs font-medium text-slate-700">Password</label>
-                    <input type="password" id="login-password" required placeholder="Enter Password" class="w-full text-xs p-2.5 border rounded mt-1 focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" id="login-password" autocomplete="current-password" required placeholder="Enter Password" class="w-full text-xs p-2.5 border rounded mt-1 focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <p id="login-error-msg" class="text-xs text-red-600 hidden font-medium text-center">Incorrect Password! Try again.</p>
                 <div class="flex justify-end gap-2 pt-2">
@@ -448,8 +449,16 @@
             messagingSenderId: "432588482715",
             appId: "1:432588482715:web:bb769933f2118b2e377e3e"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        const firebaseAvailable = typeof firebase !== 'undefined' && typeof firebase.auth === 'function';
+        if (firebaseAvailable) firebase.initializeApp(firebaseConfig);
+        const db = firebaseAvailable ? firebase.database() : null;
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+        }
+        function jsArg(value) {
+            return escapeHtml(JSON.stringify(String(value)).replace(/</g, '\\u003c'));
+        }
 
         function sanitizeText(val) {
             if (!val || typeof val !== 'string') return '-';
@@ -461,15 +470,8 @@
         const ROMAN_MAP = { '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || `Class ${cls}`; }
         
-        let currentActiveRole = localStorage.getItem('vems_active_role') || 'public';
+        let currentActiveRole = 'public';
         let currentActiveTab = localStorage.getItem('vems_active_tab') || 'config';
-        let appPasswords = JSON.parse(localStorage.getItem('vems_passwords')) || {
-            principal: 'master777',
-            'sec-ic': 'Exam123',
-            'pri-ic': 'Primary123'
-        };
-        function savePasswords() { localStorage.setItem('vems_passwords', JSON.stringify(appPasswords)); }
-
         let defaultSectionConfigs = {};
         ['6', '7', '8'].forEach(cls => { ['A', 'B', 'C', 'D'].forEach(sec => { defaultSectionConfigs[`${cls}-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE']; }); });
         ['A', 'B', 'C', 'D'].forEach(sec => {
@@ -480,25 +482,22 @@
         ['11-C', '12-C'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI']; });
         ['11-D', '11-E', '12-D', '12-E'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI']; });
         
-        let sectionConfigs = JSON.parse(localStorage.getItem('vems_section_configs')) || defaultSectionConfigs;
+        let sectionConfigs = {};
         let students = [];
-        let teachers = JSON.parse(localStorage.getItem('vems_teachers')) || [
-            { id: 1, name: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS', allotments: [{ cls: '11', sec: 'A', subject: 'PHYSICS', qpSetter: 'Self', evaluator: 'Self' }, { cls: '12', sec: 'A', subject: 'PHYSICS', qpSetter: 'Self', evaluator: 'Self' }] },
-            { id: 2, name: 'Smt. Anita Sharma', desig: 'TGT SCIENCE', allotments: [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }, { cls: '9', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }] }
-        ];
-        let classTeacherAssignments = JSON.parse(localStorage.getItem('vems_ct_assignments')) || {};
-
+        let teachers = [];
+        let classTeacherAssignments = {};
         let isExamConfigOpen = false;
         let activeExamId = null;
         let isPreExamFullPageOpen = false;
         let activePreExamSubTab = 'qp-setters';
         let selectedPreExamVaultId = null;
-        let qpSubmissionDeadline = '2026-11-05';
+        let qpSubmissionDeadline = '';
+        let qpSubmissionDeadlines = {};
 
-        let qpSubmissionsTracker = JSON.parse(localStorage.getItem('vems_qp_submissions_tracker')) || {};
-        let qpPrintingTracker = JSON.parse(localStorage.getItem('vems_qp_printing_tracker')) || {};
+        let qpSubmissionsTracker = {};
+        let qpPrintingTracker = {};
 
-        let examOptionsList = JSON.parse(localStorage.getItem('vems_exam_options')) || [
+        const defaultExamOptionsList = [
             { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
             { id: 'Half Yearly', label: 'Half Yearly Examination' },
             { id: 'PT-2', label: 'Periodic Test 2 (PT-2)' },
@@ -512,90 +511,19 @@
             { id: 'Slip Test', label: 'Slip Test' }
         ];
         
-        let mainHeaderConfig = JSON.parse(localStorage.getItem('vems_header_config')) || {
+        let examOptionsList = defaultExamOptionsList;
+        let mainHeaderConfig = {
             name: 'Half Yearly Examination',
             customName: '',
             fromDate: '2026-11-10',
             toDate: '2026-11-15'
         };
-        let datesheetDays = JSON.parse(localStorage.getItem('vems_datesheet_draft')) || [];
-        let archivedExams = JSON.parse(localStorage.getItem('vems_archived_exams')) || [];
+        let datesheetDays = [];
+        let archivedExams = [];
 
-        function initFirebaseListeners() {
-            db.ref('students').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    students = [];
-                    Object.keys(data).forEach(clsKey => {
-                        Object.keys(data[clsKey]).forEach(secKey => {
-                            Object.keys(data[clsKey][secKey]).forEach(stuKey => {
-                                students.push(data[clsKey][secKey][stuKey]);
-                            });
-                        });
-                    });
-                }
-                filterStudents();
-                if(currentActiveTab === 'teachers') renderTeachers();
-                renderExamCreatorModule();
-            });
-
-            db.ref('sectionConfigs').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    sectionConfigs = data;
-                    localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
-                    initCfgSections();
-                    renderMasterSubjectDirectory();
-                    renderExamCreatorModule();
-                }
-            });
-
-            db.ref('archivedExams').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    if (Array.isArray(data)) {
-                        archivedExams = data.filter(item => item !== null && item !== undefined);
-                    } else if (typeof data === 'object') {
-                        archivedExams = Object.values(data).filter(item => item !== null && item !== undefined);
-                    } else {
-                        archivedExams = [];
-                    }
-                } else {
-                    archivedExams = [];
-                }
-                localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
-                renderExamCreatorModule();
-            });
-        }
-        initFirebaseListeners();
-        
-        window.addEventListener('DOMContentLoaded', () => {
-            activateArea(currentActiveRole);
-            if(currentActiveRole === 'principal') switchTab(currentActiveTab);
-            renderExamCreatorModule();
-        });
-
-        function saveData() {
-            localStorage.setItem('vems_section_configs', JSON.stringify(sectionConfigs));
-            localStorage.setItem('vems_teachers', JSON.stringify(teachers));
-            localStorage.setItem('vems_ct_assignments', JSON.stringify(classTeacherAssignments));
-            localStorage.setItem('vems_header_config', JSON.stringify(mainHeaderConfig));
-            localStorage.setItem('vems_datesheet_draft', JSON.stringify(datesheetDays));
-            localStorage.setItem('vems_archived_exams', JSON.stringify(archivedExams));
-            localStorage.setItem('vems_exam_options', JSON.stringify(examOptionsList));
-            localStorage.setItem('vems_qp_submissions_tracker', JSON.stringify(qpSubmissionsTracker));
-            localStorage.setItem('vems_qp_printing_tracker', JSON.stringify(qpPrintingTracker));
-            
-            db.ref('sectionConfigs').set(sectionConfigs);
-            db.ref('archivedExams').set(archivedExams);
-
-            renderMasterSubjectDirectory();
-            renderExamCreatorModule();
-        }
-
-        function syncActiveExamDraftToVault() {
+        async function syncActiveExamDraftToVault() {
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
-            if (!activeExamId) activeExamId = Date.now();
+            if (!activeExamId) activeExamId = newRecordId();
             const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
             
             const examRecord = {
@@ -615,51 +543,7 @@
             } else {
                 archivedExams.push(examRecord);
             }
-            saveData();
-        }
-
-        function switchPortalArea(area) {
-            if (area === 'public') activateArea('public');
-            else {
-                if (currentActiveRole === area) activateArea(area);
-                else openLoginModal(area);
-            }
-        }
-
-        function openLoginModal(role) {
-            document.getElementById('login-target-role').value = role;
-            let title = 'Portal Login';
-            if(role === 'principal') title = 'Principal Login (Master Access)';
-            else if(role === 'sec-ic') title = 'Secondary Exam IC Login (Class VI–XII)';
-            else if(role === 'pri-ic') title = 'Primary Exam IC Login (Class I–V)';
-            document.getElementById('login-modal-title').textContent = title;
-            document.getElementById('login-password').value = '';
-            document.getElementById('login-error-msg').classList.add('hidden');
-            document.getElementById('login-modal').classList.remove('hidden');
-        }
-
-        function closeLoginModal() { document.getElementById('login-modal').classList.add('hidden'); }
-
-        function handleLogin(e) {
-            e.preventDefault();
-            const pass = document.getElementById('login-password').value;
-            const role = document.getElementById('login-target-role').value;
-            let correctPass = appPasswords[role];
-            if (pass === correctPass || pass === 'master777' || pass === 'Exam123' || pass === 'Primary123') {
-                currentActiveRole = role;
-                localStorage.setItem('vems_active_role', role);
-                closeLoginModal();
-                activateArea(role);
-            } else {
-                document.getElementById('login-error-msg').classList.remove('hidden');
-            }
-        }
-
-        function logoutSession() { 
-            currentActiveRole = 'public'; 
-            localStorage.removeItem('vems_active_role');
-            localStorage.removeItem('vems_active_tab');
-            activateArea('public'); 
+            return await saveData(['archivedExams']);
         }
 
         function activateArea(area) {
@@ -709,25 +593,8 @@
             
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
-            if(tab === 'teachers') { initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
-            if(tab === 'settings') {
-                document.getElementById('pass-prin').value = appPasswords.principal;
-                document.getElementById('pass-sec').value = appPasswords['sec-ic'];
-                document.getElementById('pass-pri').value = appPasswords['pri-ic'];
-            }
-        }
-
-        function updatePassword(e, roleKey) {
-            e.preventDefault();
-            let val = '';
-            if(roleKey === 'principal') val = document.getElementById('pass-prin').value.trim();
-            else if(roleKey === 'sec-ic') val = document.getElementById('pass-sec').value.trim();
-            else if(roleKey === 'pri-ic') val = document.getElementById('pass-pri').value.trim();
-            if(!val) return;
-            appPasswords[roleKey] = val;
-            savePasswords();
-            alert(`Password for ${roleKey.toUpperCase()} updated successfully!`);
-            switchTab('settings');
+            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
+            if(tab === 'settings') populateLegacyExamOptions();
         }
 
         function getAllUniqueClasses() {
@@ -774,7 +641,7 @@
             let currentCls = clsSel.value || '11';
             clsSel.innerHTML = '';
             getAllUniqueClasses().forEach(cls => {
-                clsSel.innerHTML += `<option value="${cls}" ${cls === currentCls ? 'selected' : ''}>Class ${formatClass(cls)}</option>`;
+                clsSel.innerHTML += `<option value="${escapeHtml(cls)}" ${cls === currentCls ? 'selected' : ''}>Class ${escapeHtml(formatClass(cls))}</option>`;
             });
             updateCfgSections(); 
         }
@@ -786,12 +653,13 @@
             let currentSec = secSel.value || 'A';
             secSel.innerHTML = '';
             getAllSectionsForClass(cls).forEach(s => {
-                secSel.innerHTML += `<option value="${s}" ${s === currentSec ? 'selected' : ''}>Section ${s}</option>`;
+                secSel.innerHTML += `<option value="${escapeHtml(s)}" ${s === currentSec ? 'selected' : ''}>Section ${escapeHtml(s)}</option>`;
             });
             loadSectionConfigDetails();
         }
 
         function loadSectionConfigDetails() {
+            sectionFormDirty = false;
             const cls = document.getElementById('cfg-class').value;
             const sec = document.getElementById('cfg-section').value;
             if(!cls || !sec) return;
@@ -802,6 +670,7 @@
             else if((cls === '11' || cls === '12') && sec === 'C') defaultSubs = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI'];
             else if((cls === '11' || cls === '12') && (sec === 'D' || sec === 'E')) defaultSubs = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI'];
             else if((cls === '11' || cls === '12') && (sec === 'A' || sec === 'B')) defaultSubs = ['PHYSICS', 'CHEMISTRY', 'ENGLISH', 'MATHS', 'BIOLOGY', 'C.S', 'HINDI CORE', 'AI'];
+            editorBaselines.section = { path: [`${cls}-${sec}`], value: cloneData(sharedStore?.view('sectionConfigs')[`${cls}-${sec}`] || null) };
             renderConfigSubjectInputs(sectionConfigs[key] || defaultSubs);
         }
 
@@ -812,28 +681,32 @@
             subjects.forEach((sub, idx) => {
                 const div = document.createElement('div');
                 div.className = "flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm";
-                div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${sub}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
+                div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">Sub-${idx + 1}</label><input type="text" value="${escapeHtml(sub)}" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="sectionFormDirty = true; this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
                 container.appendChild(div);
             });
         }
 
         function addNewSubjectField() {
+            sectionFormDirty = true;
             const container = document.getElementById('cfg-subjects-container');
             if(!container) return;
             const div = document.createElement('div');
             div.className = "flex items-end gap-1.5 bg-white p-2.5 rounded border shadow-sm";
-            div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">New Sub</label><input type="text" value="SUBJECT" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
+            div.innerHTML = `<div class="flex-grow"><label class="block text-[11px] font-bold text-indigo-900 mb-1">New Sub</label><input type="text" value="SUBJECT" class="cfg-sub-input w-full text-xs p-2 border rounded font-semibold uppercase" required></div><button type="button" onclick="sectionFormDirty = true; this.parentElement.remove()" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs p-2 rounded border border-red-200">🗑️</button>`;
             container.appendChild(div);
         }
 
-        function saveSectionConfig(e) {
+        async function saveSectionConfig(e) {
             e.preventDefault();
             const cls = document.getElementById('cfg-class').value;
             const sec = document.getElementById('cfg-section').value;
             let subs = [];
             document.querySelectorAll('.cfg-sub-input').forEach(inp => { if(inp.value.trim()) subs.push(inp.value.trim().toUpperCase()); });
+            if (!subs.length) { alert("Add at least one subject before saving."); return; }
             sectionConfigs[`${cls}-${sec}`] = subs;
-            saveData();
+            if (!await saveData(['sectionConfigs'], { sectionConfigs: editorBaselines.section ? [editorBaselines.section] : [] })) return;
+            editorBaselines.section = null;
+            sectionFormDirty = false;
             alert(`Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
             switchTab('config');
         }
@@ -858,15 +731,15 @@
                         return;
                     }
                     foundCount++;
-                    let subBadges = subs.map(s => `<span class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-800 text-[11px] font-semibold px-2 py-0.5 rounded m-0.5">${s}</span>`).join('');
+                    let subBadges = subs.map(s => `<span class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-800 text-[11px] font-semibold px-2 py-0.5 rounded m-0.5">${escapeHtml(s)}</span>`).join('');
                     let tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 border-b";
                     tr.innerHTML = `
-                        <td class="px-4 py-3 font-bold text-indigo-900">${classSecTitle}</td>
+                        <td class="px-4 py-3 font-bold text-indigo-900">${escapeHtml(classSecTitle)}</td>
                         <td class="px-4 py-3">${subBadges}</td>
                         <td class="px-4 py-3 text-center font-bold text-slate-700">${subs.length}</td>
                         <td class="px-4 py-3 text-right">
-                            <button type="button" onclick="jumpToEditConfig('${cls}', '${sec}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded border border-indigo-200 transition text-xs flex items-center gap-1 ml-auto">
+                            <button type="button" onclick="jumpToEditConfig(${jsArg(cls)}, ${jsArg(sec)})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-1.5 rounded border border-indigo-200 transition text-xs flex items-center gap-1 ml-auto">
                                 ✏️ Edit
                             </button>
                         </td>
@@ -894,11 +767,12 @@
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             if(!classSel) return;
+            const selected = classSel.value || '10';
             classSel.innerHTML = '';
             getAllUniqueClasses().forEach(cls => {
-                classSel.innerHTML += `<option value="${cls}">Class ${formatClass(cls)}</option>`;
+                classSel.innerHTML += `<option value="${escapeHtml(cls)}">Class ${escapeHtml(formatClass(cls))}</option>`;
             });
-            classSel.value = '10';
+            if ([...classSel.options].some(option => option.value === selected)) classSel.value = selected;
             handleClassChange();
         }
 
@@ -908,7 +782,7 @@
             if(!secSel || !cls) return;
             secSel.innerHTML = '';
             getAllSectionsForClass(cls).forEach(sec => {
-                secSel.innerHTML += `<option value="${sec}">Section ${sec}</option>`;
+                secSel.innerHTML += `<option value="${escapeHtml(sec)}">Section ${escapeHtml(sec)}</option>`;
             });
             updateStudentTableHeaders();
             filterStudents();
@@ -919,7 +793,7 @@
             const sec = document.getElementById('filter-section')?.value || 'A';
             const subs = sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE'];
             let html = `<th class="px-2 py-3 text-center">S.No</th><th class="px-2 py-3">Roll</th><th class="px-3 py-3">Student Name</th>`;
-            subs.forEach(sub => html += `<th class="px-2 py-3 bg-indigo-50/50">${sub}</th>`);
+            subs.forEach(sub => html += `<th class="px-2 py-3 bg-indigo-50/50">${escapeHtml(sub)}</th>`);
             html += `<th class="px-3 py-3 text-right no-print">Actions</th>`;
             const headerRow = document.getElementById('student-table-header-row');
             if(headerRow) headerRow.innerHTML = html;
@@ -937,16 +811,16 @@
             if(!tbody) return;
             tbody.innerHTML = '';
             if(filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${activeSubs.length + 4}" class="px-4 py-6 text-center text-slate-400 italic">No student records found for Class ${formatClass(cls)} Sec ${sec}. Upload CSV or feed manually.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${activeSubs.length + 4}" class="px-4 py-6 text-center text-slate-400 italic">No student records found for Class ${escapeHtml(formatClass(cls))} Sec ${escapeHtml(sec)}. Upload CSV or feed manually.</td></tr>`;
                 return;
             }
             filtered.forEach((s, idx) => {
-                let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${s.sno || (idx + 1)}</td><td class="px-2 py-3 font-bold">${s.roll}</td><td class="px-3 py-3 font-semibold">${s.name}</td>`;
+                let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${escapeHtml(s.sno || (idx + 1))}</td><td class="px-2 py-3 font-bold">${escapeHtml(s.roll)}</td><td class="px-3 py-3 font-semibold">${escapeHtml(s.name)}</td>`;
                 activeSubs.forEach((_, subIdx) => { 
                     let subVal = sanitizeText(s.subjects ? s.subjects[subIdx] : '-');
-                    rowHtml += `<td class="px-2 py-3 text-slate-700">${subVal}</td>`; 
+                    rowHtml += `<td class="px-2 py-3 text-slate-700">${escapeHtml(subVal)}</td>`;
                 });
-                rowHtml += `<td class="px-3 py-3 text-right space-x-2 no-print"><button type="button" onclick="editStudent('${s.id}')" class="text-indigo-600 hover:underline">Edit</button><button type="button" onclick="deleteStudent('${s.id}')" class="text-red-600 hover:underline">Delete</button></td>`;
+                rowHtml += `<td class="px-3 py-3 text-right space-x-2 no-print"><button type="button" onclick="editStudent(${jsArg(s.id)})" class="text-indigo-600 hover:underline">Edit</button><button type="button" onclick="deleteStudent(${jsArg(s.id)})" class="text-red-600 hover:underline">Delete</button></td>`;
                 let tr = document.createElement('tr'); tr.className = "hover:bg-slate-50 border-b"; tr.innerHTML = rowHtml;
                 tbody.appendChild(tr);
             });
@@ -995,12 +869,12 @@
                     let tr = document.createElement('tr');
                     tr.className = "border-b";
                     tr.innerHTML = `
-                        <td class="px-2 py-1 text-center font-bold border">${s1No}</td>
-                        <td class="px-2 py-1 font-bold border">${s1Roll}</td>
-                        <td class="px-3 py-1 font-semibold border">${s1Name}</td>
-                        <td class="px-2 py-1 text-center font-bold border bg-slate-50">${s2No}</td>
-                        <td class="px-2 py-1 font-bold border bg-slate-50">${s2Roll}</td>
-                        <td class="px-3 py-1 font-semibold border bg-slate-50">${s2Name}</td>
+                        <td class="px-2 py-1 text-center font-bold border">${escapeHtml(s1No)}</td>
+                        <td class="px-2 py-1 font-bold border">${escapeHtml(s1Roll)}</td>
+                        <td class="px-3 py-1 font-semibold border">${escapeHtml(s1Name)}</td>
+                        <td class="px-2 py-1 text-center font-bold border bg-slate-50">${escapeHtml(s2No)}</td>
+                        <td class="px-2 py-1 font-bold border bg-slate-50">${escapeHtml(s2Roll)}</td>
+                        <td class="px-3 py-1 font-semibold border bg-slate-50">${escapeHtml(s2Name)}</td>
                     `;
                     tbody.appendChild(tr);
                 }
@@ -1043,7 +917,7 @@
             const expectedSubs = sectionConfigs[`${cls}-${sec}`] || [];
             const reader = new FileReader();
             
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const text = e.target.result.replace(/\r/g, '');
                 const lines = text.split('\n');
                 if (lines.length === 0 || !lines[0].trim()) {
@@ -1104,26 +978,30 @@
                     row.id = newKey;
                     updates[newKey] = row;
                 });
-                db.ref(`students/${cls}/${sec}`).set(updates).then(() => {
-                    alert(`✅ CSV Uploaded & Synced Successfully! ${parsedRows.length} student records loaded.`);
-                    event.target.value = '';
+                if (!canEditSharedData('principal')) { event.target.value = ''; return; }
+                if (!confirm(`Replace the current student list for Class ${cls}-${sec} with ${parsedRows.length} CSV records? Download a backup first if needed.`)) { event.target.value = ''; return; }
+                studentRecords[cls] ||= {};
+                studentRecords[cls][sec] = updates;
+                if (await saveData(['students'])) {
+                    alert(`✅ CSV saved to Firebase: ${parsedRows.length} student records.`);
                     switchTab('students');
-                }).catch((error) => {
-                    alert("❌ Firebase Sync Failed: " + error.message);
-                    event.target.value = '';
-                });
+                }
+                event.target.value = '';
+
             };
             reader.readAsText(file);
         }
 
         function openStudentModal(id = null) {
+            editorBaselines.student = null;
             const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value;
             document.getElementById('modal-class-sec-badge').textContent = `Target: Class ${formatClass(cls)}-${sec}`;
             const subs = sectionConfigs[`${cls}-${sec}`] || [];
             const grid = document.getElementById('modal-subjects-grid'); grid.innerHTML = '';
             subs.forEach((subName, idx) => {
-                grid.innerHTML += `<div class="space-y-1"><label class="block text-[11px] font-semibold text-indigo-900">${subName}</label><input type="text" id="modal-sub-${idx}" value="${subName}" class="modal-sub-input w-full text-xs p-2 border rounded uppercase"></div>`;
+                grid.innerHTML += `<div class="space-y-1"><label class="block text-[11px] font-semibold text-indigo-900">${escapeHtml(subName)}</label><input type="text" id="modal-sub-${idx}" value="${escapeHtml(subName)}" class="modal-sub-input w-full text-xs p-2 border rounded uppercase"></div>`;
             });
+            if (id && studentRecords[cls]?.[sec]?.[id]) editorBaselines.student = { path: [String(cls), String(sec), String(id)], value: cloneData(studentRecords[cls][sec][id]) };
             document.getElementById('student-modal').classList.remove('hidden');
             if(id) {
                 const s = students.find(item => String(item.id) === String(id));
@@ -1138,7 +1016,7 @@
 
         function closeStudentModal() { document.getElementById('student-modal').classList.add('hidden'); }
 
-        function saveStudent(e) {
+        async function saveStudent(e) {
             e.preventDefault();
             const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value; const id = document.getElementById('stu-id').value;
             let studentSubjects = []; document.querySelectorAll('.modal-sub-input').forEach(inp => studentSubjects.push(sanitizeText(inp.value)));
@@ -1155,20 +1033,25 @@
                 section: sec, 
                 subjects: studentSubjects 
             };
-            studentRef.set(stuData).then(() => {
+            studentRecords[cls] ||= {};
+            studentRecords[cls][sec] ||= {};
+            studentRecords[cls][sec][stuId] = stuData;
+            if (await saveData(['students'], { students: editorBaselines.student ? [editorBaselines.student] : [] })) {
+                editorBaselines.student = null;
                 closeStudentModal();
                 switchTab('students');
-            });
+            }
+
         }
 
         function editStudent(id) { openStudentModal(id); }
 
-        function deleteStudent(id) {
+        async function deleteStudent(id) {
             const s = students.find(item => String(item.id) === String(id));
             if(s && confirm(`Delete student ${s.name}?`)) {
-                db.ref(`students/${s.class}/${s.section}/${id}`).remove().then(() => {
-                    switchTab('students');
-                });
+                delete studentRecords[s.class][s.section][id];
+                if (await saveData(['students'])) switchTab('students');
+
             }
         }
 
@@ -1184,7 +1067,7 @@
         function getDutyOptionsHtml(selectedVal = 'Self') {
             let options = `<option value="Self" ${selectedVal === 'Self' ? 'selected' : ''}>Self (Same as Teacher)</option>`;
             teachers.forEach(t => {
-                options += `<option value="${t.name}" ${selectedVal === t.name ? 'selected' : ''}>${t.name} (${t.desig})</option>`;
+                options += `<option value="${escapeHtml(t.name)}" ${selectedVal === t.name ? 'selected' : ''}>${escapeHtml(t.name)} (${escapeHtml(t.desig)})</option>`;
             });
             return options;
         }
@@ -1226,7 +1109,7 @@
         function updateRowSectionsAndSubjects(clsElem, preSec = null, preSub = null) {
             const row = clsElem.closest('.teaching-row'); const cls = clsElem.value; const secSel = row.querySelector('.sec-sel'); secSel.innerHTML = '';
             getAllSectionsForClass(cls).forEach(s => {
-                secSel.innerHTML += `<option value="${s}" ${preSec==s?'selected':''}>Sec ${s}</option>`;
+                secSel.innerHTML += `<option value="${escapeHtml(s)}" ${preSec==s?'selected':''}>Sec ${escapeHtml(s)}</option>`;
             });
             updateRowSubjects(secSel, preSub);
         }
@@ -1234,11 +1117,11 @@
         function updateRowSubjects(secElem, preSub = null) {
             const row = secElem.closest('.teaching-row'); const cls = row.querySelector('.cls-sel').value; const sec = secElem.value; const subSel = row.querySelector('.sub-sel'); subSel.innerHTML = '';
             (sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE']).forEach(sub => {
-                subSel.innerHTML += `<option value="${sub}" ${preSub==sub?'selected':''}>${sub}</option>`;
+                subSel.innerHTML += `<option value="${escapeHtml(sub)}" ${preSub==sub?'selected':''}>${escapeHtml(sub)}</option>`;
             });
         }
 
-        function saveTeacherDirect(e) {
+        async function saveTeacherDirect(e) {
             e.preventDefault();
             const name = document.getElementById('tch-name-input').value.trim();
             if(!name) { alert("Please enter the teacher's full name."); return; }
@@ -1255,13 +1138,14 @@
                     evaluator: row.querySelector('.eval-sel').value || 'Self'
                 });
             });
-            const teacherData = { id: editIndex !== '' ? teachers[editIndex].id : Date.now(), name, desig, allotments };
+            const teacherData = { id: editIndex !== '' ? teachers.find(t => String(t.id) === editIndex).id : newRecordId(), name, desig, allotments };
             if(editIndex !== '') {
-                teachers[editIndex] = teacherData;
+                teachers[teachers.findIndex(t => String(t.id) === editIndex)] = teacherData;
             } else {
                 teachers.push(teacherData);
             }
-            saveData();
+            if (!await saveData(['teachers'], { teachers: editorBaselines.teacher ? [editorBaselines.teacher] : [] })) return;
+            editorBaselines.teacher = null;
             resetTeacherForm();
             renderTeachers();
             renderClassTeacherCoordinationTable();
@@ -1270,6 +1154,7 @@
         }
 
         function resetTeacherForm() {
+            editorBaselines.teacher = null;
             document.getElementById('tch-edit-index').value = '';
             document.getElementById('tch-name-input').value = '';
             document.getElementById('tch-desig-input').value = '';
@@ -1281,7 +1166,8 @@
             const idx = teachers.findIndex(t => t.id === id);
             if(idx === -1) return;
             const t = teachers[idx];
-            document.getElementById('tch-edit-index').value = idx;
+            editorBaselines.teacher = { path: [String(t.id)], value: cloneData(t) };
+            document.getElementById('tch-edit-index').value = t.id;
             document.getElementById('tch-name-input').value = t.name;
             document.getElementById('tch-desig-input').value = t.desig;
             
@@ -1295,10 +1181,10 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function deleteTeacher(id) {
+        async function deleteTeacher(id) {
             if(confirm("Remove this teacher's assignment?")) {
                 teachers = teachers.filter(t => t.id !== id);
-                saveData();
+                if (!await saveData(['teachers'])) return;
                 renderTeachers();
                 renderClassTeacherCoordinationTable();
                 switchTab('teachers');
@@ -1331,29 +1217,30 @@
                     t.allotments.forEach(al => {
                         let count = students.filter(s => String(s.class) === String(al.cls) && String(s.section) === String(al.sec)).length;
                         totalStudentsAllotted += count;
-                        allotmentsHtml += `<div class="text-[11px]">• Class ${formatClass(al.cls)}-${al.sec}: <strong class="text-indigo-900">${al.subject}</strong> (${count} Booklets)</div>`;
+                        allotmentsHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> (${count} Booklets)</div>`;
                         
                         let qpText = al.qpSetter === 'Self' ? 'Self' : al.qpSetter;
                         let evalText = al.evaluator === 'Self' ? 'Self' : al.evaluator;
-                        dutiesHtml += `<div class="text-[11px]">• Class ${formatClass(al.cls)}-${al.sec}: QP: <strong class="text-indigo-900">${qpText}</strong> | Eval: <strong class="text-indigo-900">${evalText}</strong></div>`;
+                        dutiesHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: QP: <strong class="text-indigo-900">${escapeHtml(qpText)}</strong> | Eval: <strong class="text-indigo-900">${escapeHtml(evalText)}</strong></div>`;
                     });
                 }
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b">
-                        <td class="px-4 py-3 font-semibold">${t.name}<br><span class="px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${t.desig}</span></td>
+                        <td class="px-4 py-3 font-semibold">${escapeHtml(t.name)}<br><span class="px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${escapeHtml(t.desig)}</span></td>
                         <td class="px-4 py-3">${allotmentsHtml || '<i>No allotments</i>'}</td>
                         <td class="px-4 py-3">${dutiesHtml || '<i>No duties assigned</i>'}</td>
                         <td class="px-4 py-3 text-center bg-indigo-50/50 font-bold text-indigo-900">${totalStudentsAllotted} Booklets</td>
                         <td class="px-4 py-3 text-center bg-emerald-50/50 font-bold text-emerald-900">${t.allotments ? t.allotments.length : 0} Bundle(s)</td>
                         <td class="px-4 py-3 text-right space-x-2">
-                            <button type="button" onclick="editTeacher(${t.id})" class="text-indigo-600 hover:underline font-bold">Edit</button>
-                            <button type="button" onclick="deleteTeacher(${t.id})" class="text-red-600 hover:underline font-bold">Delete</button>
+                            <button type="button" onclick="editTeacher(${Number(t.id)})" class="text-indigo-600 hover:underline font-bold">Edit</button>
+                            <button type="button" onclick="deleteTeacher(${Number(t.id)})" class="text-red-600 hover:underline font-bold">Delete</button>
                         </td>
                     </tr>`;
             });
         }
 
         function renderClassTeacherCoordinationTable() {
+            assignmentRenderBaseline = cloneData(sharedStore?.view('classTeacherAssignments') || {});
             const tbody = document.getElementById('ct-coordination-tbody');
             if(!tbody) return;
             tbody.innerHTML = '';
@@ -1365,14 +1252,14 @@
                     let key = `${cls}-${sec}`;
                     let facOptions = '<option value="">-- Select --</option>';
                     teachers.forEach(f => {
-                        facOptions += `<option value="${f.name}">${f.name} (${f.desig})</option>`;
+                        facOptions += `<option value="${escapeHtml(f.name)}">${escapeHtml(f.name)} (${escapeHtml(f.desig)})</option>`;
                     });
                     tbody.innerHTML += `
                         <tr class="border-b hover:bg-slate-50">
-                            <td class="px-4 py-2 font-bold text-indigo-900">Class ${formatClass(cls)} - Sec ${sec}</td>
-                            <td class="px-4 py-2"><select id="ct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
-                            <td class="px-4 py-2"><select id="coct-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
-                            <td class="px-4 py-2 bg-indigo-50/30"><select id="onduty-${key}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
+                            <td class="px-4 py-2 font-bold text-indigo-900">Class ${escapeHtml(formatClass(cls))} - Sec ${escapeHtml(sec)}</td>
+                            <td class="px-4 py-2"><select id="ct-${escapeHtml(key)}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
+                            <td class="px-4 py-2"><select id="coct-${escapeHtml(key)}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
+                            <td class="px-4 py-2 bg-indigo-50/30"><select id="onduty-${escapeHtml(key)}" class="w-full text-xs p-1.5 border rounded bg-white font-medium">${facOptions}</select></td>
                         </tr>
                     `;
                 });
@@ -1391,7 +1278,7 @@
             });
         }
 
-        function saveClassTeacherAssignments() {
+        async function saveClassTeacherAssignments() {
             let classesList = getAllUniqueClasses();
             classesList.forEach(cls => {
                 let sections = getAllSectionsForClass(cls);
@@ -1404,7 +1291,10 @@
                     };
                 });
             });
-            saveData();
+            const baseline = editorBaselines.assignments;
+            const expected = baseline ? [...new Set([...Object.keys(baseline), ...Object.keys(classTeacherAssignments)])].map(key => ({ path: [key], value: baseline[key] || null })) : [];
+            if (!await saveData(['classTeacherAssignments'], { classTeacherAssignments: expected })) return;
+            editorBaselines.assignments = null;
             alert("Class Teacher & Coordination Assignments saved successfully!");
             switchTab('teachers');
         }
@@ -1412,8 +1302,9 @@
         // =========================================================================
         // MODULE 4: EXAM CREATOR, DATESHEET BUILDER & PRE-EXAM LOGISTICS HUB
         // =========================================================================
-        function startNewExamSetup() {
-            activeExamId = Date.now();
+        async function startNewExamSetup() {
+            editorBaselines.exam = null;
+            activeExamId = newRecordId();
             mainHeaderConfig = {
                 name: 'Periodic Test 1 (PT-1)',
                 customName: '',
@@ -1422,26 +1313,26 @@
             };
             datesheetDays = [{ id: 1, dateStr: mainHeaderConfig.fromDate, isCollapsed: false, saved: false, paperSlots: [] }];
             isExamConfigOpen = true;
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
             renderExamCreatorModule();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function saveMainHeaderConfig() {
+        async function saveMainHeaderConfig() {
             mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
             mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
             mainHeaderConfig.fromDate = document.getElementById('exam-from-date')?.value || '2026-11-10';
             mainHeaderConfig.toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
             alert("✅ Main Exam Title & Dates Saved Successfully!");
         }
 
-        function saveOrUpdateDayConfig(dayId) {
+        async function saveOrUpdateDayConfig(dayId) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (dayObj) {
                 dayObj.saved = true;
                 dayObj.isCollapsed = true;
-                syncActiveExamDraftToVault();
+                if (!await syncActiveExamDraftToVault()) return;
                 renderDatesheetDaysContainer();
                 alert(`✅ Full Day ${dayObj.id} Schedule Saved & Locked!`);
             }
@@ -1459,6 +1350,7 @@
         function loadArchivedExamToEdit(id) {
             const target = archivedExams.find(ex => ex.id === id);
             if (!target) return;
+            editorBaselines.exam = null;
             activeExamId = target.id;
             if (target.headerSnapshot) {
                 mainHeaderConfig = JSON.parse(JSON.stringify(target.headerSnapshot));
@@ -1469,27 +1361,27 @@
             }
             datesheetDays = target.datesheetSnapshot ? JSON.parse(JSON.stringify(target.datesheetSnapshot)) : [];
             isExamConfigOpen = true;
-            saveData();
+            rememberActiveExam();
             renderExamCreatorModule();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function deleteArchivedExam(id) {
+        async function deleteArchivedExam(id) {
             if (confirm("⚠️ Are you sure you want to delete this exam record from vault?")) {
                 archivedExams = archivedExams.filter(ex => ex.id !== id);
                 if (activeExamId === id) activeExamId = null;
-                saveData();
+                if (!await saveData(['archivedExams'])) return;
                 renderExamCreatorModule();
             }
         }
 
-        function bindupAndSaveExamRecord() {
+        async function bindupAndSaveExamRecord() {
             const examTitle = mainHeaderConfig.name === 'Other' ? (mainHeaderConfig.customName || 'Custom Exam') : mainHeaderConfig.name;
             if (datesheetDays.length === 0) {
                 alert("⚠️ Cannot save an empty exam record! Add days to datesheet first.");
                 return;
             }
-            if (!activeExamId) activeExamId = Date.now();
+            if (!activeExamId) activeExamId = newRecordId();
             const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
             const examRecord = {
                 id: activeExamId,
@@ -1508,8 +1400,9 @@
             } else {
                 archivedExams.push(examRecord);
             }
+            // Close the editor only after the server confirms the save.
+            if (!await saveData(['archivedExams'])) return;
             isExamConfigOpen = false;
-            saveData();
             alert(`🎉 EXAM FULLY SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
             renderExamCreatorModule();
         }
@@ -1522,7 +1415,7 @@
             }
         }
 
-        function updateExamDates() {
+        async function updateExamDates() {
             const fromDateVal = document.getElementById('exam-from-date')?.value;
             const toDateVal = document.getElementById('exam-to-date')?.value;
             if (!fromDateVal) return;
@@ -1539,11 +1432,11 @@
                 curr.setDate(curr.getDate() + 1);
                 dayIdx++;
             }
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
         }
 
-        function handleExamNameSelect(selElem) {
+        async function handleExamNameSelect(selElem) {
             const customBox = document.getElementById('exam-name-custom-container');
             if (!customBox) return;
             if (selElem.value === 'Other') {
@@ -1551,11 +1444,11 @@
             } else {
                 customBox.classList.add('hidden');
                 mainHeaderConfig.name = selElem.value;
-                syncActiveExamDraftToVault();
+                if (!await syncActiveExamDraftToVault()) return;
             }
         }
 
-        function addNextDatesheetDay() {
+        async function addNextDatesheetDay() {
             let nextId = datesheetDays.length + 1;
             let lastDate = datesheetDays.length > 0 ? new Date(datesheetDays[datesheetDays.length - 1].dateStr) : new Date();
             lastDate.setDate(lastDate.getDate() + 1);
@@ -1563,11 +1456,11 @@
             
             datesheetDays.forEach(d => d.isCollapsed = true);
             datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false, saved: false, paperSlots: [] });
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
         }
 
-        function addPaperSlotToDay(dayId) {
+        async function addPaperSlotToDay(dayId) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (!dayObj) return;
             if (!dayObj.paperSlots) dayObj.paperSlots = [];
@@ -1589,15 +1482,15 @@
                 startTime: '08:30',
                 overTime: '11:30'
             });
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
         }
 
-        function removePaperSlotFromDay(dayId, slotId) {
+        async function removePaperSlotFromDay(dayId, slotId) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (!dayObj || !dayObj.paperSlots) return;
             dayObj.paperSlots = dayObj.paperSlots.filter(s => s.slotId !== slotId);
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
         }
 
@@ -1614,7 +1507,7 @@
             return matchingSections;
         }
 
-        function handleSlotClassChange(dayId, slotId, clsVal) {
+        async function handleSlotClassChange(dayId, slotId, clsVal) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (!dayObj) return;
             let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
@@ -1623,22 +1516,22 @@
             let availableSubs = getUniqueSubjectsForClass(clsVal);
             slot.subject = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
             slot.selectedSections = getAllSectionsWithSubject(clsVal, slot.subject);
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
         }
 
-        function handleSlotSubjectChange(dayId, slotId, subVal) {
+        async function handleSlotSubjectChange(dayId, slotId, subVal) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (!dayObj) return;
             let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
             if (!slot) return;
             slot.subject = subVal;
             slot.selectedSections = getAllSectionsWithSubject(slot.cls, subVal);
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
         }
 
-        function toggleSlotSection(dayId, slotId, secVal, isChecked) {
+        async function toggleSlotSection(dayId, slotId, secVal, isChecked) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (!dayObj) return;
             let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
@@ -1648,24 +1541,25 @@
             } else {
                 slot.selectedSections = slot.selectedSections.filter(s => s !== secVal);
             }
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
         }
 
-        function updateSlotField(dayId, slotId, fieldName, val) {
+        async function updateSlotField(dayId, slotId, fieldName, val) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (!dayObj) return;
             let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
             if (!slot) return;
             slot[fieldName] = val;
-            syncActiveExamDraftToVault();
+            if (!await syncActiveExamDraftToVault()) return;
         }
 
         // FULL-PAGE PRE-EXAM LOGISTICS HUB WORKSTATION
-        function openPreExamFullPageWorkspace() {
+        function openPreExamFullPageWorkspace(examId = null) {
             isPreExamFullPageOpen = true;
+            if (examId !== null) selectedPreExamVaultId = examId;
             if (archivedExams.length > 0 && !selectedPreExamVaultId) {
                 selectedPreExamVaultId = archivedExams[0].id;
-            } else if (activeExamId) {
+            } else if (examId === null && activeExamId) {
                 selectedPreExamVaultId = activeExamId;
             }
             renderExamCreatorModule();
@@ -1695,12 +1589,12 @@
             if (qpSubmissionsTracker[key].qpReceived && qpSubmissionsTracker[key].answerKeyReceived) {
                 qpSubmissionsTracker[key].receivedDate = new Date().toLocaleDateString('en-IN');
             }
-            saveData();
+            return saveData(['qpSubmissionsTracker']);
         }
 
         function updateQpPrintingStatus(key, status) {
             qpPrintingTracker[key] = status;
-            saveData();
+            return saveData(['qpPrintingTracker']);
         }
 
         function generateQpSetterOfficeOrderPrint() {
@@ -1710,7 +1604,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Office Order - QP Setters (${currentExam.title})</title>
+                    <title>Office Order - QP Setters (${escapeHtml(currentExam.title)})</title>
                     <style>
                         body { font-family: serif; padding: 30px; color: #0f172a; line-height: 1.6; }
                         .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px; }
@@ -1732,12 +1626,12 @@
                         <h4>CONFIDENTIAL OFFICE ORDER & DIRECTIVE FOR QUESTION PAPER SETTERS</h4>
                     </div>
                     <div class="ref-no">
-                        <span>Ref No: F.KV/EXAM/${currentExam.title.replace(/\s+/g, '_')}/2026-27</span>
+                        <span>Ref No: F.KV/EXAM/${escapeHtml(currentExam.title.replace(/\s+/g, '_'))}/2026-27</span>
                         <span>Date: ${new Date().toLocaleDateString('en-IN')}</span>
                     </div>
                     <div class="title">OFFICE ORDER: QUESTION PAPER SETTING DIRECTIVES</div>
                     <div class="content">
-                        The following faculty members are hereby appointed as Question Paper Setters for <b>${currentExam.title}</b>. All paper setters are strictly instructed to submit 02 sets of balanced Question Papers along with complete Answer Keys and Marking Schemes in sealed confidential envelopes to the Exam In-Charge on or before <b>${qpSubmissionDeadline}</b>.
+                        The following faculty members are hereby appointed as Question Paper Setters for <b>${escapeHtml(currentExam.title)}</b>. All paper setters are strictly instructed to submit 02 sets of balanced Question Papers along with complete Answer Keys and Marking Schemes in sealed confidential envelopes to the Exam In-Charge on or before <b>${escapeHtml(qpSubmissionDeadline)}</b>.
                     </div>
                     <table>
                         <thead>
@@ -1754,10 +1648,10 @@
                             ${getExamSubjectsListForVault(selectedPreExamVaultId).map((item, idx) => `
                                 <tr>
                                     <td style="text-align: center;">${idx + 1}</td>
-                                    <td><b>Class ${formatClass(item.cls)}</b> - ${item.subject}</td>
-                                    <td><b>${item.setterName}</b></td>
-                                    <td>${item.desig}</td>
-                                    <td style="text-align: center; font-weight: bold; color: #b91c1c;">${qpSubmissionDeadline}</td>
+                                    <td><b>Class ${escapeHtml(formatClass(item.cls))}</b> - ${escapeHtml(item.subject)}</td>
+                                    <td><b>${escapeHtml(item.setterName)}</b></td>
+                                    <td>${escapeHtml(item.desig)}</td>
+                                    <td style="text-align: center; font-weight: bold; color: #b91c1c;">${escapeHtml(qpSubmissionDeadline)}</td>
                                     <td></td>
                                 </tr>
                             `).join('')}
@@ -1778,7 +1672,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>CONFIDENTIAL OK REPORT - ${currentExam.title}</title>
+                    <title>CONFIDENTIAL OK REPORT - ${escapeHtml(currentExam.title)}</title>
                     <style>
                         body { font-family: sans-serif; padding: 30px; color: #0f172a; }
                         .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
@@ -1798,7 +1692,7 @@
                         <p style="margin:4px 0 0 0; font-weight:bold;">CONFIDENTIAL CLEARANCE & RECEIVING "OK REPORT"</p>
                     </div>
                     <div class="box">✅ CERTIFIED: 100% QUESTION PAPERS & ANSWER KEYS RECEIVED IN SEALED VAULT</div>
-                    <p style="font-size: 13px;"><b>Exam Title:</b> ${currentExam.title} | <b>Clearance Date:</b> ${new Date().toLocaleDateString('en-IN')}</p>
+                    <p style="font-size: 13px;"><b>Exam Title:</b> ${escapeHtml(currentExam.title)} | <b>Clearance Date:</b> ${new Date().toLocaleDateString('en-IN')}</p>
                     <table>
                         <thead>
                             <tr>
@@ -1812,8 +1706,8 @@
                         <tbody>
                             ${getExamSubjectsListForVault(selectedPreExamVaultId).map((item) => `
                                 <tr>
-                                    <td><b>Class ${formatClass(item.cls)}</b> - ${item.subject}</td>
-                                    <td>${item.setterName}</td>
+                                    <td><b>Class ${escapeHtml(formatClass(item.cls))}</b> - ${escapeHtml(item.subject)}</td>
+                                    <td>${escapeHtml(item.setterName)}</td>
                                     <td style="text-align: center; font-weight: bold; color: #059669;">✅ RECEIVED & SEALED</td>
                                     <td style="text-align: center; font-weight: bold; color: #059669;">✅ RECEIVED & SEALED</td>
                                     <td style="text-align: center;">${new Date().toLocaleDateString('en-IN')}</td>
@@ -1845,8 +1739,8 @@
                 return `
                     <tr>
                         <td style="text-align: center;">${idx + 1}</td>
-                        <td><b>Class ${formatClass(q.cls)}</b></td>
-                        <td><b>${q.subject}</b></td>
+                        <td><b>Class ${escapeHtml(formatClass(q.cls))}</b></td>
+                        <td><b>${escapeHtml(q.subject)}</b></td>
                         <td style="text-align: center;">${count}</td>
                         <td style="text-align: center;">+${buffer}</td>
                         <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${finalDemand}</td>
@@ -1861,7 +1755,7 @@
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>QP Printing Indent - ${currentExam.title}</title>
+                    <title>QP Printing Indent - ${escapeHtml(currentExam.title)}</title>
                     <style>
                         body { font-family: sans-serif; padding: 25px; color: #1e293b; }
                         .header { text-align: center; border-bottom: 2px solid #1e293b; padding-bottom: 12px; margin-bottom: 20px; }
@@ -1908,17 +1802,13 @@
         function getExamSubjectsListForVault(vaultId) {
             let targetExam = archivedExams.find(ex => ex.id === vaultId);
             if (!targetExam || !targetExam.datesheetSnapshot) {
-                return [
-                    { key: '10-SCIENCE', cls: '10', subject: 'SCIENCE', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS' },
-                    { key: '10-MATHS', cls: '10', subject: 'MATHEMATICS', setterName: 'Smt. Anita Sharma', desig: 'TGT MATHS' },
-                    { key: '12-PHYSICS', cls: '12', subject: 'PHYSICS', setterName: 'Dr. Ramkumar Singh', desig: 'PGT PHYSICS' }
-                ];
+                return [];
             }
             let result = [];
             targetExam.datesheetSnapshot.forEach(day => {
                 if (day.paperSlots) {
                     day.paperSlots.forEach(slot => {
-                        let key = `${slot.cls}-${slot.subject}`;
+                        let key = qpRecordKey(vaultId, slot.cls, slot.subject);
                         if (!result.some(r => r.key === key)) {
                             let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(slot.cls) && al.subject.toUpperCase() === slot.subject.toUpperCase()));
                             result.push({
@@ -1939,14 +1829,17 @@
             const htmlContent = isPreExamFullPageOpen ? renderFullPagePreExamWorkstation() : renderMainLifecycleHub();
             let prinMount = document.getElementById('exam-creator-mount-prin');
             let secMount = document.getElementById('exam-creator-mount-sec');
-            if (prinMount) prinMount.innerHTML = htmlContent;
-            if (secMount) secMount.innerHTML = htmlContent;
+            if (prinMount) prinMount.innerHTML = currentActiveRole === 'principal' ? htmlContent : '';
+            if (secMount) secMount.innerHTML = currentActiveRole === 'sec-ic' ? htmlContent : '';
             if (isExamConfigOpen) renderDatesheetDaysContainer();
         }
 
         function renderFullPagePreExamWorkstation() {
-            const currentExamList = archivedExams.length > 0 ? archivedExams : [{ id: 1, title: 'Periodic Test 1 (PT-1)', fromDate: '2026-10-21', toDate: '2026-10-21', totalDays: 1 }];
+            const currentExamList = archivedExams;
+            if (!currentExamList.length) return '<div class="bg-white p-6 rounded-xl">Create an exam before opening its pre-exam workspace.</div>';
             const selectedExam = currentExamList.find(ex => ex.id === selectedPreExamVaultId) || currentExamList[0];
+            selectedPreExamVaultId = selectedExam.id;
+            qpSubmissionDeadline = qpSubmissionDeadlines[String(selectedExam.id)] || '';
             const subjectsList = getExamSubjectsListForVault(selectedExam.id);
             let totalSubjects = subjectsList.length;
             let totalSubmittedCount = 0;
@@ -1969,7 +1862,7 @@
                             <div class="bg-indigo-900/90 p-2 rounded-xl border border-indigo-700/80 flex-grow md:flex-grow-0">
                                 <label class="block text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-0.5">Selected Vault Exam</label>
                                 <select onchange="handlePreExamVaultSelection(this.value)" class="bg-white text-slate-900 text-xs font-bold p-2 rounded w-full md:w-64">
-                                    ${currentExamList.map(ex => `<option value="${ex.id}" ${ex.id === selectedExam.id ? 'selected' : ''}>${ex.title} (${ex.fromDate})</option>`).join('')}
+                                    ${currentExamList.map(ex => `<option value="${escapeHtml(ex.id)}" ${ex.id === selectedExam.id ? 'selected' : ''}>${escapeHtml(ex.title)} (${escapeHtml(ex.fromDate)})</option>`).join('')}
                                 </select>
                             </div>
                             <button type="button" onclick="closePreExamFullPageWorkspace()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-3 rounded-xl shadow transition whitespace-nowrap">🔙 Exit</button>
@@ -1988,7 +1881,7 @@
                                     <div class="text-3xl">📥</div>
                                 </div>
                                 <div class="bg-white p-5 rounded-xl border shadow-xs flex justify-between items-center">
-                                    <div><p class="text-xs font-bold text-slate-500 uppercase">Submission Deadline</p><input type="date" value="${qpSubmissionDeadline}" onchange="qpSubmissionDeadline=this.value; renderExamCreatorModule();" class="text-xs font-bold p-1 border rounded bg-amber-50 text-amber-900 mt-1"></div>
+                                    <div><p class="text-xs font-bold text-slate-500 uppercase">Submission Deadline</p><input type="date" value="${escapeHtml(qpSubmissionDeadline)}" onchange="saveSubmissionDeadline(this.value)" class="text-xs font-bold p-1 border rounded bg-amber-50 text-amber-900 mt-1"></div>
                                     <div class="text-3xl">⏰</div>
                                 </div>
                                 <div class="${isAllOk ? 'bg-emerald-900 text-white' : 'bg-amber-900 text-white'} p-5 rounded-xl shadow-xs flex justify-between items-center">
@@ -2018,8 +1911,8 @@
                                                 let isComplete = rec.qpReceived && rec.answerKeyReceived;
                                                 return `
                                                     <tr class="hover:bg-slate-50 border-b">
-                                                        <td class="p-3 font-bold">Class ${formatClass(sub.cls)} - ${sub.subject}</td>
-                                                        <td class="p-3 font-bold">${sub.setterName}</td>
+                                                        <td class="p-3 font-bold">Class ${escapeHtml(formatClass(sub.cls))} - ${escapeHtml(sub.subject)}</td>
+                                                        <td class="p-3 font-bold">${escapeHtml(sub.setterName)}</td>
                                                         <td class="p-3 text-center"><input type="checkbox" ${rec.qpReceived ? 'checked' : ''} onchange="toggleQpSubmissionTick('${sub.key}', 'qpReceived')" class="w-4 h-4 text-emerald-600 rounded"></td>
                                                         <td class="p-3 text-center"><input type="checkbox" ${rec.answerKeyReceived ? 'checked' : ''} onchange="toggleQpSubmissionTick('${sub.key}', 'answerKeyReceived')" class="w-4 h-4 text-emerald-600 rounded"></td>
                                                         <td class="p-3 text-center">${isComplete ? '<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">READY</span>' : '<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">PENDING</span>'}</td>
@@ -2072,7 +1965,7 @@
                                             let status = qpPrintingTracker[sub.key] || 'Pending';
                                             return `
                                                 <tr class="hover:bg-slate-50 border-b">
-                                                    <td class="p-3 font-bold">Class ${formatClass(sub.cls)} - ${sub.subject}</td>
+                                                    <td class="p-3 font-bold">Class ${escapeHtml(formatClass(sub.cls))} - ${escapeHtml(sub.subject)}</td>
                                                     <td class="p-3 text-center font-bold">${count}</td>
                                                     <td class="p-3 text-center font-bold text-amber-800">+${buffer}</td>
                                                     <td class="p-3 text-center font-extrabold text-emerald-900">${final} Copies</td>
@@ -2117,11 +2010,11 @@
                                     <tbody class="divide-y divide-slate-800">
                                         ${archivedExams.map(ex => `
                                             <tr>
-                                                <td class="px-3 py-2 font-bold text-amber-300">${ex.title}</td>
-                                                <td class="px-3 py-2">${ex.fromDate} to ${ex.toDate}</td>
+                                                <td class="px-3 py-2 font-bold text-amber-300">${escapeHtml(ex.title)}</td>
+                                                <td class="px-3 py-2">${escapeHtml(ex.fromDate)} to ${escapeHtml(ex.toDate)}</td>
                                                 <td class="px-3 py-2 text-right space-x-1">
-                                                    <button type="button" onclick="loadArchivedExamToEdit(${ex.id})" class="bg-indigo-600 text-white text-[11px] px-3 py-1 rounded">✏️ Edit</button>
-                                                    <button type="button" onclick="openPreExamFullPageWorkspace()" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded">🚀 Pre-Exam Hub</button>
+                                                    <button type="button" onclick="loadArchivedExamToEdit(${Number(ex.id)})" class="bg-indigo-600 text-white text-[11px] px-3 py-1 rounded">✏️ Edit</button>
+                                                    <button type="button" onclick="openPreExamFullPageWorkspace(${Number(ex.id)})" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded">🚀 Pre-Exam Hub</button>
                                                 </td>
                                             </tr>
                                         `).join('')}
@@ -2139,12 +2032,12 @@
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                                 <div class="col-span-2">
                                     <label class="block text-[11px] font-bold uppercase mb-1">Exam Name</label>
-                                    <select id="exam-name-select" class="w-full text-xs p-2 border rounded bg-white font-semibold">
-                                        ${examOptionsList.map(o => `<option value="${o.id}" ${mainHeaderConfig.name === o.id ? 'selected' : ''}>${o.label}</option>`).join('')}
+                                    <select id="exam-name-select" onchange="saveMainHeaderConfig()" class="w-full text-xs p-2 border rounded bg-white font-semibold">
+                                        ${examOptionsList.map(o => `<option value="${escapeHtml(o.id)}" ${mainHeaderConfig.name === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}
                                     </select>
                                 </div>
-                                <div><label class="block text-[11px] font-bold uppercase mb-1">From Date</label><input type="date" id="exam-from-date" value="${mainHeaderConfig.fromDate}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded"></div>
-                                <div><label class="block text-[11px] font-bold uppercase mb-1">To Date</label><input type="date" id="exam-to-date" value="${mainHeaderConfig.toDate}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded"></div>
+                                <div><label class="block text-[11px] font-bold uppercase mb-1">From Date</label><input type="date" id="exam-from-date" value="${escapeHtml(mainHeaderConfig.fromDate)}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded"></div>
+                                <div><label class="block text-[11px] font-bold uppercase mb-1">To Date</label><input type="date" id="exam-to-date" value="${escapeHtml(mainHeaderConfig.toDate)}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded"></div>
                             </div>
                         </div>
                         <div class="space-y-4">
@@ -2186,14 +2079,14 @@
                 dayObj.paperSlots.forEach((slot, sIdx) => {
                     let availableSubjects = getUniqueSubjectsForClass(slot.cls);
                     let mappedSections = getAllSectionsWithSubject(slot.cls, slot.subject);
-                    let classOptions = classesList.map(c => `<option value="${c}" ${slot.cls === String(c) ? 'selected' : ''}>Class ${formatClass(c)}</option>`).join('');
-                    let subOptions = availableSubjects.map(sub => `<option value="${sub}" ${slot.subject === sub ? 'selected' : ''}>${sub}</option>`).join('');
+                    let classOptions = classesList.map(c => `<option value="${escapeHtml(c)}" ${slot.cls === String(c) ? 'selected' : ''}>Class ${escapeHtml(formatClass(c))}</option>`).join('');
+                    let subOptions = availableSubjects.map(sub => `<option value="${escapeHtml(sub)}" ${slot.subject === sub ? 'selected' : ''}>${escapeHtml(sub)}</option>`).join('');
                     let sectionCheckboxes = mappedSections.map(sec => {
                         let isChecked = slot.selectedSections.includes(sec);
                         return `
                             <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-white px-2 py-1 rounded border border-indigo-200 cursor-pointer">
-                                <input type="checkbox" value="${sec}" ${isChecked ? 'checked' : ''} onchange="toggleSlotSection(${dayObj.id}, ${slot.slotId}, '${sec}', this.checked)" class="text-indigo-600 rounded">
-                                Sec ${sec}
+                                <input type="checkbox" value="${escapeHtml(sec)}" ${isChecked ? 'checked' : ''} onchange="toggleSlotSection(${Number(dayObj.id)}, ${Number(slot.slotId)}, ${jsArg(sec)}, this.checked)" class="text-indigo-600 rounded">
+                                Sec ${escapeHtml(sec)}
                             </label>
                         `;
                     }).join('');
@@ -2201,24 +2094,24 @@
                         <div class="bg-white p-4 rounded-xl border border-indigo-200 space-y-3">
                             <div class="flex justify-between items-center border-b border-indigo-100 pb-2">
                                 <span class="bg-indigo-900 text-white text-[10px] font-bold px-2 py-0.5 rounded">SLOT ${sIdx + 1}</span>
-                                <button type="button" onclick="removePaperSlotFromDay(${dayObj.id}, ${slot.slotId})" class="text-red-600 text-xs font-bold">🗑️ Remove</button>
+                                <button type="button" onclick="removePaperSlotFromDay(${Number(dayObj.id)}, ${Number(slot.slotId)})" class="text-red-600 text-xs font-bold">🗑️ Remove</button>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Standard</label>
-                                    <select onchange="handleSlotClassChange(${dayObj.id}, ${slot.slotId}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-slate-50 text-indigo-900">${classOptions}</select>
+                                    <select onchange="handleSlotClassChange(${Number(dayObj.id)}, ${Number(slot.slotId)}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-slate-50 text-indigo-900">${classOptions}</select>
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Subject</label>
-                                    <select onchange="handleSlotSubjectChange(${dayObj.id}, ${slot.slotId}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-white text-indigo-900">${subOptions}</select>
+                                    <select onchange="handleSlotSubjectChange(${Number(dayObj.id)}, ${Number(slot.slotId)}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-white text-indigo-900">${subOptions}</select>
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Duration</label>
-                                    <select onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'duration', this.value)" class="w-full text-xs p-2 border rounded bg-white"><option value="3 Hours">3 Hours</option></select>
+                                    <select onchange="updateSlotField(${Number(dayObj.id)}, ${Number(slot.slotId)}, 'duration', this.value)" class="w-full text-xs p-2 border rounded bg-white"><option value="3 Hours">3 Hours</option></select>
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Max Marks</label>
-                                    <input type="number" value="${slot.maxMarks}" onchange="updateSlotField(${dayObj.id}, ${slot.slotId}, 'maxMarks', this.value)" class="w-full text-xs p-2 border rounded bg-white">
+                                    <input type="number" value="${escapeHtml(slot.maxMarks)}" onchange="updateSlotField(${Number(dayObj.id)}, ${Number(slot.slotId)}, 'maxMarks', this.value)" class="w-full text-xs p-2 border rounded bg-white">
                                 </div>
                             </div>
                             <div class="bg-indigo-50/60 p-2 rounded border border-indigo-100 flex flex-wrap gap-2">
@@ -2230,18 +2123,18 @@
                 let dayCard = document.createElement('div');
                 dayCard.className = `border rounded-xl overflow-hidden shadow-xs ${dayObj.saved ? 'bg-slate-100 border-slate-400' : 'bg-slate-50 border-indigo-300'}`;
                 dayCard.innerHTML = `
-                    <div onclick="toggleDayAccordion(${dayObj.id})" class="p-3.5 flex items-center justify-between cursor-pointer border-b bg-slate-100 hover:bg-indigo-50">
+                    <div onclick="toggleDayAccordion(${Number(dayObj.id)})" class="p-3.5 flex items-center justify-between cursor-pointer border-b bg-slate-100 hover:bg-indigo-50">
                         <div class="flex items-center gap-3">
                             <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
-                            <span class="bg-indigo-900 text-white text-xs font-extrabold px-2.5 py-1 rounded">DAY ${dayObj.id}</span>
-                            <h4 class="text-xs font-bold text-slate-800">${dateDisplay}</h4>
+                            <span class="bg-indigo-900 text-white text-xs font-extrabold px-2.5 py-1 rounded">DAY ${escapeHtml(dayObj.id)}</span>
+                            <h4 class="text-xs font-bold text-slate-800">${escapeHtml(dateDisplay)}</h4>
                         </div>
                         <div class="flex items-center gap-2" onclick="event.stopPropagation()">
-                            ${dayObj.saved ? `<button type="button" onclick="editDayConfig(${dayObj.id})" class="text-xs bg-amber-600 text-white font-bold px-3 py-1 rounded">✏️ Edit</button>` : `<button type="button" onclick="saveOrUpdateDayConfig(${dayObj.id})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded">💾 Save Day</button>`}
+                            ${dayObj.saved ? `<button type="button" onclick="editDayConfig(${Number(dayObj.id)})" class="text-xs bg-amber-600 text-white font-bold px-3 py-1 rounded">✏️ Edit</button>` : `<button type="button" onclick="saveOrUpdateDayConfig(${Number(dayObj.id)})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded">💾 Save Day</button>`}
                         </div>
                     </div>
                     <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-4">
-                        <button type="button" onclick="addPaperSlotToDay(${dayObj.id})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded">➕ Add Scheduled Paper Slot</button>
+                        <button type="button" onclick="addPaperSlotToDay(${Number(dayObj.id)})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded">➕ Add Scheduled Paper Slot</button>
                         <div class="space-y-3">${slotsHtml}</div>
                     </div>
                 `;
@@ -2249,5 +2142,6 @@
             });
         }
     </script>
+    <script src="app-sync.js"></script>
 </body>
 </html>
