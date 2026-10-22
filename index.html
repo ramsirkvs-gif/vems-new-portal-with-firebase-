@@ -484,6 +484,16 @@
 
         let qpSubmissionsTracker = {};
         let qpPrintingTracker = {};
+        let qpOfficeOrders = {};
+
+        const defaultQpSetterInstructions = [
+            'Prepare the question paper strictly according to the prescribed syllabus, blueprint and approved marks distribution.',
+            'Maintain complete confidentiality during preparation, printing and submission of the question paper.',
+            'Submit the question paper together with its complete marking scheme and answer key.',
+            'Verify marks, question numbering, spelling, diagrams and formatting before final submission.',
+            'Do not include any question outside the prescribed syllabus or disclose the paper through an unauthorized channel.',
+            'Report any difficulty immediately to the Examination Cell.'
+        ];
 
         const defaultExamOptionsList = [
             { id: 'PT-1', label: 'Periodic Test 1 (PT-1)' },
@@ -1588,9 +1598,88 @@
             return saveData(['qpPrintingTracker']);
         }
 
+        function currentQpOfficeOrder(examId = selectedPreExamVaultId) {
+            const saved = qpOfficeOrders[String(examId)] || {};
+            const exam = archivedExams.find(ex => ex.id === examId) || {};
+            return {
+                schoolName: saved.schoolName || 'PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR',
+                officeNo: saved.officeNo || `F.KV1/EXAM/${new Date().getFullYear()}-27`,
+                issueDate: saved.issueDate || new Date().toISOString().slice(0, 10),
+                deadlineDate: saved.deadlineDate || qpSubmissionDeadlines[String(examId)] || '',
+                deadlineTime: saved.deadlineTime || '16:00',
+                submissionMethod: saved.submissionMethod || 'Sealed confidential envelope to the Examination Cell',
+                instructions: Array.isArray(saved.instructions) ? saved.instructions : defaultQpSetterInstructions,
+                setters: saved.setters || {},
+                status: saved.status || 'DRAFT',
+                issuedAt: saved.issuedAt || '',
+                examTitle: exam.title || 'Examination'
+            };
+        }
+
+        function readQpOfficeOrderForm() {
+            const order = currentQpOfficeOrder();
+            const value = id => document.getElementById(id)?.value.trim() || '';
+            order.schoolName = value('qp-order-school');
+            order.officeNo = value('qp-order-number');
+            order.issueDate = value('qp-order-date');
+            order.deadlineDate = value('qp-order-deadline');
+            order.deadlineTime = value('qp-order-time');
+            order.submissionMethod = value('qp-order-method');
+            order.instructions = value('qp-order-instructions').split('\n').map(line => line.trim()).filter(Boolean);
+            order.setters = {};
+            document.querySelectorAll('[data-qp-setter-key]').forEach(select => {
+                const teacher = teachers.find(item => String(item.id) === select.value);
+                if (teacher) order.setters[select.dataset.qpSetterKey] = { teacherId: teacher.id, name: teacher.name, desig: teacher.desig };
+            });
+            return order;
+        }
+
+        async function saveQpOfficeOrder(status = 'DRAFT') {
+            if (!selectedPreExamVaultId) return false;
+            const order = readQpOfficeOrderForm();
+            if (!order.schoolName || !order.officeNo || !order.issueDate || !order.deadlineDate || !order.deadlineTime) {
+                alert('Please complete the school header, office-order number, issue date and submission deadline.');
+                return false;
+            }
+            if (!order.instructions.length) {
+                alert('Please keep at least one instruction for the question paper setters.');
+                return false;
+            }
+            const unmapped = getExamSubjectsListForVault(selectedPreExamVaultId, order).filter(item => !item.teacherId);
+            if (status === 'ISSUED' && unmapped.length) {
+                alert(`Assign a QP setter for every row before issuing the order. ${unmapped.length} row(s) are still unassigned.`);
+                return false;
+            }
+            order.status = status;
+            if (status === 'ISSUED') order.issuedAt = new Date().toISOString();
+            qpOfficeOrders[String(selectedPreExamVaultId)] = order;
+            qpSubmissionDeadlines[String(selectedPreExamVaultId)] = order.deadlineDate;
+            const saved = await saveData(['qpOfficeOrders', 'qpSubmissionDeadlines']);
+            if (saved) renderExamCreatorModule();
+            return saved;
+        }
+
+        async function issueAndGenerateQpOfficeOrderPdf() {
+            if (!await saveQpOfficeOrder('ISSUED')) return;
+            generateQpSetterOfficeOrderPrint();
+        }
+
+        function formatOrderDate(value) {
+            if (!value) return '—';
+            const [year, month, day] = value.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
         function generateQpSetterOfficeOrderPrint() {
-            const currentExam = archivedExams.find(ex => ex.id === selectedPreExamVaultId) || { title: 'Examination', fromDate: '2026-11-10' };
+            const currentExam = archivedExams.find(ex => ex.id === selectedPreExamVaultId) || { title: 'Examination' };
+            const order = currentQpOfficeOrder();
+            if (order.status !== 'ISSUED') {
+                alert('Issue the office order first. The final PDF will use the saved issued record.');
+                return;
+            }
+            const subjects = getExamSubjectsListForVault(selectedPreExamVaultId, order);
             const printWin = window.open('', '_blank', 'width=900,height=700');
+            if (!printWin) { alert('Please allow pop-ups to generate the PDF.'); return; }
             printWin.document.write(`
                 <!DOCTYPE html>
                 <html>
@@ -1599,11 +1688,13 @@
                     <style>
                         body { font-family: serif; padding: 30px; color: #0f172a; line-height: 1.6; }
                         .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 20px; }
-                        .header h2 { margin: 0; font-size: 22px; text-transform: uppercase; }
+                        .header h2 { margin: 0; font-size: 20px; text-transform: uppercase; }
+                        .header h3 { margin: 2px 0; font-size: 16px; text-transform: uppercase; }
                         .header h4 { margin: 4px 0; font-size: 14px; font-weight: normal; }
                         .ref-no { display: flex; justify-content: space-between; font-weight: bold; font-size: 13px; margin-bottom: 20px; }
                         .title { text-align: center; font-weight: bold; text-decoration: underline; font-size: 16px; margin-bottom: 20px; text-transform: uppercase; }
                         .content { font-size: 13px; text-align: justify; margin-bottom: 20px; }
+                        .instructions { font-size: 12px; margin: 8px 0 22px; padding-left: 22px; }
                         table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 25px; }
                         th, td { border: 1px solid #333; padding: 8px; text-align: left; }
                         th { background-color: #f1f5f9; text-transform: uppercase; }
@@ -1613,16 +1704,17 @@
                 </head>
                 <body>
                     <div class="header">
-                        <h2>KENDRIYA VIDYALAYA EXAMINATION CELL</h2>
-                        <h4>CONFIDENTIAL OFFICE ORDER & DIRECTIVE FOR QUESTION PAPER SETTERS</h4>
+                        <h2>EXAMINATION CELL</h2>
+                        <h3>${escapeHtml(order.schoolName)}</h3>
+                        <h4>Confidential Office Order for Question Paper Setters</h4>
                     </div>
                     <div class="ref-no">
-                        <span>Ref No: F.KV/EXAM/${escapeHtml(currentExam.title.replace(/\s+/g, '_'))}/2026-27</span>
-                        <span>Date: ${new Date().toLocaleDateString('en-IN')}</span>
+                        <span>Office Order No.: ${escapeHtml(order.officeNo)}</span>
+                        <span>Date: ${escapeHtml(formatOrderDate(order.issueDate))}</span>
                     </div>
-                    <div class="title">OFFICE ORDER: QUESTION PAPER SETTING DIRECTIVES</div>
+                    <div class="title">OFFICE ORDER — ${escapeHtml(currentExam.title)}</div>
                     <div class="content">
-                        The following faculty members are hereby appointed as Question Paper Setters for <b>${escapeHtml(currentExam.title)}</b>. All paper setters are strictly instructed to submit 02 sets of balanced Question Papers along with complete Answer Keys and Marking Schemes in sealed confidential envelopes to the Exam In-Charge on or before <b>${escapeHtml(qpSubmissionDeadline)}</b>.
+                        The following faculty members are hereby appointed as Question Paper Setters for <b>${escapeHtml(currentExam.title)}</b>. They shall submit the question papers, complete answer keys and marking schemes by <b>${escapeHtml(formatOrderDate(order.deadlineDate))} at ${escapeHtml(order.deadlineTime)}</b> through <b>${escapeHtml(order.submissionMethod)}</b>.
                     </div>
                     <table>
                         <thead>
@@ -1636,19 +1728,24 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${getExamSubjectsListForVault(selectedPreExamVaultId).map((item, idx) => `
+                            ${subjects.map((item, idx) => `
                                 <tr>
                                     <td style="text-align: center;">${idx + 1}</td>
                                     <td><b>Class ${escapeHtml(formatClass(item.cls))}</b> - ${escapeHtml(item.subject)}</td>
                                     <td><b>${escapeHtml(item.setterName)}</b></td>
                                     <td>${escapeHtml(item.desig)}</td>
-                                    <td style="text-align: center; font-weight: bold; color: #b91c1c;">${escapeHtml(qpSubmissionDeadline)}</td>
+                                    <td style="text-align: center; font-weight: bold;">${escapeHtml(formatOrderDate(order.deadlineDate))}<br>${escapeHtml(order.deadlineTime)}</td>
                                     <td></td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
-                    <div class="sig-block"><br><br><div class="sig-line">Principal / Exam In-Charge</div></div>
+                    <b style="font-size:13px;">Instructions to Question Paper Setters:</b>
+                    <ol class="instructions">${order.instructions.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol>
+                    <div style="display:flex;justify-content:space-between;margin-top:55px;clear:both;">
+                        <div style="text-align:center;width:220px;border-top:1px solid #0f172a;padding-top:5px;font-weight:bold;font-size:13px;">Exam In-Charge</div>
+                        <div style="text-align:center;width:220px;border-top:1px solid #0f172a;padding-top:5px;font-weight:bold;font-size:13px;">Principal</div>
+                    </div>
                     <script>window.onload = function() { window.print(); }<\/script>
                 </body>
                 </html>
@@ -1790,7 +1887,7 @@
             printWin.document.close();
         }
 
-        function getExamSubjectsListForVault(vaultId) {
+        function getExamSubjectsListForVault(vaultId, suppliedOrder = null) {
             let targetExam = archivedExams.find(ex => ex.id === vaultId);
             if (!targetExam || !targetExam.datesheetSnapshot) {
                 return [];
@@ -1801,13 +1898,28 @@
                     day.paperSlots.forEach(slot => {
                         let key = qpRecordKey(vaultId, slot.cls, slot.subject);
                         if (!result.some(r => r.key === key)) {
-                            let assignedTeacher = teachers.find(t => t.allotments && t.allotments.some(al => String(al.cls) === String(slot.cls) && al.subject.toUpperCase() === slot.subject.toUpperCase()));
+                            let subjectTeacher = null;
+                            let allotment = null;
+                            teachers.some(t => {
+                                const match = t.allotments?.find(al => String(al.cls) === String(slot.cls) && String(al.subject).toUpperCase() === String(slot.subject).toUpperCase());
+                                if (!match) return false;
+                                subjectTeacher = t;
+                                allotment = match;
+                                return true;
+                            });
+                            let assignedTeacher = allotment?.qpSetter && allotment.qpSetter !== 'Self'
+                                ? teachers.find(t => t.name === allotment.qpSetter) || subjectTeacher
+                                : subjectTeacher;
+                            const order = suppliedOrder || currentQpOfficeOrder(vaultId);
+                            const override = order.setters?.[key];
+                            if (override) assignedTeacher = teachers.find(t => String(t.id) === String(override.teacherId)) || override;
                             result.push({
                                 key: key,
                                 cls: slot.cls,
                                 subject: slot.subject,
                                 setterName: assignedTeacher ? assignedTeacher.name : 'Subject Faculty',
-                                desig: assignedTeacher ? assignedTeacher.desig : 'TGT/PGT'
+                                desig: assignedTeacher ? assignedTeacher.desig : 'TGT/PGT',
+                                teacherId: assignedTeacher?.id ?? assignedTeacher?.teacherId ?? ''
                             });
                         }
                     });
@@ -1834,6 +1946,7 @@
             selectedPreExamVaultId = selectedExam.id;
             qpSubmissionDeadline = qpSubmissionDeadlines[String(selectedExam.id)] || '';
             const subjectsList = getExamSubjectsListForVault(selectedExam.id);
+            const officeOrder = currentQpOfficeOrder(selectedExam.id);
             let totalSubjects = subjectsList.length;
             let totalSubmittedCount = 0;
             subjectsList.forEach(sub => {
@@ -1862,12 +1975,61 @@
                         </div>
                     </div>
                     <div class="bg-white rounded-xl shadow-xs border p-2 flex overflow-x-auto gap-2">
-                        <button type="button" onclick="switchPreExamSubTab('qp-setters')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-setters' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📝 1. QP Setters & Submission Tick Record</button>
+                        <button type="button" onclick="switchPreExamSubTab('qp-setters')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-setters' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📝 1. Office Order to QP Setters</button>
                         <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📜 2. Official Datesheet Office Orders</button>
                         <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🖨️ 3. QP Printing Demand (+5%)</button>
                     </div>
                     ${activePreExamSubTab === 'qp-setters' ? `
                         <div class="space-y-6">
+                            <div class="bg-white rounded-xl shadow-sm border p-5 space-y-5">
+                                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-4">
+                                    <div>
+                                        <h3 class="text-base font-bold text-indigo-950">📄 Office Order to Question Paper Setters</h3>
+                                        <p class="text-xs text-slate-500 mt-1">The list below comes from this exam's datesheet and Faculty Manager mappings.</p>
+                                    </div>
+                                    <span class="text-xs font-black px-3 py-1.5 rounded-full ${officeOrder.status === 'ISSUED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${escapeHtml(officeOrder.status)}</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                    <label class="lg:col-span-2 text-xs font-bold text-slate-600">School header
+                                        <input id="qp-order-school" value="${escapeHtml(officeOrder.schoolName)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs font-semibold bg-slate-50">
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-600">Office-order number
+                                        <input id="qp-order-number" value="${escapeHtml(officeOrder.officeNo)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs">
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-600">Issue date
+                                        <input id="qp-order-date" type="date" value="${escapeHtml(officeOrder.issueDate)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs">
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-600">Last submission date
+                                        <input id="qp-order-deadline" type="date" value="${escapeHtml(officeOrder.deadlineDate)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs bg-amber-50">
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-600">Last submission time
+                                        <input id="qp-order-time" type="time" value="${escapeHtml(officeOrder.deadlineTime)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs bg-amber-50">
+                                    </label>
+                                    <label class="md:col-span-2 text-xs font-bold text-slate-600">Submission method/place
+                                        <input id="qp-order-method" value="${escapeHtml(officeOrder.submissionMethod)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs">
+                                    </label>
+                                </div>
+                                <div class="overflow-x-auto border rounded-xl">
+                                    <table class="w-full text-xs text-left text-slate-700">
+                                        <thead class="bg-indigo-950 text-white uppercase"><tr><th class="p-3">Class</th><th class="p-3">Subject</th><th class="p-3">Assigned QP Setter</th><th class="p-3">Designation</th></tr></thead>
+                                        <tbody class="divide-y bg-white">${subjectsList.map(item => `
+                                            <tr><td class="p-3 font-bold">Class ${escapeHtml(formatClass(item.cls))}</td><td class="p-3 font-bold">${escapeHtml(item.subject)}</td>
+                                            <td class="p-2"><select data-qp-setter-key="${escapeHtml(item.key)}" class="w-full border rounded p-2 text-xs bg-white">
+                                                <option value="">Select QP setter</option>${teachers.map(teacher => `<option value="${escapeHtml(teacher.id)}" ${String(teacher.id) === String(item.teacherId) ? 'selected' : ''}>${escapeHtml(teacher.name)} — ${escapeHtml(teacher.desig)}</option>`).join('')}
+                                            </select></td><td class="p-3">${escapeHtml(item.desig)}</td></tr>`).join('')}</tbody>
+                                    </table>
+                                </div>
+                                ${subjectsList.length ? '' : '<p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">No papers are mapped in this exam yet. Add class and subject papers to the exam datesheet first.</p>'}
+                                <label class="block text-xs font-bold text-slate-600">Instructions — one instruction per line
+                                    <textarea id="qp-order-instructions" rows="7" class="mt-1 w-full border rounded-lg p-3 text-xs leading-6">${escapeHtml(officeOrder.instructions.join('\n'))}</textarea>
+                                </label>
+                                <div class="flex flex-wrap justify-end gap-2">
+                                    <button type="button" onclick="saveQpOfficeOrder('DRAFT')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save Draft</button>
+                                    ${officeOrder.status === 'ISSUED' ? '<button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📥 Generate PDF Again</button>' : ''}
+                                    <button type="button" onclick="issueAndGenerateQpOfficeOrderPdf()" ${subjectsList.length ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">✅ Issue & Generate PDF</button>
+                                </div>
+                                <p class="text-[11px] text-slate-500 text-right">In the print window, choose <b>Save as PDF</b> as the destination.</p>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="bg-white p-5 rounded-xl border shadow-xs flex justify-between items-center">
                                     <div><p class="text-xs font-bold text-slate-500 uppercase">Submissions Progress</p><p class="text-2xl font-black text-indigo-900 mt-1">${totalSubmittedCount} / ${totalSubjects} Received</p></div>
@@ -1885,7 +2047,7 @@
                             <div class="bg-white rounded-xl shadow-sm border p-6 space-y-4">
                                 <div class="flex justify-between items-center border-b pb-4 flex-wrap gap-2">
                                     <h3 class="text-base font-bold text-indigo-950">📋 Question Paper Receiving & Vault Submission Tracker</h3>
-                                    <button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded">🖨️ Print Setters Office Order</button>
+                                    ${officeOrder.status === 'ISSUED' ? '<button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded">📥 Generate Issued Order PDF</button>' : ''}
                                 </div>
                                 <div class="overflow-x-auto border rounded-xl">
                                     <table class="w-full text-xs text-left text-slate-700">

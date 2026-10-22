@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -174,6 +174,16 @@ async function main() {
         assert.notEqual(await a.evaluate(() => qpRecordKey(100, '10', 'SCIENCE')), await a.evaluate(() => qpRecordKey(200, '10', 'SCIENCE')));
         console.log('PASS: exam-scoped QP submission, printing, and deadlines synchronize');
 
+        await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
+        await a.fill('#qp-order-deadline', '2026-11-04');
+        await a.fill('#qp-order-time', '15:30');
+        await a.locator('[data-qp-setter-key]').selectOption(String(teacherId));
+        await a.evaluate(() => saveQpOfficeOrder('ISSUED'));
+        await b.waitForFunction(() => qpOfficeOrders['100']?.status === 'ISSUED');
+        assert.equal(data.qpOfficeOrders['100'].setters[trackerKey].name, 'Other Device Name');
+        assert.equal(data.qpSubmissionDeadlines['100'], '2026-11-04');
+        console.log('PASS: issued QP office order saves mapped setters and deadline in realtime');
+
         const count = Object.values(data.archivedExams).length;
         await a.evaluate(() => startNewExamSetup());
         await b.waitForFunction(count => archivedExams.length === count + 1, count);
@@ -285,7 +295,7 @@ async function main() {
         assert.equal(await secondary.locator('#area-sec-ic').isVisible(), false);
         console.log('PASS: role revocation clears staff data and closes the workspace');
         assert.deepEqual(failures, [], `Unexpected browser errors: ${failures.join('; ')}`);
-        console.log('Browser integration: 17 scenarios passed (Firebase contract double; no live writes).');
+        console.log('Browser integration: 18 scenarios passed (Firebase contract double; no live writes).');
     } finally {
         await browser.close();
         await new Promise(resolve => server.close(resolve));
