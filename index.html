@@ -628,6 +628,7 @@
         let isPreExamFullPageOpen = sessionStorage.getItem('vems_pre_exam_open') === '1';
         let activePreExamSubTab = localStorage.getItem('vems_pre_exam_tab') || 'qp-setters';
         let selectedPreExamVaultId = Number(localStorage.getItem('vems_pre_exam_id')) || null;
+        let activeLifecycleStage = null;
         let lastRenderedTab = null;
         let workspaceScrollTimer = null;
         let qpSubmissionDeadline = '';
@@ -2970,6 +2971,17 @@
         function circularPdfHtml(c){const creatorSig=c.addOwnSignature?signatureProfiles[c.creatorRole]:null,principalSig=c.principalSigned?signatureProfiles.principal:null;const lines=c.body.split(/\n+/).filter(Boolean);return `<!doctype html><html><head><title>${escapeHtml(c.circularNo)}</title><style>@page{size:A4;margin:14mm}body{font-family:Arial;color:#172554;font-size:12px}.head{text-align:center;border-bottom:3px double #172554;padding-bottom:6px}.head h1{font-size:18px;margin:0}.head h2{font-size:13px;margin:3px}.meta{display:flex;justify-content:space-between;margin:10px 0}.subject{border:1px solid #94a3b8;background:#f8fafc;padding:8px}.to{margin:10px 0}.body{line-height:1.65;text-align:justify}.signs{display:flex;justify-content:space-between;margin-top:45px}.sig{text-align:center;min-width:180px}.sig img{display:block;max-width:150px;max-height:55px;margin:auto}.status{text-align:center;font-size:9px;color:#64748b;margin-top:30px}</style></head><body><div class="head"><h1>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h1><h2>EXAMINATION CELL — ${escapeHtml(c.heading)}</h2></div><div class="meta"><b>No. ${escapeHtml(c.circularNo)}</b><b>Date: ${escapeHtml(formatOrderDate(c.date))}</b></div><div class="to"><b>To:</b> ${escapeHtml((c.targets||[]).join(', '))}</div><div class="subject"><b>Subject:</b> ${escapeHtml(c.subject)}</div><div class="body">${lines.map((x,i)=>`<p>${lines.length>1?`${i+1}. `:''}${escapeHtml(x)}</p>`).join('')}</div><div class="signs">${creatorSig?`<div class="sig"><img src="${creatorSig.image}"><b>${escapeHtml(creatorSig.name)}</b><br>${escapeHtml(creatorSig.designation)}</div>`:'<div></div>'}${principalSig?`<div class="sig"><img src="${principalSig.image}"><b>${escapeHtml(principalSig.name)}</b><br>Principal</div>`:'<div class="sig"><br><br><b>Principal</b></div>'}</div><div class="status">Session ${escapeHtml(selectedAcademicSession)} · Status ${escapeHtml(c.status)} · Version ${c.version}</div></body></html>`;}
         function previewCircular(id){const c=examCirculars[id];if(!c)return;const w=window.open('','_blank');w.document.write(circularPdfHtml(c));w.document.close();setTimeout(()=>w.print(),300);}
 
+        function openLifecycleStage(stage){activeLifecycleStage=stage;renderExamCreatorModule();setTimeout(()=>document.getElementById('lifecycle-stage-workspace')?.scrollIntoView({behavior:'smooth',block:'start'}),50);}
+        function closeLifecycleStage(){activeLifecycleStage=null;renderExamCreatorModule();}
+        function openLinkedPreExamTool(tab){activePreExamSubTab=tab;localStorage.setItem('vems_pre_exam_tab',tab);openPreExamFullPageWorkspace(selectedPreExamVaultId||archivedExams[0]?.id);}
+        function renderLifecycleStageWorkspace(stage){
+            const exam=archivedExams.find(x=>x.id===selectedPreExamVaultId)||archivedExams[0];
+            const during=[['👥','Attendance & Absentee Desk','Record room-wise attendance, absentees and late reporting.'],['🧑‍🏫','Invigilation & Relief','View day-wise duties and arrange reserve or relief staff.'],['📦','QP Issue & Return','Monitor sealed packet issue, opening confirmation and unused paper return.'],['🩺','Incident & Assistance Log','Record medical help, unfair-means cases and operational issues.'],['🔔','Bell & Time Control','Follow reporting, reading, start, warning and closing times.'],['🧰','Room Supply Support','Track additional answer sheets, maps, thread and emergency supplies.']];
+            const post=[['📥','Answer-Script Receipt','Receive, count and reconcile room-wise used answer scripts.'],['📦','Subject-wise Bundling','Prepare class, subject and section bundles with control slips.'],['🧑‍🏫','Evaluator Issue Register','Issue bundles and marking schemes to mapped evaluators.'],['↩️','Evaluated Script Return','Confirm evaluated bundle and award-list return.'],['📊','Marks & Result Follow-up','Track marks entry, verification, moderation and corrections.'],['🗄️','Binding & Record Closure','Bind records, archive reports and close the examination vault.']];
+            const tasks=stage==='during'?during:post,title=stage==='during'?'During-Exam Operations & Assistance':'Post-Exam Follow-up & Binding',colour=stage==='during'?'amber':'emerald';
+            return `<div id="lifecycle-stage-workspace" class="mt-5 border-2 border-${colour}-200 rounded-xl bg-${colour}-50/50 p-4 space-y-4"><div class="flex justify-between items-center gap-3"><div><h3 class="font-bold text-${colour}-950">${stage==='during'?'🧭':'📦'} ${title}</h3><p class="text-xs text-slate-600">${exam?`Working with: ${escapeHtml(exam.title)} · ${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))}`:'Create or select an examination vault record to begin.'}</p></div><button onclick="closeLifecycleStage()" class="bg-white border rounded px-3 py-2 font-bold">✕ Close</button></div>${!exam?'<div class="bg-amber-100 border border-amber-300 rounded p-3 font-bold">No examination vault is available for this session.</div>':`<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${tasks.map((task,index)=>`<div class="bg-white border rounded-xl p-4"><div class="text-xl">${task[0]}</div><h4 class="mt-1 font-bold">${index+1}. ${task[1]}</h4><p class="mt-1 text-xs text-slate-600">${task[2]}</p>${stage==='during'&&index===1?'<button onclick="openLinkedPreExamTool(\'invigilation\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Invigilation</button>':stage==='during'&&index===5?'<button onclick="openLinkedPreExamTool(\'inventory\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Inventory</button>':''}</div>`).join('')}</div>`}</div>`;
+        }
+
         function renderMainLifecycleHub() {
             return `
                 <div class="bg-white rounded-xl shadow-sm border p-6 space-y-6">
@@ -3044,15 +3056,24 @@
                     ` : ''}
                     <div class="border-t pt-6">
                         <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3">📊 Operational Tasks & Lifecycle Management</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="bg-indigo-50 border p-4 rounded-xl space-y-3 flex flex-col justify-between">
                                 <div>
-                                    <h4 class="text-xs font-bold text-indigo-900 uppercase">1️⃣ Pre-Exam Needs</h4>
-                                    <p class="text-[11px] text-slate-600 mt-1">Datesheet orders, QP Setters tick matrix, OK reports, and printing progress.</p>
+                                    <h4 class="text-xs font-bold text-indigo-900 uppercase">1️⃣ Pre-Exam Preparation</h4>
+                                    <p class="text-[11px] text-slate-600 mt-1">Datesheet, office orders, QP receipt and printing, seating, invigilation and room inventory.</p>
                                 </div>
                                 <button type="button" onclick="openPreExamFullPageWorkspace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 rounded shadow">🚀 Open Full Pre-Exam Hub</button>
                             </div>
+                            <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                                <div><h4 class="text-xs font-bold text-amber-900 uppercase">2️⃣ During-Exam Operations & Assistance</h4><p class="text-[11px] text-slate-600 mt-1">Day command desk, attendance and absentees, relief support, incidents, QP movement and room supplies.</p></div>
+                                <button type="button" onclick="openLifecycleStage('during')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2 rounded shadow">🧭 Open During-Exam Desk</button>
+                            </div>
+                            <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                                <div><h4 class="text-xs font-bold text-emerald-900 uppercase">3️⃣ Post-Exam Follow-up & Binding</h4><p class="text-[11px] text-slate-600 mt-1">Answer-script receipt, bundling, evaluation issue/return, marks follow-up, records and closure.</p></div>
+                                <button type="button" onclick="openLifecycleStage('post')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 rounded shadow">📦 Open Post-Exam Desk</button>
+                            </div>
                         </div>
+                        ${activeLifecycleStage ? renderLifecycleStageWorkspace(activeLifecycleStage) : ''}
                     </div>
                 </div>
             `;
