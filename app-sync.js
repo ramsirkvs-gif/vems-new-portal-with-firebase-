@@ -259,6 +259,7 @@ function refreshSharedViews() {
     if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) renderExamCreatorModule();
     populateLegacyExamOptions();
     renderSignatureProfiles();
+    if (currentActiveTab === 'holidays') renderHolidayManager();
     updateSessionChrome();
 }
 document.addEventListener('focusout', event => {

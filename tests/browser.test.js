@@ -487,6 +487,11 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:'➕ Add Day 2'}).count(),1);
         await a.evaluate(() => addNextDatesheetDay());
         await a.evaluate(async()=>{holidayCalendar={'2026-10-26':{name:'Test Holiday'}};await saveData(['holidayCalendar']);});
+        await a.evaluate(()=>switchTab('holidays'));
+        assert.match(await a.locator('#holiday-manager-mount h2').textContent(),/4\. Holiday Manager/);
+        await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await toggleHolidayCalendarLock();}finally{window.confirm=old;}});
+        assert.equal(await a.locator('#holiday-date').isDisabled(),true,'locked holiday calendar must disable feeding');
+        await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await toggleHolidayCalendarLock();}finally{window.confirm=old;}switchTab('exam-creator-prin');});
         assert.equal(await a.evaluate(async()=>{const before=datesheetDays.find(day=>day.id===2).dateStr,old=window.confirm;window.confirm=()=>false;try{await updateExamDayDate(2,'2026-10-26');}finally{window.confirm=old;}return datesheetDays.find(day=>day.id===2).dateStr===before;}),true,'a cancelled holiday warning must keep the previous exam date');
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await updateExamDayDate(2,'2026-10-26');}finally{window.confirm=old;}});
         await b.waitForFunction(id => archivedExams.find(exam=>exam.id===id)?.datesheetSnapshot?.some(day=>day.dateStr==='2026-10-26'), created.id);

@@ -212,7 +212,8 @@
                 <button id="tab-btn-config" type="button" onclick="switchTab('config')" class="py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">⚙️ 1. Classwise Subject Mapping (Secondary)</button>
                 <button id="tab-btn-students" type="button" onclick="switchTab('students')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👨‍🎓 2. Student Master Data & CSV (Secondary)</button>
                 <button id="tab-btn-teachers" type="button" onclick="switchTab('teachers')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">👩‍🏫 3. Faculty Manager (Secondary)</button>
-                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 4. Create Exam & Lifecycle Hub (Secondary)</button>
+                <button id="tab-btn-holidays" type="button" onclick="switchTab('holidays')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🗓️ 4. Holiday Manager (Secondary)</button>
+                <button id="tab-btn-exam-creator-prin" type="button" onclick="switchTab('exam-creator-prin')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">📊 5. Create Exam & Lifecycle Hub (Secondary)</button>
                 <button id="tab-btn-settings" type="button" onclick="switchTab('settings')" class="py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap">🛡️ System & Password Settings</button>
             </div>
             
@@ -446,7 +447,12 @@
                 </div>
             </section>
 
-            <!-- MODULE 4: EXAM CREATOR & LIFECYCLE HUB -->
+            <!-- MODULE 4: HOLIDAY MANAGER -->
+            <section id="sec-holidays" class="space-y-6 hidden">
+                <div id="holiday-manager-mount"></div>
+            </section>
+
+            <!-- MODULE 5: EXAM CREATOR & LIFECYCLE HUB -->
             <section id="sec-exam-creator-prin" class="space-y-6 hidden">
                 <div id="exam-creator-mount-prin"></div>
             </section>
@@ -757,18 +763,21 @@
             document.getElementById('sec-config').classList.toggle('hidden', tab !== 'config');
             document.getElementById('sec-students').classList.toggle('hidden', tab !== 'students');
             document.getElementById('sec-teachers').classList.toggle('hidden', tab !== 'teachers');
+            document.getElementById('sec-holidays').classList.toggle('hidden', tab !== 'holidays');
             document.getElementById('sec-exam-creator-prin').classList.toggle('hidden', tab !== 'exam-creator-prin');
             document.getElementById('sec-settings').classList.toggle('hidden', tab !== 'settings');
             
             document.getElementById('tab-btn-config').className = tab === 'config' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-students').className = tab === 'students' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-teachers').className = tab === 'teachers' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
+            document.getElementById('tab-btn-holidays').className = tab === 'holidays' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-exam-creator-prin').className = tab === 'exam-creator-prin' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-settings').className = tab === 'settings' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
             if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
+            if(tab === 'holidays') renderHolidayManager();
             if(tab === 'settings') { populateLegacyExamOptions(); renderSignatureProfiles(); updateSessionChrome(); }
             if (shouldRestore) setTimeout(() => window.scrollTo(0, Number(localStorage.getItem(`vems_scroll_${currentActiveRole}_${tab}`)) || 0), 80);
         }
@@ -1928,20 +1937,29 @@
             return warnings.join(' / ');
         }
         async function addHoliday(){
+            if(holidayCalendar.__locked){alert('Holiday Calendar is locked. Unlock it before making changes.');return;}
             const date=document.getElementById('holiday-date')?.value,name=document.getElementById('holiday-name')?.value.trim();
             if(!date||!name){alert('Select the holiday date and enter its title.');return;}
             if(holidayCalendar[date]&&!confirm(`${formatOrderDate(date)} is already saved as ${holidayName(date)}. Update it to ${name}?`))return;
             holidayCalendar={...holidayCalendar,[date]:{name,updatedAt:new Date().toISOString(),updatedBy:authorizedRole}};
-            if(await saveData(['holidayCalendar']))renderExamCreatorModule();
+            if(await saveData(['holidayCalendar']))renderHolidayManager();
         }
         async function removeHoliday(date){
+            if(holidayCalendar.__locked){alert('Holiday Calendar is locked. Unlock it before making changes.');return;}
             if(!confirm(`Remove ${holidayName(date)} (${formatOrderDate(date)}) from the holiday calendar?`))return;
             const next={...holidayCalendar};delete next[date];holidayCalendar=next;
-            if(await saveData(['holidayCalendar']))renderExamCreatorModule();
+            if(await saveData(['holidayCalendar']))renderHolidayManager();
         }
-        function holidayCalendarHtml(){
-            const entries=Object.entries(holidayCalendar||{}).sort(([a],[b])=>a.localeCompare(b));
-            return `<details class="rounded-xl border border-amber-200 bg-amber-50 p-4"><summary class="cursor-pointer text-xs font-bold text-amber-950">🗓️ Holiday Calendar (${entries.length}) — Add manual holidays</summary><p class="mt-2 text-[11px] text-slate-600">Session ${escapeHtml(selectedAcademicSession)}. The Exam IC receives a warning before using any listed date.</p><div class="mt-3 flex flex-wrap items-end gap-2"><label class="text-[10px] font-bold">HOLIDAY DATE<input id="holiday-date" type="date" class="mt-1 block rounded border bg-white p-2 text-xs"></label><label class="min-w-56 flex-1 text-[10px] font-bold">HOLIDAY TITLE<input id="holiday-name" placeholder="e.g. Diwali / Local Holiday" class="mt-1 block w-full rounded border bg-white p-2 text-xs"></label><button type="button" onclick="addHoliday()" class="rounded bg-amber-700 px-4 py-2 text-xs font-bold text-white">＋ Add Holiday</button></div><div class="mt-3 flex flex-wrap gap-2">${entries.length?entries.map(([date,value])=>`<span class="rounded-full border border-amber-300 bg-white px-3 py-1 text-[11px]"><b>${escapeHtml(formatOrderDate(date))}</b> · ${escapeHtml(typeof value==='string'?value:value.name)} <button type="button" onclick="removeHoliday(${jsArg(date)})" class="ml-1 font-bold text-red-600">×</button></span>`).join(''):'<span class="text-[11px] italic text-slate-500">No manual holidays added for this session.</span>'}</div></details>`;
+        async function toggleHolidayCalendarLock(){
+            const locked=!!holidayCalendar.__locked;
+            if(!confirm(locked?'Unlock the Holiday Calendar for editing?':'Lock the Holiday Calendar after checking all entries?'))return;
+            holidayCalendar={...holidayCalendar,__locked:!locked};
+            if(await saveData(['holidayCalendar']))renderHolidayManager();
+        }
+        function renderHolidayManager(){
+            const mount=document.getElementById('holiday-manager-mount');if(!mount)return;
+            const locked=!!holidayCalendar.__locked,entries=Object.entries(holidayCalendar||{}).filter(([date])=>/^\d{4}-\d{2}-\d{2}$/.test(date)).sort(([a],[b])=>a.localeCompare(b));
+            mount.innerHTML=`<div class="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-6 shadow-sm space-y-5"><div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 pb-4"><div><h2 class="text-xl font-bold text-slate-900">🗓️ 4. Holiday Manager (Secondary)</h2><p class="mt-1 text-xs text-slate-500">Feed and verify session holidays before preparing examination dates. Session ${escapeHtml(selectedAcademicSession)}.</p></div><button type="button" onclick="toggleHolidayCalendarLock()" class="rounded px-4 py-2 text-xs font-bold text-white ${locked?'bg-amber-600':'bg-emerald-700'}">${locked?'🔓 Unlock Holiday List':'🔒 Lock Holiday List'}</button></div><div class="rounded-lg border p-3 text-xs font-bold ${locked?'border-emerald-300 bg-emerald-50 text-emerald-900':'border-amber-300 bg-amber-100 text-amber-950'}">${locked?'✅ Holiday list is locked and protected from changes.':'⚠️ Holiday list is open for feeding and correction. Lock it after verification.'}</div><div class="flex flex-wrap items-end gap-3 ${locked?'opacity-50 pointer-events-none':''}"><label class="text-[10px] font-bold">HOLIDAY DATE<input id="holiday-date" type="date" ${locked?'disabled':''} class="mt-1 block rounded border bg-white p-2.5 text-xs"></label><label class="min-w-64 flex-1 text-[10px] font-bold">HOLIDAY TITLE<input id="holiday-name" ${locked?'disabled':''} placeholder="e.g. Diwali / Local Holiday" class="mt-1 block w-full rounded border bg-white p-2.5 text-xs"></label><button type="button" onclick="addHoliday()" ${locked?'disabled':''} class="rounded bg-amber-700 px-5 py-2.5 text-xs font-bold text-white">＋ Add Holiday</button></div><div class="overflow-x-auto rounded-lg border bg-white"><table class="w-full text-xs"><thead class="bg-amber-800 text-white"><tr><th class="p-3 text-left">S.No.</th><th class="p-3 text-left">Date & Day</th><th class="p-3 text-left">Holiday</th><th class="p-3 text-right">Action</th></tr></thead><tbody class="divide-y">${entries.length?entries.map(([date,value],index)=>`<tr><td class="p-3">${index+1}</td><td class="p-3 font-bold">${escapeHtml(formatDateWithDay(date))}</td><td class="p-3 font-bold text-amber-900">${escapeHtml(typeof value==='string'?value:value.name)}</td><td class="p-3 text-right"><button type="button" onclick="removeHoliday(${jsArg(date)})" ${locked?'disabled':''} class="rounded border border-red-200 px-3 py-1 text-red-700 disabled:opacity-40">Remove</button></td></tr>`).join(''):'<tr><td colspan="4" class="p-6 text-center italic text-slate-500">No manual holidays added for this session.</td></tr>'}</tbody></table></div><p class="text-xs text-slate-600">When an Exam IC selects a listed holiday, the system displays the holiday title and asks for confirmation. Sundays are checked automatically.</p></div>`;
         }
 
         async function updateExamDayDate(dayId,dateStr){
@@ -3228,7 +3246,6 @@
                         <div class="rounded-lg border border-blue-200 bg-blue-50 p-3"><b class="text-xs text-blue-950">2. Save & Open Vault</b><p class="mt-1 text-[11px] text-slate-600">Confirm the record, then enter its examination workspace.</p></div>
                         <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3"><b class="text-xs text-emerald-950">3. Complete in Order</b><p class="mt-1 text-[11px] text-slate-600">Pre-Exam → During Exam → After Exam.</p></div>
                     </div>
-                    ${holidayCalendarHtml()}
                     <div class="bg-gradient-to-br from-violet-100 via-sky-100 to-emerald-100 text-slate-900 border border-sky-300 rounded-xl p-5 space-y-3 shadow-md">
                         <div class="flex justify-between items-center border-b border-sky-300 pb-2.5">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-950">📚 Created Examinations Vault List (${archivedExams.length} Records)</h3>
