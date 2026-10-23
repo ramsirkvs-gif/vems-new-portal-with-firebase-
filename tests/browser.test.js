@@ -159,9 +159,10 @@ async function main() {
         });
         assert.equal(await a.evaluate(() => facultyEvaluatorDisplay(teachers[0],teachers[0].allotments[0])),'New Shared Teacher');
         assert.deepEqual(await a.locator('#teacher-table-body').locator('xpath=..').locator('thead th').allTextContents(),['Teacher Name & Desig','Teaching Allotments','QP Setter(s)','Evaluator','Booklets','Bundles','Actions']);
-        assert.equal((await a.locator('#teacher-table-body tr').first().locator('td').nth(3).innerText()).trim(),'New Shared Teacher');
-        assert.doesNotMatch(await a.locator('#teacher-table-body tr').first().locator('td').nth(2).innerText(),/Class X-A/);
-        assert.match(await a.locator('#teacher-table-body tr').first().locator('td').nth(1).locator('div').first().getAttribute('class'),/border-b/);
+        assert.equal((await a.locator('#teacher-table-body .faculty-evaluator').first().innerText()).trim(),'New Shared Teacher');
+        assert.doesNotMatch(await a.locator('#teacher-table-body .faculty-qp-setter').first().innerText(),/Class X-A/);
+        assert.match(await a.locator('#teacher-table-body .faculty-duty-line').first().getAttribute('class'),/border-b/);
+        assert.equal(await a.locator('#teacher-table-body .faculty-duty-line').first().locator(':scope > div').count(),3);
         assert.doesNotMatch(await a.locator('#teacher-table-body').innerText(),/\bSelf\b/);
         console.log('PASS: faculty save is confirmed and appears on the other device');
 
