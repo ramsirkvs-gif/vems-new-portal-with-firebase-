@@ -1526,11 +1526,12 @@
             teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>String(allotment.subject).trim().toUpperCase()===String(subject).trim().toUpperCase())).forEach(teacher=>{const value=`TEAM::Self|${teacher.id}`,label=`Team: ${currentName} + ${teacher.name}`;options+=`<option value="${escapeHtml(value)}" ${selectedVal===value?'selected':''}>${escapeHtml(label)}</option>`;});
             return options;
         }
-        function refreshRowQpSetterOptions(row,selectedVal=null){const select=row?.querySelector('.qp-sel');if(!select)return;const selected=(selectedVal??select.value)||'Self',subject=row.querySelector('.sub-sel')?.value||'';select.innerHTML=getQpSetterOptionsHtml(selected,subject);if([...select.options].some(option=>option.value===selected))select.value=selected;}
+        function getAdditionalQpSetterOptionsHtml(selectedVal='',subject=''){let options=`<option value="">None / Single Setter</option>`,currentName=document.getElementById('tch-name-input')?.value.trim()||'';teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>String(allotment.subject).trim().toUpperCase()===String(subject).trim().toUpperCase())).forEach(teacher=>{options+=`<option value="${escapeHtml(String(teacher.id))}" ${String(selectedVal)===String(teacher.id)?'selected':''}>${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`;});return options;}
+        function refreshRowQpSetterOptions(row,selectedVal=null,additionalVal=null){const select=row?.querySelector('.qp-sel'),additional=row?.querySelector('.qp-additional-sel');if(!select)return;const selected=(selectedVal??select.value)||'Self',selectedAdditional=additionalVal??additional?.value??'',subject=row.querySelector('.sub-sel')?.value||'';select.innerHTML=getDutyOptionsHtml(selected);if([...select.options].some(option=>option.value===selected))select.value=selected;if(additional){additional.innerHTML=getAdditionalQpSetterOptionsHtml(selectedAdditional,subject);if([...additional.options].some(option=>option.value===String(selectedAdditional)))additional.value=String(selectedAdditional);}}
         function refreshAllQpSetterOptions(){document.querySelectorAll('.teaching-row').forEach(row=>refreshRowQpSetterOptions(row));}
         function qpSetterTeamDetails(value,subjectTeacher){if(!String(value||'').startsWith('TEAM::'))return null;const members=String(value).slice(6).split('|').map(token=>token==='Self'?subjectTeacher:teachers.find(teacher=>String(teacher.id)===String(token))).filter(Boolean);return members.length?{name:members.map(member=>member.name).join(' + '),desig:'QP SETTER TEAM',teacherId:members.map(member=>member.id).join('|')}:null;}
 
-        function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self') {
+        function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self', additionalQpVal = '') {
             const container = document.getElementById('teaching-allotments-container');
             if(!container) return;
             const div = document.createElement('div'); div.className = "grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded border teaching-row items-center";
@@ -1552,6 +1553,8 @@
                 <div class="md:col-span-2">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase">QP Setter</label>
                     <select class="text-xs p-1.5 border rounded qp-sel bg-white font-medium w-full">${getQpSetterOptionsHtml(qpVal,selSub)}</select>
+                    <label class="block text-[9px] font-bold text-indigo-600 uppercase mt-1">＋ Additional QP Setter (Optional)</label>
+                    <select class="text-[10px] p-1.5 border border-indigo-200 rounded qp-additional-sel bg-indigo-50 font-medium w-full">${getAdditionalQpSetterOptionsHtml(additionalQpVal,selSub)}</select>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase">Evaluator</label>
@@ -1562,6 +1565,7 @@
                 </div>`;
             container.appendChild(div);
             updateRowSectionsAndSubjects(div.querySelector('.cls-sel'), selSec, selSub);
+            refreshRowQpSetterOptions(div,qpVal,additionalQpVal);
         }
 
         function updateRowSectionsAndSubjects(clsElem, preSec = null, preSub = null) {
@@ -1607,6 +1611,7 @@
                     sec: row.querySelector('.sec-sel').value,
                     subject: row.querySelector('.sub-sel').value,
                     qpSetter: row.querySelector('.qp-sel').value || 'Self',
+                    additionalQpSetter: row.querySelector('.qp-additional-sel').value || '',
                     evaluator: row.querySelector('.eval-sel').value || 'Self'
                 });
             });
@@ -1649,7 +1654,7 @@
             const container = document.getElementById('teaching-allotments-container');
             container.innerHTML = '';
             if(t.allotments && t.allotments.length > 0) {
-                t.allotments.forEach(al => addTeachingRow(al.cls, al.sec, al.subject, al.qpSetter || 'Self', al.evaluator || 'Self'));
+                t.allotments.forEach(al => addTeachingRow(al.cls, al.sec, al.subject, al.qpSetter || 'Self', al.evaluator || 'Self', al.additionalQpSetter || ''));
             } else {
                 addTeachingRow();
             }
@@ -1694,7 +1699,8 @@
                         totalStudentsAllotted += count;
                         allotmentsHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> (${count} Booklets)</div>`;
                         
-                        let qpText = al.qpSetter === 'Self' ? 'Self' : (qpSetterTeamDetails(al.qpSetter,t)?.name||al.qpSetter);
+                        const additionalTeacher=teachers.find(teacher=>String(teacher.id)===String(al.additionalQpSetter));
+                        let qpText = al.qpSetter === 'Self' ? t.name : (qpSetterTeamDetails(al.qpSetter,t)?.name||al.qpSetter);if(additionalTeacher&&!qpText.includes(additionalTeacher.name))qpText+=` + ${additionalTeacher.name}`;
                         let evalText = al.evaluator === 'Self' ? 'Self' : al.evaluator;
                         dutiesHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: QP: <strong class="text-indigo-900">${escapeHtml(qpText)}</strong> | Eval: <strong class="text-indigo-900">${escapeHtml(evalText)}</strong></div>`;
                     });
@@ -2564,6 +2570,8 @@
                             let assignedTeacher = assignedTeam || (allotment?.qpSetter && allotment.qpSetter !== 'Self'
                                 ? teachers.find(t => t.name === allotment.qpSetter) || subjectTeacher
                                 : subjectTeacher);
+                            const additionalTeacher=teachers.find(teacher=>String(teacher.id)===String(allotment?.additionalQpSetter));
+                            if(assignedTeacher&&additionalTeacher&&!String(assignedTeacher.name).includes(additionalTeacher.name))assignedTeacher={name:`${assignedTeacher.name} + ${additionalTeacher.name}`,desig:'QP SETTER TEAM',id:`${assignedTeacher.id||assignedTeacher.teacherId}|${additionalTeacher.id}`};
                             const order = suppliedOrder || currentQpOfficeOrder(vaultId);
                             const override = order.status === 'ISSUED' ? order.setters?.[key] : null;
                             if (override) assignedTeacher = teachers.find(t => String(t.id) === String(override.teacherId)) || override;

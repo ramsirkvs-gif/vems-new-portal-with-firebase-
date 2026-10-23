@@ -169,10 +169,11 @@ async function main() {
 
         await a.evaluate(() => {document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('11','A','SCIENCE');});
         await a.fill('#tch-name-input','Second Science Teacher');
-        const teamOption=await a.locator('.teaching-row .qp-sel option').filter({hasText:'Team: Second Science Teacher + New Shared Teacher'}).getAttribute('value');
-        assert.match(teamOption,/^TEAM::Self\|/);
-        await a.selectOption('.teaching-row .qp-sel',teamOption);
-        assert.equal(await a.evaluate(value=>qpSetterTeamDetails(value,{id:'self-id',name:'Second Science Teacher'}).name,teamOption),'Second Science Teacher + New Shared Teacher');
+        assert.equal(await a.locator('.teaching-row label', {hasText:'Additional QP Setter (Optional)'}).count(),1);
+        const additionalOption=await a.locator('.teaching-row .qp-additional-sel option').filter({hasText:'New Shared Teacher'}).getAttribute('value');
+        assert.ok(additionalOption);
+        await a.selectOption('.teaching-row .qp-additional-sel',additionalOption);
+        assert.equal(await a.locator('.teaching-row .qp-additional-sel').inputValue(),additionalOption);
         await a.evaluate(() => resetTeacherForm());
         console.log('PASS: same-subject teachers from different classes/sections can be selected as a QP setter team');
 
