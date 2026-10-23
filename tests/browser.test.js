@@ -369,7 +369,8 @@ async function main() {
         assert.match(await a.locator('#exam-creator-mount-prin h2').innerText(),/Existing Exam Examination Vault/);
         assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open Pre-Exam Workspace'}).count(),1);
         assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open During-Exam Workspace'}).count(),1);
-        assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open Post-Exam Workspace'}).count(),1);
+        assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open After-Exam Workspace'}).count(),1);
+        assert.deepEqual(await a.locator('#selected-exam-vault-workspace span').filter({hasText:/^STAGE /}).allTextContents(), ['STAGE 1','STAGE 2','STAGE 3']);
         await a.evaluate(() => openPreExamFullPageWorkspace(100));
         await a.evaluate(() => switchPreExamSubTab('datesheet-orders'));
         assert.match(await a.locator('h3', { hasText: 'Date Sheet' }).textContent(), /Date Sheet/);

@@ -628,6 +628,7 @@
         let selectedPreExamVaultId = Number(localStorage.getItem('vems_pre_exam_id')) || null;
         let isVaultOverviewOpen = sessionStorage.getItem('vems_vault_overview_open') === '1';
         let activeLifecycleStage = null;
+        let recentlySavedVaultId = null;
         let lastRenderedTab = null;
         let workspaceScrollTimer = null;
         let qpSubmissionDeadline = '';
@@ -1778,6 +1779,7 @@
         // MODULE 4: EXAM CREATOR, DATESHEET BUILDER & PRE-EXAM LOGISTICS HUB
         // =========================================================================
         async function startNewExamSetup() {
+            recentlySavedVaultId = null;
             editorBaselines.exam = null;
             activeExamId = newRecordId();
             mainHeaderConfig = {
@@ -1790,7 +1792,12 @@
             isExamConfigOpen = true;
             if (!await syncActiveExamDraftToVault()) return;
             renderExamCreatorModule();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(()=>document.getElementById('exam-vault-editor')?.scrollIntoView({behavior:'smooth',block:'start'}),50);
+        }
+
+        function minimizeActiveWorkspace(){
+            isExamConfigOpen=false;
+            renderExamCreatorModule();
         }
 
         async function saveMainHeaderConfig() {
@@ -1825,6 +1832,7 @@
         function loadArchivedExamToEdit(id) {
             const target = archivedExams.find(ex => ex.id === id);
             if (!target) return;
+            recentlySavedVaultId = null;
             editorBaselines.exam = null;
             activeExamId = target.id;
             if (target.headerSnapshot) {
@@ -1838,7 +1846,7 @@
             isExamConfigOpen = true;
             rememberActiveExam();
             renderExamCreatorModule();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(()=>document.getElementById('exam-vault-editor')?.scrollIntoView({behavior:'smooth',block:'start'}),50);
         }
 
         function confirmMajorDeletion(recordType,recordName){
@@ -1886,8 +1894,11 @@
             // Close the editor only after the server confirms the save.
             if (!await saveData(['archivedExams'])) return;
             isExamConfigOpen = false;
+            recentlySavedVaultId = activeExamId;
+            selectedPreExamVaultId = activeExamId;
             alert(`🎉 EXAM FULLY SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
             renderExamCreatorModule();
+            setTimeout(()=>document.getElementById('vault-save-next-step')?.scrollIntoView({behavior:'smooth',block:'center'}),50);
         }
 
         function toggleDayAccordion(dayId) {
@@ -3148,16 +3159,16 @@
             const exam=archivedExams.find(x=>x.id===selectedPreExamVaultId)||archivedExams[0];
             const during=[['👥','Attendance & Absentee Desk','Record room-wise attendance, absentees and late reporting.'],['🧑‍🏫','Invigilation & Relief','View day-wise duties and arrange reserve or relief staff.'],['📦','QP Issue & Return','Monitor sealed packet issue, opening confirmation and unused paper return.'],['🩺','Incident & Assistance Log','Record medical help, unfair-means cases and operational issues.'],['🔔','Bell & Time Control','Follow reporting, reading, start, warning and closing times.'],['🧰','Room Supply Support','Track additional answer sheets, maps, thread and emergency supplies.']];
             const post=[['📥','Answer-Script Receipt','Receive, count and reconcile room-wise used answer scripts.'],['📦','Subject-wise Bundling','Prepare class, subject and section bundles with control slips.'],['🧑‍🏫','Evaluator Issue Register','Issue bundles and marking schemes to mapped evaluators.'],['↩️','Evaluated Script Return','Confirm evaluated bundle and award-list return.'],['📊','Marks & Result Follow-up','Track marks entry, verification, moderation and corrections.'],['🗄️','Binding & Record Closure','Bind records, archive reports and close the examination vault.']];
-            const tasks=stage==='during'?during:post,title=stage==='during'?'During-Exam Operations & Assistance':'Post-Exam Follow-up & Binding',colour=stage==='during'?'amber':'emerald';
+            const tasks=stage==='during'?during:post,title=stage==='during'?'During-Exam Operations & Assistance':'After-Exam Follow-up & Binding',colour=stage==='during'?'amber':'emerald';
             return `<div id="lifecycle-stage-workspace" class="mt-5 border-2 border-${colour}-200 rounded-xl bg-${colour}-50/50 p-4 space-y-4"><div class="flex justify-between items-center gap-3"><div><h3 class="font-bold text-${colour}-950">${stage==='during'?'🧭':'📦'} ${title}</h3><p class="text-xs text-slate-600">${exam?`Working with: ${escapeHtml(exam.title)} · ${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))}`:'Create or select an examination vault record to begin.'}</p></div><button onclick="closeLifecycleStage()" class="bg-white border rounded px-3 py-2 font-bold">✕ Close</button></div>${!exam?'<div class="bg-amber-100 border border-amber-300 rounded p-3 font-bold">No examination vault is available for this session.</div>':`<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${tasks.map((task,index)=>`<div class="bg-white border rounded-xl p-4"><div class="text-xl">${task[0]}</div><h4 class="mt-1 font-bold">${index+1}. ${task[1]}</h4><p class="mt-1 text-xs text-slate-600">${task[2]}</p>${stage==='during'&&index===1?'<button onclick="openLinkedPreExamTool(\'invigilation\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Invigilation</button>':stage==='during'&&index===5?'<button onclick="openLinkedPreExamTool(\'inventory\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Inventory</button>':''}</div>`).join('')}</div>`}</div>`;
         }
-        function renderLifecycleFullPage(stage){const title=stage==='during'?'During-Exam Operations & Assistance':'Post-Exam Follow-up & Binding';return `<div class="space-y-5"><div class="bg-indigo-950 text-white rounded-xl p-5 flex flex-wrap justify-between items-center gap-3 shadow"><div><span class="text-[10px] bg-indigo-700 rounded-full px-3 py-1 font-bold">FULL WORKSPACE</span><h2 class="mt-2 font-extrabold">${stage==='during'?'🧭':'📦'} ${title}</h2><p class="text-xs text-indigo-100">Session ${escapeHtml(selectedAcademicSession)} · Examination lifecycle workspace</p></div><button onclick="closeLifecycleStage()" class="bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2 font-bold">⬅ Exit / Back</button></div>${renderLifecycleStageWorkspace(stage)}</div>`;}
+        function renderLifecycleFullPage(stage){const title=stage==='during'?'During-Exam Operations & Assistance':'After-Exam Follow-up & Binding';return `<div class="space-y-5"><div class="bg-indigo-950 text-white rounded-xl p-5 flex flex-wrap justify-between items-center gap-3 shadow"><div><span class="text-[10px] bg-indigo-700 rounded-full px-3 py-1 font-bold">FULL WORKSPACE</span><h2 class="mt-2 font-extrabold">${stage==='during'?'🧭':'📦'} ${title}</h2><p class="text-xs text-indigo-100">Session ${escapeHtml(selectedAcademicSession)} · Examination lifecycle workspace</p></div><button onclick="closeLifecycleStage()" class="bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2 font-bold">⬅ Exit / Back</button></div>${renderLifecycleStageWorkspace(stage)}</div>`;}
 
         function editSelectedVaultDetails(){const id=selectedPreExamVaultId;isVaultOverviewOpen=false;sessionStorage.removeItem('vems_vault_overview_open');loadArchivedExamToEdit(id);}
         function renderSelectedVaultOverview(){
             const exam=archivedExams.find(item=>String(item.id)===String(selectedPreExamVaultId));if(!exam){isVaultOverviewOpen=false;sessionStorage.removeItem('vems_vault_overview_open');return renderMainLifecycleHub();}
-            const today=new Date().toISOString().slice(0,10),stage=today<exam.fromDate?'Pre-Exam':today>exam.toDate?'Post-Exam':'During Exam',stageClass=stage==='Pre-Exam'?'bg-indigo-100 text-indigo-800':stage==='During Exam'?'bg-amber-100 text-amber-900':'bg-emerald-100 text-emerald-900',days=(exam.datesheetSnapshot||[]).length,qpKeys=(exam.datesheetSnapshot||[]).flatMap(day=>day.paperSlots||[]).length,received=Object.entries(qpSubmissionsTracker).filter(([key,value])=>key.startsWith(`${encodeURIComponent(String(exam.id))}|`)&&value.qpReceived).length,preProgress=qpKeys?Math.min(100,Math.round(received/qpKeys*100)):days?25:0;
-            return `<div id="selected-exam-vault-workspace" class="scroll-mt-24 space-y-5"><div class="rounded-xl bg-gradient-to-r from-indigo-950 via-indigo-800 to-blue-700 p-5 text-white shadow"><div class="flex flex-wrap justify-between gap-4"><div><button type="button" onclick="closeExamVault()" class="mb-3 rounded bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25">← Back to All Examination Vaults</button><h2 class="text-xl font-extrabold">📘 ${escapeHtml(exam.title)} Examination Vault</h2><p class="mt-1 text-xs text-indigo-100">${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))} · Session ${escapeHtml(selectedAcademicSession)}</p></div><div class="flex items-start gap-2"><span class="rounded-full px-3 py-1 text-xs font-bold ${stageClass}">${escapeHtml(stage)}</span><button type="button" onclick="editSelectedVaultDetails()" class="rounded bg-white px-3 py-1 text-xs font-bold text-indigo-900">✏️ Edit Details</button></div></div><div class="mt-4 grid grid-cols-2 gap-3 border-t border-white/20 pt-4 text-xs md:grid-cols-4"><div><span class="text-indigo-200">Schedule Days</span><b class="mt-1 block text-lg">${days}</b></div><div><span class="text-indigo-200">Required Papers</span><b class="mt-1 block text-lg">${qpKeys}</b></div><div><span class="text-indigo-200">QP Received</span><b class="mt-1 block text-lg">${received}</b></div><div><span class="text-indigo-200">Pre-Exam Progress</span><b class="mt-1 block text-lg">${preProgress}%</b></div></div></div><section class="rounded-xl border bg-white p-5 shadow-sm"><div class="mb-4"><h3 class="font-bold text-slate-900">📊 Examination Lifecycle Workspaces</h3><p class="text-xs text-slate-500">Continue every stage inside this selected examination vault.</p></div><div class="grid grid-cols-1 gap-4 md:grid-cols-3"><button type="button" onclick="openPreExamFullPageWorkspace(${Number(exam.id)})" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-indigo-200 bg-indigo-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-indigo-700 px-2 py-1 text-[10px] font-bold text-white">STAGE 1</span><h4 class="mt-3 font-extrabold text-indigo-950">🚀 Pre-Exam Preparation</h4><p class="mt-2 text-xs leading-5 text-slate-600">Date sheet, QP requirements, office orders, receipt and printing, roll directory, seating, invigilation and rooms.</p></div><span class="mt-4 block rounded bg-indigo-700 py-2 text-center text-xs font-bold text-white">Open Pre-Exam Workspace</span></button><button type="button" onclick="openLifecycleStage('during')" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-amber-200 bg-amber-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-amber-600 px-2 py-1 text-[10px] font-bold text-white">STAGE 2</span><h4 class="mt-3 font-extrabold text-amber-950">🧭 During-Exam Operations & Assistance</h4><p class="mt-2 text-xs leading-5 text-slate-600">Daily command desk, attendance, absentees, relief support, incidents, QP movement and room supplies.</p></div><span class="mt-4 block rounded bg-amber-600 py-2 text-center text-xs font-bold text-white">Open During-Exam Workspace</span></button><button type="button" onclick="openLifecycleStage('post')" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-emerald-200 bg-emerald-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-emerald-700 px-2 py-1 text-[10px] font-bold text-white">STAGE 3</span><h4 class="mt-3 font-extrabold text-emerald-950">📦 Post-Exam Follow-up & Binding</h4><p class="mt-2 text-xs leading-5 text-slate-600">Answer-script receipt, bundling, evaluator issue and return, marks follow-up, binding and closure.</p></div><span class="mt-4 block rounded bg-emerald-700 py-2 text-center text-xs font-bold text-white">Open Post-Exam Workspace</span></button></div></section></div>`;
+            const today=new Date().toISOString().slice(0,10),stage=today<exam.fromDate?'Pre-Exam':today>exam.toDate?'After Exam':'During Exam',stageClass=stage==='Pre-Exam'?'bg-indigo-100 text-indigo-800':stage==='During Exam'?'bg-amber-100 text-amber-900':'bg-emerald-100 text-emerald-900',days=(exam.datesheetSnapshot||[]).length,qpKeys=(exam.datesheetSnapshot||[]).flatMap(day=>day.paperSlots||[]).length,received=Object.entries(qpSubmissionsTracker).filter(([key,value])=>key.startsWith(`${encodeURIComponent(String(exam.id))}|`)&&value.qpReceived).length,preProgress=qpKeys?Math.min(100,Math.round(received/qpKeys*100)):days?25:0;
+            return `<div id="selected-exam-vault-workspace" class="scroll-mt-24 space-y-5"><div class="rounded-xl bg-gradient-to-r from-indigo-950 via-indigo-800 to-blue-700 p-5 text-white shadow"><div class="flex flex-wrap justify-between gap-4"><div><button type="button" onclick="closeExamVault()" class="mb-3 rounded bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25">← Back to All Examination Vaults</button><h2 class="text-xl font-extrabold">📘 ${escapeHtml(exam.title)} Examination Vault</h2><p class="mt-1 text-xs text-indigo-100">${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))} · Session ${escapeHtml(selectedAcademicSession)}</p></div><div class="flex items-start gap-2"><span class="rounded-full px-3 py-1 text-xs font-bold ${stageClass}">${escapeHtml(stage)}</span><button type="button" onclick="editSelectedVaultDetails()" class="rounded bg-white px-3 py-1 text-xs font-bold text-indigo-900">✏️ Edit Details</button></div></div><div class="mt-4 grid grid-cols-2 gap-3 border-t border-white/20 pt-4 text-xs md:grid-cols-4"><div><span class="text-indigo-200">Schedule Days</span><b class="mt-1 block text-lg">${days}</b></div><div><span class="text-indigo-200">Required Papers</span><b class="mt-1 block text-lg">${qpKeys}</b></div><div><span class="text-indigo-200">QP Received</span><b class="mt-1 block text-lg">${received}</b></div><div><span class="text-indigo-200">Pre-Exam Progress</span><b class="mt-1 block text-lg">${preProgress}%</b></div></div></div><section class="rounded-xl border bg-white p-5 shadow-sm"><div class="mb-4"><h3 class="font-bold text-slate-900">📊 Examination Lifecycle Workspaces</h3><p class="text-xs text-slate-500">Continue the three stages below in order inside this examination vault.</p></div><div class="grid grid-cols-1 gap-4 md:grid-cols-3"><button type="button" onclick="openPreExamFullPageWorkspace(${Number(exam.id)})" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-indigo-200 bg-indigo-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-indigo-700 px-2 py-1 text-[10px] font-bold text-white">STAGE 1</span><h4 class="mt-3 font-extrabold text-indigo-950">🚀 Pre-Exam Preparation</h4><p class="mt-2 text-xs leading-5 text-slate-600">Date sheet, QP requirements, office orders, receipt and printing, roll directory, seating, invigilation and rooms.</p></div><span class="mt-4 block rounded bg-indigo-700 py-2 text-center text-xs font-bold text-white">Open Pre-Exam Workspace</span></button><button type="button" onclick="openLifecycleStage('during')" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-amber-200 bg-amber-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-amber-600 px-2 py-1 text-[10px] font-bold text-white">STAGE 2</span><h4 class="mt-3 font-extrabold text-amber-950">🧭 During-Exam Operations & Assistance</h4><p class="mt-2 text-xs leading-5 text-slate-600">Daily command desk, attendance, absentees, relief support, incidents, QP movement and room supplies.</p></div><span class="mt-4 block rounded bg-amber-600 py-2 text-center text-xs font-bold text-white">Open During-Exam Workspace</span></button><button type="button" onclick="openLifecycleStage('post')" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-emerald-200 bg-emerald-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-emerald-700 px-2 py-1 text-[10px] font-bold text-white">STAGE 3</span><h4 class="mt-3 font-extrabold text-emerald-950">📦 After-Exam Follow-up & Binding</h4><p class="mt-2 text-xs leading-5 text-slate-600">Answer-script receipt, bundling, evaluator issue and return, marks follow-up, binding and closure.</p></div><span class="mt-4 block rounded bg-emerald-700 py-2 text-center text-xs font-bold text-white">Open After-Exam Workspace</span></button></div></section></div>`;
         }
 
         function renderMainLifecycleHub() {
@@ -3179,6 +3190,11 @@
                             </div>
                             <span class="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-bold">Session ${escapeHtml(selectedAcademicSession)}</span>
                         </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-3"><b class="text-xs text-indigo-950">1. Create or Edit Vault</b><p class="mt-1 text-[11px] text-slate-600">Set the exam title, dates and paper schedule below.</p></div>
+                        <div class="rounded-lg border border-blue-200 bg-blue-50 p-3"><b class="text-xs text-blue-950">2. Save & Open Vault</b><p class="mt-1 text-[11px] text-slate-600">Confirm the record, then enter its examination workspace.</p></div>
+                        <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3"><b class="text-xs text-emerald-950">3. Complete in Order</b><p class="mt-1 text-[11px] text-slate-600">Pre-Exam → During Exam → After Exam.</p></div>
                     </div>
                     <div class="bg-slate-900 text-white rounded-xl p-5 space-y-3">
                         <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
@@ -3208,10 +3224,11 @@
                             </div>
                         `}
                     </div>
+                    ${recentlySavedVaultId&&archivedExams.some(ex=>String(ex.id)===String(recentlySavedVaultId))?`<div id="vault-save-next-step" class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 shadow-sm"><div class="flex flex-wrap items-center justify-between gap-3"><div><b class="text-emerald-950">✅ Vault details saved successfully</b><p class="mt-1 text-xs text-slate-600">Next, open the vault and work through Pre-Exam, During Exam and After Exam in order.</p></div><div class="flex flex-wrap gap-2"><button type="button" onclick="loadArchivedExamToEdit(${Number(recentlySavedVaultId)})" class="rounded border border-indigo-300 bg-white px-4 py-2 text-xs font-bold text-indigo-800">✏️ Continue Editing</button><button type="button" onclick="openExamVault(${Number(recentlySavedVaultId)})" class="rounded bg-emerald-700 px-5 py-2 text-xs font-bold text-white shadow">Next: Open Vault →</button></div></div></div>`:''}
                     ${isExamConfigOpen ? `
-                        <div class="bg-indigo-50 border rounded-xl p-5 space-y-5">
+                        <div id="exam-vault-editor" class="scroll-mt-24 bg-indigo-50 border-2 border-indigo-200 rounded-xl p-5 space-y-5">
                             <div class="flex justify-between items-center border-b pb-2">
-                                <h3 class="text-xs font-bold text-indigo-900 uppercase">📋 Main Exam Title & Dates</h3>
+                                <div><span class="text-[10px] font-bold text-indigo-600">STEP 1 · ${archivedExams.some(ex=>String(ex.id)===String(activeExamId)&&!ex.isDraft)?'EDIT':'CREATE'}</span><h3 class="text-sm font-bold text-indigo-950">📋 ${archivedExams.some(ex=>String(ex.id)===String(activeExamId)&&!ex.isDraft)?'Edit Examination Vault':'Create Examination Vault'}</h3><p class="mt-1 text-[11px] text-slate-600">Complete the details and schedule here. Saving will show the next action without leaving this page.</p></div>
                                 <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded">💾 Save</button>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -3231,10 +3248,10 @@
                         </div>
                         <div class="pt-4 border-t flex justify-between">
                             <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-200 text-slate-800 font-bold text-xs px-5 py-2.5 rounded">📁 Minimize</button>
-                            <button type="button" onclick="bindupAndSaveExamRecord()" class="bg-purple-700 text-white font-bold text-xs px-6 py-3 rounded shadow">💾 Save Full Exam Record</button>
+                            <button type="button" onclick="bindupAndSaveExamRecord()" class="bg-purple-700 text-white font-bold text-xs px-6 py-3 rounded shadow">💾 Save Vault & Continue</button>
                         </div>
                     ` : ''}
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-600">Select <b>Open Vault</b> from the list to access Pre-Exam, During-Exam and Post-Exam workspaces.</div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-600">Select <b>Open Vault</b> from the list to access Pre-Exam, During Exam and After Exam workspaces.</div>
                 </div>
             `;
         }
