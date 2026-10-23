@@ -1571,6 +1571,12 @@
             });
         }
 
+        function findFacultyAllotmentConflict(allotments,excludeTeacherId='') {
+            const seen=new Set();
+            for(const allotment of allotments){const key=`${allotment.cls}|${allotment.sec}|${String(allotment.subject).trim().toUpperCase()}`;if(seen.has(key))return {type:'same-form',allotment};seen.add(key);const teacher=teachers.find(item=>String(item.id)!==String(excludeTeacherId)&&(item.allotments||[]).some(existing=>`${existing.cls}|${existing.sec}|${String(existing.subject).trim().toUpperCase()}`===key));if(teacher)return {type:'another-teacher',allotment,teacher};}
+            return null;
+        }
+
         async function saveTeacherDirect(e) {
             e.preventDefault();
             const name = document.getElementById('tch-name-input').value.trim();
@@ -1588,6 +1594,9 @@
                     evaluator: row.querySelector('.eval-sel').value || 'Self'
                 });
             });
+            const editingTeacher=editIndex!==''?teachers.find(t=>String(t.id)===editIndex):null;
+            const conflict=findFacultyAllotmentConflict(allotments,editingTeacher?.id||'');
+            if(conflict){const item=conflict.allotment,location=`Class ${formatClass(item.cls)}-${item.sec} · ${item.subject}`;alert(conflict.type==='another-teacher'?`❌ Faculty Allotment Conflict\n\n${location} is already assigned to ${conflict.teacher.name} (${conflict.teacher.desig}).\n\nRemove or update the existing allotment before assigning another teacher.`:`❌ Duplicate Faculty Allotment\n\n${location} appears more than once in this teacher's allotments.`);return;}
             const teacherData = { id: editIndex !== '' ? teachers.find(t => String(t.id) === editIndex).id : newRecordId(), name, desig, allotments };
             if(editIndex !== '') {
                 teachers[teachers.findIndex(t => String(t.id) === editIndex)] = teacherData;

@@ -151,6 +151,15 @@ async function main() {
         });
         console.log('PASS: faculty save is confirmed and appears on the other device');
 
+        await a.evaluate(() => {resetTeacherForm();document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('10','A','SCIENCE');window._facultyAlert=window.alert;window.facultyConflictAlert='';window.alert=message=>window.facultyConflictAlert=message;});
+        await a.fill('#tch-name-input','Conflicting Teacher');
+        await a.fill('#tch-desig-input','TGT SCIENCE');
+        await a.evaluate(() => saveTeacherDirect({preventDefault(){}}));
+        assert.match(await a.evaluate(() => window.facultyConflictAlert), /Faculty Allotment Conflict.*already assigned to New Shared Teacher/s);
+        assert.equal(Object.values(data.teachers).length,1,'conflicting faculty allotment must not save');
+        await a.evaluate(() => {window.alert=window._facultyAlert;delete window._facultyAlert;delete window.facultyConflictAlert;resetTeacherForm();});
+        console.log('PASS: duplicate class-section-subject assignment to another teacher is blocked');
+
         await a.selectOption('#ct-10-A', 'New Shared Teacher');
         await a.evaluate(() => saveClassTeacherAssignments());
         await b.waitForFunction(() => classTeacherAssignments['10-A']?.ct === 'New Shared Teacher');
