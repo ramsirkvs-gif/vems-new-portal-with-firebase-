@@ -255,6 +255,12 @@ async function main() {
         assert.equal(await b.locator('button[onclick="sharePublishedSubjectDirectory()"]', {hasText:'Share PDF'}).count(), 1);
         assert.equal(await b.evaluate(async()=>new TextDecoder().decode((await publishedSubjectDirectoryPdfBlob().arrayBuffer()).slice(0,8))), '%PDF-1.4');
         assert.match(await b.evaluate(async()=>new TextDecoder().decode(await publishedSubjectDirectoryPdfBlob().arrayBuffer())), /\(Class \/ Section\).*\(Subjects\)/s);
+        await a.evaluate(() => {switchTab('config');document.getElementById('cfg-class').value='10';updateCfgSections();document.getElementById('cfg-section').value='A';loadSectionConfigDetails();});
+        await a.locator('#cfg-subjects-container button[title="Move down"]').first().click();
+        await a.evaluate(() => saveSectionConfig({preventDefault(){}}));
+        await b.waitForFunction(() => publishedSubjectDirectories.current?.sections?.['10-A']?.[0]==='SCIENCE' && publishedSubjectDirectories.current?.sections?.['10-A']?.[1]==='MATHS');
+        await b.evaluate(() => renderPublicSubjectDirectory());
+        assert.match(await b.locator('#public-subject-directory-body').innerText(), /SCIENCE, MATHS/);
         console.log('PASS: stream rules, Subject Mapping PDF, publish and public directory synchronize');
 
         assert.deepEqual(await a.evaluate(() => rollDirectoryColumnPairs(Array.from({length:6},(_,index)=>({roll:index+1}))).map(pair=>[pair.leftNumber,pair.rightNumber])), [[1,4],[2,5],[3,6]]);

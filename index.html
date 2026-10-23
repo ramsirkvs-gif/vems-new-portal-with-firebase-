@@ -830,7 +830,8 @@
             const key = `${cls}-${sec}`;
             if (sectionConfigs[key]) { alert(`Class ${formatClass(cls)} - Section ${sec} already exists.`); jumpToEditConfig(cls, sec); return; }
             sectionConfigs[key] = Number(cls) <= 2 ? ['ENGLISH', 'HINDI', 'MATHS'] : Number(cls) <= 5 ? ['ENGLISH', 'HINDI', 'MATHS', 'EVS'] : ['ENGLISH'];
-            if (await saveData(['sectionConfigs'])) { localStorage.setItem('vems_cfg_class',cls); localStorage.setItem(`vems_cfg_section_${cls}`,sec); initCfgSections(); document.getElementById('cfg-class').value=cls; updateCfgSections(); document.getElementById('cfg-section').value=sec; rememberConfigLocation(); loadSectionConfigDetails(); toggleAddClassSectionPanel(false); }
+            const refreshPublished=syncPublishedSubjectDirectorySnapshot();
+            if (await saveData(['sectionConfigs',...(refreshPublished?['publishedSubjectDirectories']:[])])) { localStorage.setItem('vems_cfg_class',cls); localStorage.setItem(`vems_cfg_section_${cls}`,sec); initCfgSections(); document.getElementById('cfg-class').value=cls; updateCfgSections(); document.getElementById('cfg-section').value=sec; rememberConfigLocation(); loadSectionConfigDetails(); toggleAddClassSectionPanel(false); }
         }
 
         async function deleteClassSection() {
@@ -843,7 +844,8 @@
             if (reasons.length) { alert(`Cannot delete Class ${formatClass(cls)}-${sec}. First remove its ${reasons.join(', ')}.`); return; }
             if (!confirm(`Delete Class ${formatClass(cls)} - Section ${sec} and its subject mapping?`)) return;
             delete sectionConfigs[key];
-            if (await saveData(['sectionConfigs'])) { editorBaselines.section=null; initCfgSections(); renderMasterSubjectDirectory(); }
+            const refreshPublished=syncPublishedSubjectDirectorySnapshot();
+            if (await saveData(['sectionConfigs',...(refreshPublished?['publishedSubjectDirectories']:[])])) { editorBaselines.section=null; initCfgSections(); renderMasterSubjectDirectory(); }
         }
 
         function subjectDirectoryRows(source=sectionConfigs) {
@@ -862,6 +864,7 @@
         function visiblePublishedSubjectDirectory(){return currentActiveRole==='public'?publicPublishedSubjectDirectories:publishedSubjectDirectories;}
         function selectedPublishedSubjectSource(){const current=visiblePublishedSubjectDirectory().current,selected=document.getElementById('public-subject-class')?.value||'';if(!current?.sections)return{};return Object.fromEntries(Object.entries(current.sections).filter(([key])=>!selected||key.split('-')[0]===selected));}
         function printPublishedSubjectDirectory(){ const current=visiblePublishedSubjectDirectory().current; if(!current?.sections){alert('No subject directory has been published yet.');return;} showSubjectDirectoryPreview(buildSubjectDirectoryHtml(selectedPublishedSubjectSource(),current.publishedAt),'Subject Mapping Classwise (Secondary)'); }
+        function syncPublishedSubjectDirectorySnapshot(){if(!publishedSubjectDirectories.current)return false;publishedSubjectDirectories={current:{...publishedSubjectDirectories.current,sessionId:selectedAcademicSession,publishedAt:new Date().toISOString(),publishedBy:authorizedRole,sections:cloneData(sectionConfigs)}};return true;}
         function updateSubjectPublishButton(){const button=document.getElementById('subject-publish-toggle');if(!button)return;const published=!!publishedSubjectDirectories.current;button.textContent=published?'⛔ Stop Publishing':'📢 Publish to Public View';button.className=`text-xs ${published?'bg-red-700':'bg-emerald-700'} text-white px-3 py-2 rounded`;}
         async function publishSubjectDirectory(){ if(!subjectDirectoryRows().length){alert('Add and save subject mappings before publishing.');return;} publishedSubjectDirectories={current:{sessionId:selectedAcademicSession,publishedAt:new Date().toISOString(),publishedBy:authorizedRole,sections:cloneData(sectionConfigs)}}; if(await saveData(['publishedSubjectDirectories'])){renderPublicSubjectDirectory();updateSubjectPublishButton();alert('Subject directory published to the Public view.');} }
         async function stopPublishingSubjectDirectory(){if(!publishedSubjectDirectories.current)return;if(!confirm('Stop showing the Subject Directory on the Public portal?'))return;publishedSubjectDirectories={};if(await saveData(['publishedSubjectDirectories'])){renderPublicSubjectDirectory();updateSubjectPublishButton();}}
@@ -1002,7 +1005,8 @@
             const sectionStudents=studentRecords?.[cls]?.[sec]||{};
             Object.values(sectionStudents).forEach(student=>{student.subjects=reorderedStudentSubjects(student,oldSubs,subs,cls);});
             sectionConfigs[`${cls}-${sec}`] = subs;
-            if (!await saveData(['sectionConfigs',...(Object.keys(sectionStudents).length?['students']:[])], { sectionConfigs: editorBaselines.section ? [editorBaselines.section] : [] })) return;
+            const refreshPublished=syncPublishedSubjectDirectorySnapshot();
+            if (!await saveData(['sectionConfigs',...(Object.keys(sectionStudents).length?['students']:[]),...(refreshPublished?['publishedSubjectDirectories']:[])], { sectionConfigs: editorBaselines.section ? [editorBaselines.section] : [] })) return;
             editorBaselines.section = null;
             sectionFormDirty = false;
             alert(`Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
