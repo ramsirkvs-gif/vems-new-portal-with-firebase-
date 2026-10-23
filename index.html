@@ -3328,14 +3328,14 @@
                 dayCard.style.background=dayPalette.card;
                 dayCard.style.borderColor=dayPalette.border;
                 dayCard.innerHTML = `
-                    <div onclick="toggleDayAccordion(${Number(dayObj.id)})" class="p-3.5 flex items-center justify-between cursor-pointer border-b" style="background:${dayPalette.header};border-color:${dayPalette.border}">
-                        <div class="flex items-center gap-3">
+                    <div onclick="toggleDayAccordion(${Number(dayObj.id)})" class="p-3.5 flex flex-wrap items-center justify-between gap-3 cursor-pointer border-b" style="background:${dayPalette.header};border-color:${dayPalette.border}">
+                        <div class="flex flex-wrap items-center gap-3">
                             <span class="text-sm font-bold text-indigo-900">${dayObj.isCollapsed ? '▶' : '▼'}</span>
                             <span class="text-white text-xs font-extrabold px-2.5 py-1 rounded" style="background:${dayPalette.accent}">DAY ${escapeHtml(dayObj.id)}</span>
                             <h4 class="text-xs font-bold text-slate-800">${escapeHtml(dateDisplay)}</h4>
+                            <label onclick="event.stopPropagation()" class="flex items-center gap-1.5 rounded-lg border border-white/80 bg-white/70 px-2 py-1 text-[10px] font-bold text-slate-600">CHANGE / SELECT DATE <input type="date" value="${escapeHtml(dayObj.dateStr)}" onchange="updateExamDayDate(${Number(dayObj.id)},this.value)" class="rounded border bg-white p-1.5 text-xs font-semibold"></label>
                         </div>
                         <div class="flex items-center gap-2" onclick="event.stopPropagation()">
-                            <label class="text-[10px] font-bold text-slate-600">EXAM DATE <input type="date" value="${escapeHtml(dayObj.dateStr)}" onchange="updateExamDayDate(${Number(dayObj.id)},this.value)" class="ml-1 rounded border bg-white p-1.5 text-xs font-semibold"></label>
                             ${dayObj.saved ? `<button type="button" onclick="editDayConfig(${Number(dayObj.id)})" class="text-xs bg-amber-600 text-white font-bold px-3 py-1 rounded">✏️ Edit</button>` : `<button type="button" onclick="saveOrUpdateDayConfig(${Number(dayObj.id)})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded">💾 Save Day</button>`}
                             <button type="button" onclick="removeExamDay(${Number(dayObj.id)})" class="text-xs border border-red-200 bg-red-50 text-red-700 font-bold px-2.5 py-1 rounded">🗑️ Remove Date</button>
                         </div>
