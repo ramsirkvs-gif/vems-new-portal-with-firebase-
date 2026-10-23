@@ -1803,8 +1803,7 @@
         async function saveMainHeaderConfig() {
             mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
             mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
-            mainHeaderConfig.fromDate = document.getElementById('exam-from-date')?.value || '2026-11-10';
-            mainHeaderConfig.toDate = document.getElementById('exam-to-date')?.value || '2026-11-15';
+            syncExamDateBounds();
             if (!await syncActiveExamDraftToVault()) return;
             alert("✅ Main Exam Title & Dates Saved Successfully!");
         }
@@ -1873,6 +1872,7 @@
                 return;
             }
             if (!activeExamId) activeExamId = newRecordId();
+            syncExamDateBounds();
             const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
             const examRecord = {
                 id: activeExamId,
@@ -1901,6 +1901,12 @@
             setTimeout(()=>document.getElementById('vault-save-next-step')?.scrollIntoView({behavior:'smooth',block:'center'}),50);
         }
 
+        function examDateSummary(exam){
+            const dates=[...new Set((exam?.datesheetSnapshot||[]).map(day=>day.dateStr).filter(Boolean))].sort();
+            if(dates.length)return dates.map(formatOrderDate).join(', ');
+            return exam?.fromDate?formatOrderDate(exam.fromDate):'No examination date';
+        }
+
         function toggleDayAccordion(dayId) {
             let day = datesheetDays.find(d => d.id === dayId);
             if (day) {
@@ -1909,24 +1915,17 @@
             }
         }
 
-        async function updateExamDates() {
-            const fromDateVal = document.getElementById('exam-from-date')?.value;
-            const toDateVal = document.getElementById('exam-to-date')?.value;
-            if (!fromDateVal) return;
-            let startDate = new Date(fromDateVal);
-            let endDate = toDateVal ? new Date(toDateVal) : new Date(fromDateVal);
-            mainHeaderConfig.fromDate = fromDateVal;
-            mainHeaderConfig.toDate = toDateVal || fromDateVal;
-            datesheetDays = [];
-            let curr = new Date(startDate);
-            let dayIdx = 1;
-            while (curr <= endDate && dayIdx <= 30) {
-                let dStr = curr.toISOString().split('T')[0];
-                datesheetDays.push({ id: dayIdx, dateStr: dStr, isCollapsed: dayIdx !== 1, saved: false, paperSlots: [] });
-                curr.setDate(curr.getDate() + 1);
-                dayIdx++;
-            }
-            if (!await syncActiveExamDraftToVault()) return;
+        function syncExamDateBounds(){
+            datesheetDays.sort((a,b)=>String(a.dateStr).localeCompare(String(b.dateStr))).forEach((day,index)=>day.id=index+1);
+            const dates=datesheetDays.map(day=>day.dateStr).filter(Boolean);
+            if(dates.length){mainHeaderConfig.fromDate=dates[0];mainHeaderConfig.toDate=dates[dates.length-1];}
+        }
+
+        async function updateExamDayDate(dayId,dateStr){
+            const day=datesheetDays.find(item=>item.id===dayId);if(!day||!dateStr)return;
+            if(datesheetDays.some(item=>item!==day&&item.dateStr===dateStr)){alert('This examination date is already added. Choose another date.');renderDatesheetDaysContainer();return;}
+            day.dateStr=dateStr;day.saved=false;syncExamDateBounds();
+            if(!await syncActiveExamDraftToVault())return;
             renderDatesheetDaysContainer();
         }
 
@@ -1943,15 +1942,22 @@
         }
 
         async function addNextDatesheetDay() {
-            let nextId = datesheetDays.length + 1;
-            let lastDate = datesheetDays.length > 0 ? new Date(datesheetDays[datesheetDays.length - 1].dateStr) : new Date();
-            lastDate.setDate(lastDate.getDate() + 1);
-            let nextDateStr = lastDate.toISOString().split('T')[0];
-            
+            const input=document.getElementById('new-exam-date'),nextDateStr=input?.value;
+            if(!nextDateStr){alert('Select the next examination date.');return;}
+            if(datesheetDays.some(day=>day.dateStr===nextDateStr)){alert('This examination date is already added. Choose another date.');return;}
             datesheetDays.forEach(d => d.isCollapsed = true);
-            datesheetDays.push({ id: nextId, dateStr: nextDateStr, isCollapsed: false, saved: false, paperSlots: [] });
+            datesheetDays.push({ id: datesheetDays.length+1, dateStr: nextDateStr, isCollapsed: false, saved: false, paperSlots: [] });
+            syncExamDateBounds();
             if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
+        }
+
+        async function removeExamDay(dayId){
+            const day=datesheetDays.find(item=>item.id===dayId);if(!day)return;
+            if(day.paperSlots?.length&&!confirm(`Remove ${formatDateWithDay(day.dateStr)} and all its scheduled papers?`))return;
+            datesheetDays=datesheetDays.filter(item=>item!==day);syncExamDateBounds();
+            if(!await syncActiveExamDraftToVault())return;
+            renderExamCreatorModule();
         }
 
         async function addPaperSlotToDay(dayId) {
@@ -2843,7 +2849,7 @@
             const instructions = currentDateSheetInstructions(exam.id);
             return `<div class="bg-gradient-to-br from-sky-50 via-white to-indigo-50 rounded-2xl border border-indigo-100 shadow-sm p-5 md:p-7 space-y-5">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-indigo-100 pb-4"><div><h3 class="text-xl font-black text-indigo-950">📅 Date Sheet</h3><p class="text-xs text-slate-500 mt-1">Automatically generated from the selected Vault Exam: <b>${escapeHtml(exam.title)}</b></p></div><button type="button" onclick="previewSelectedDateSheet()" ${rows.length ? '' : 'disabled'} class="bg-indigo-700 hover:bg-indigo-800 disabled:bg-slate-300 text-white text-xs font-bold px-5 py-2.5 rounded-lg shadow">👁️ Preview & PDF</button></div>
-                <div class="bg-white/80 rounded-xl border border-indigo-100 p-4 text-center"><h4 class="font-black text-indigo-950 uppercase">${escapeHtml(exam.title)}</h4><p class="text-xs text-slate-500 mt-1">${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))} • Session ${escapeHtml(selectedAcademicSession)}</p></div>
+                <div class="bg-white/80 rounded-xl border border-indigo-100 p-4 text-center"><h4 class="font-black text-indigo-950 uppercase">${escapeHtml(exam.title)}</h4><p class="text-xs text-slate-500 mt-1">${escapeHtml(examDateSummary(exam))} • Session ${escapeHtml(selectedAcademicSession)}</p></div>
                 <div class="overflow-x-auto rounded-xl border border-indigo-100 bg-white"><table class="w-full text-xs"><thead class="bg-indigo-900 text-white uppercase"><tr><th class="p-3 text-left">Date & Day</th><th class="p-3 text-left">Class / Sections</th><th class="p-3 text-left">Subject</th><th class="p-3 text-center">Reporting</th><th class="p-3 text-center">Reading</th><th class="p-3 text-center">Exam Time</th><th class="p-3 text-center">Duration</th><th class="p-3 text-center">Max Marks</th></tr></thead><tbody class="divide-y divide-indigo-50">${rows.map((row,index) => `<tr class="${index % 2 ? 'bg-sky-50/50' : 'bg-white'}"><td class="p-3 font-bold text-indigo-950">${escapeHtml(formatOrderDate(row.dateStr))}<br><span class="text-[10px] font-normal text-slate-500">${escapeHtml(dateSheetDay(row.dateStr))}</span></td><td class="p-3 font-bold">Class ${escapeHtml(formatClass(row.cls))}<br><span class="text-[10px] text-slate-500">Sections: ${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</span></td><td class="p-3 font-bold text-indigo-900">${escapeHtml(row.subject)}</td><td class="p-3 text-center">${escapeHtml(row.repTime || '—')}</td><td class="p-3 text-center">${escapeHtml(row.readTime || '—')}</td><td class="p-3 text-center font-bold">${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</td><td class="p-3 text-center">${escapeHtml(row.duration || '—')}</td><td class="p-3 text-center font-bold">${escapeHtml(row.maxMarks ?? '—')}</td></tr>`).join('') || '<tr><td colspan="8" class="p-8 text-center text-slate-500">No dated papers are available in this examination.</td></tr>'}</tbody></table></div>
                 <div class="rounded-xl bg-amber-50 border border-amber-200 p-4 space-y-3"><div class="flex items-center justify-between gap-2"><h4 class="text-xs font-black text-amber-900 uppercase">Important Instructions</h4><button type="button" onclick="addDateSheetInstructionRow()" class="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg px-3 py-1.5 text-xs font-bold">＋ Add Instruction</button></div><div id="datesheet-instructions-list" class="space-y-2">${instructions.map((instruction,index) => `<div class="datesheet-instruction-row flex items-start gap-2"><span class="datesheet-instruction-number w-7 pt-2.5 text-right text-xs font-black text-indigo-900">${index + 1}.</span><textarea rows="1" class="datesheet-instruction-input flex-1 min-h-[42px] border rounded-lg p-2.5 text-xs leading-5 bg-white">${escapeHtml(instruction)}</textarea><button type="button" onclick="this.closest('.datesheet-instruction-row').remove(); renumberDateSheetInstructionRows(); captureDateSheetInstructionDraft()" class="mt-1 bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-2 text-xs font-bold">✕</button></div>`).join('')}</div><div class="flex flex-wrap justify-end gap-2"><button type="button" onclick="previewSelectedDateSheet()" ${rows.length ? '' : 'disabled'} class="bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2 rounded-lg">👁️ Preview & PDF</button><button type="button" onclick="saveDateSheetInstructions(false)" class="bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-lg">💾 Save for This Date Sheet</button><button type="button" onclick="saveDateSheetInstructions(true)" class="bg-indigo-800 text-white text-xs font-bold px-4 py-2 rounded-lg">🔄 Save Instructions as Default</button></div></div>
             </div>`;
@@ -2852,7 +2858,7 @@
         function buildDateSheetHtml(exam) {
             const rows = examDatesheetRows(exam);
             const instructions = currentDateSheetInstructions(exam.id);
-            return `<!doctype html><html><head><title>Date Sheet - ${escapeHtml(exam.title)}</title><style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172554;margin:0}.top{height:5px;background:linear-gradient(90deg,#172554 0 82%,#d4a017 82%);margin-bottom:8px}.head{text-align:center;border-bottom:3px double #172554;padding-bottom:7px}.head h1{font-size:19px;margin:0}.head h2{font-size:13px;letter-spacing:1px;margin:3px 0}.exam{text-align:center;background:#eef2ff;border:1px solid #c7d2fe;padding:7px;margin:10px 0 12px}.exam b{font-size:15px}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#172554;color:white;text-transform:uppercase}th,td{border:1px solid #94a3b8;padding:7px;text-align:left}tbody tr:nth-child(even){background:#f0f9ff}.c{text-align:center}.notes{margin-top:12px;border:1px solid #f5d477;background:#fffbeb;padding:8px;font-size:10px}.notes b{color:#78350f}.notes ol{margin:5px 0 0;padding-left:18px}.sign{display:flex;justify-content:space-between;margin-top:30px;font-size:11px;font-weight:bold}.line{width:180px;border-top:1px solid #172554;text-align:center;padding-top:4px}@media screen{body{padding:12mm;max-width:297mm;min-height:210mm;margin:auto;box-shadow:0 6px 30px #64748b}}</style></head><body><div class="top"></div><div class="head"><h1>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h1><h2>EXAMINATION CELL — DATE SHEET</h2></div><div class="exam"><b>${escapeHtml(exam.title)}</b><br><small>Session ${escapeHtml(selectedAcademicSession)} • ${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))}</small></div><table><thead><tr><th>Date & Day</th><th>Class / Sections</th><th>Subject</th><th>Reporting</th><th>Reading</th><th>Exam Time</th><th>Duration</th><th>Marks</th></tr></thead><tbody>${rows.map(row => `<tr><td><b>${escapeHtml(formatOrderDate(row.dateStr))}</b><br>${escapeHtml(dateSheetDay(row.dateStr))}</td><td><b>Class ${escapeHtml(formatClass(row.cls))}</b><br>${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</td><td><b>${escapeHtml(row.subject)}</b></td><td class="c">${escapeHtml(row.repTime || '—')}</td><td class="c">${escapeHtml(row.readTime || '—')}</td><td class="c"><b>${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</b></td><td class="c">${escapeHtml(row.duration || '—')}</td><td class="c"><b>${escapeHtml(row.maxMarks ?? '—')}</b></td></tr>`).join('')}</tbody></table><div class="notes"><b>IMPORTANT INSTRUCTIONS</b><ol>${instructions.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol></div><div class="sign"><div class="line">${signatoryHtml(relevantExamIcProfile(),'Exam IC','EXAM IC')}</div><div class="line">${signatoryHtml(signatureProfiles.principal||{},'Principal','PRINCIPAL')}</div></div></body></html>`;
+            return `<!doctype html><html><head><title>Date Sheet - ${escapeHtml(exam.title)}</title><style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172554;margin:0}.top{height:5px;background:linear-gradient(90deg,#172554 0 82%,#d4a017 82%);margin-bottom:8px}.head{text-align:center;border-bottom:3px double #172554;padding-bottom:7px}.head h1{font-size:19px;margin:0}.head h2{font-size:13px;letter-spacing:1px;margin:3px 0}.exam{text-align:center;background:#eef2ff;border:1px solid #c7d2fe;padding:7px;margin:10px 0 12px}.exam b{font-size:15px}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#172554;color:white;text-transform:uppercase}th,td{border:1px solid #94a3b8;padding:7px;text-align:left}tbody tr:nth-child(even){background:#f0f9ff}.c{text-align:center}.notes{margin-top:12px;border:1px solid #f5d477;background:#fffbeb;padding:8px;font-size:10px}.notes b{color:#78350f}.notes ol{margin:5px 0 0;padding-left:18px}.sign{display:flex;justify-content:space-between;margin-top:30px;font-size:11px;font-weight:bold}.line{width:180px;border-top:1px solid #172554;text-align:center;padding-top:4px}@media screen{body{padding:12mm;max-width:297mm;min-height:210mm;margin:auto;box-shadow:0 6px 30px #64748b}}</style></head><body><div class="top"></div><div class="head"><h1>PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR</h1><h2>EXAMINATION CELL — DATE SHEET</h2></div><div class="exam"><b>${escapeHtml(exam.title)}</b><br><small>Session ${escapeHtml(selectedAcademicSession)} • ${escapeHtml(examDateSummary(exam))}</small></div><table><thead><tr><th>Date & Day</th><th>Class / Sections</th><th>Subject</th><th>Reporting</th><th>Reading</th><th>Exam Time</th><th>Duration</th><th>Marks</th></tr></thead><tbody>${rows.map(row => `<tr><td><b>${escapeHtml(formatOrderDate(row.dateStr))}</b><br>${escapeHtml(dateSheetDay(row.dateStr))}</td><td><b>Class ${escapeHtml(formatClass(row.cls))}</b><br>${escapeHtml((row.selectedSections || []).join(', ') || 'All')}</td><td><b>${escapeHtml(row.subject)}</b></td><td class="c">${escapeHtml(row.repTime || '—')}</td><td class="c">${escapeHtml(row.readTime || '—')}</td><td class="c"><b>${escapeHtml(row.startTime || '—')}–${escapeHtml(row.overTime || '—')}</b></td><td class="c">${escapeHtml(row.duration || '—')}</td><td class="c"><b>${escapeHtml(row.maxMarks ?? '—')}</b></td></tr>`).join('')}</tbody></table><div class="notes"><b>IMPORTANT INSTRUCTIONS</b><ol>${instructions.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol></div><div class="sign"><div class="line">${signatoryHtml(relevantExamIcProfile(),'Exam IC','EXAM IC')}</div><div class="line">${signatoryHtml(signatureProfiles.principal||{},'Principal','PRINCIPAL')}</div></div></body></html>`;
         }
 
         function previewSelectedDateSheet() {
@@ -3160,7 +3166,7 @@
             const during=[['👥','Attendance & Absentee Desk','Record room-wise attendance, absentees and late reporting.'],['🧑‍🏫','Invigilation & Relief','View day-wise duties and arrange reserve or relief staff.'],['📦','QP Issue & Return','Monitor sealed packet issue, opening confirmation and unused paper return.'],['🩺','Incident & Assistance Log','Record medical help, unfair-means cases and operational issues.'],['🔔','Bell & Time Control','Follow reporting, reading, start, warning and closing times.'],['🧰','Room Supply Support','Track additional answer sheets, maps, thread and emergency supplies.']];
             const post=[['📥','Answer-Script Receipt','Receive, count and reconcile room-wise used answer scripts.'],['📦','Subject-wise Bundling','Prepare class, subject and section bundles with control slips.'],['🧑‍🏫','Evaluator Issue Register','Issue bundles and marking schemes to mapped evaluators.'],['↩️','Evaluated Script Return','Confirm evaluated bundle and award-list return.'],['📊','Marks & Result Follow-up','Track marks entry, verification, moderation and corrections.'],['🗄️','Binding & Record Closure','Bind records, archive reports and close the examination vault.']];
             const tasks=stage==='during'?during:post,title=stage==='during'?'During-Exam Operations & Assistance':'After-Exam Follow-up & Binding',colour=stage==='during'?'amber':'emerald';
-            return `<div id="lifecycle-stage-workspace" class="mt-5 border-2 border-${colour}-200 rounded-xl bg-${colour}-50/50 p-4 space-y-4"><div class="flex justify-between items-center gap-3"><div><h3 class="font-bold text-${colour}-950">${stage==='during'?'🧭':'📦'} ${title}</h3><p class="text-xs text-slate-600">${exam?`Working with: ${escapeHtml(exam.title)} · ${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))}`:'Create or select an examination vault record to begin.'}</p></div><button onclick="closeLifecycleStage()" class="bg-white border rounded px-3 py-2 font-bold">✕ Close</button></div>${!exam?'<div class="bg-amber-100 border border-amber-300 rounded p-3 font-bold">No examination vault is available for this session.</div>':`<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${tasks.map((task,index)=>`<div class="bg-white border rounded-xl p-4"><div class="text-xl">${task[0]}</div><h4 class="mt-1 font-bold">${index+1}. ${task[1]}</h4><p class="mt-1 text-xs text-slate-600">${task[2]}</p>${stage==='during'&&index===1?'<button onclick="openLinkedPreExamTool(\'invigilation\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Invigilation</button>':stage==='during'&&index===5?'<button onclick="openLinkedPreExamTool(\'inventory\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Inventory</button>':''}</div>`).join('')}</div>`}</div>`;
+            return `<div id="lifecycle-stage-workspace" class="mt-5 border-2 border-${colour}-200 rounded-xl bg-${colour}-50/50 p-4 space-y-4"><div class="flex justify-between items-center gap-3"><div><h3 class="font-bold text-${colour}-950">${stage==='during'?'🧭':'📦'} ${title}</h3><p class="text-xs text-slate-600">${exam?`Working with: ${escapeHtml(exam.title)} · ${escapeHtml(examDateSummary(exam))}`:'Create or select an examination vault record to begin.'}</p></div><button onclick="closeLifecycleStage()" class="bg-white border rounded px-3 py-2 font-bold">✕ Close</button></div>${!exam?'<div class="bg-amber-100 border border-amber-300 rounded p-3 font-bold">No examination vault is available for this session.</div>':`<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${tasks.map((task,index)=>`<div class="bg-white border rounded-xl p-4"><div class="text-xl">${task[0]}</div><h4 class="mt-1 font-bold">${index+1}. ${task[1]}</h4><p class="mt-1 text-xs text-slate-600">${task[2]}</p>${stage==='during'&&index===1?'<button onclick="openLinkedPreExamTool(\'invigilation\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Invigilation</button>':stage==='during'&&index===5?'<button onclick="openLinkedPreExamTool(\'inventory\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Inventory</button>':''}</div>`).join('')}</div>`}</div>`;
         }
         function renderLifecycleFullPage(stage){const title=stage==='during'?'During-Exam Operations & Assistance':'After-Exam Follow-up & Binding';return `<div class="space-y-5"><div class="bg-indigo-950 text-white rounded-xl p-5 flex flex-wrap justify-between items-center gap-3 shadow"><div><span class="text-[10px] bg-indigo-700 rounded-full px-3 py-1 font-bold">FULL WORKSPACE</span><h2 class="mt-2 font-extrabold">${stage==='during'?'🧭':'📦'} ${title}</h2><p class="text-xs text-indigo-100">Session ${escapeHtml(selectedAcademicSession)} · Examination lifecycle workspace</p></div><button onclick="closeLifecycleStage()" class="bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2 font-bold">⬅ Exit / Back</button></div>${renderLifecycleStageWorkspace(stage)}</div>`;}
 
@@ -3168,7 +3174,7 @@
         function renderSelectedVaultOverview(){
             const exam=archivedExams.find(item=>String(item.id)===String(selectedPreExamVaultId));if(!exam){isVaultOverviewOpen=false;sessionStorage.removeItem('vems_vault_overview_open');return renderMainLifecycleHub();}
             const days=(exam.datesheetSnapshot||[]).length,qpKeys=(exam.datesheetSnapshot||[]).flatMap(day=>day.paperSlots||[]).length,received=Object.entries(qpSubmissionsTracker).filter(([key,value])=>key.startsWith(`${encodeURIComponent(String(exam.id))}|`)&&value.qpReceived).length,preProgress=qpKeys?Math.min(100,Math.round(received/qpKeys*100)):days?25:0;
-            return `<div id="selected-exam-vault-workspace" class="scroll-mt-24 space-y-5"><div class="rounded-xl bg-gradient-to-r from-indigo-950 via-indigo-800 to-blue-700 p-5 text-white shadow"><div class="flex flex-wrap justify-between gap-4"><div><button type="button" onclick="closeExamVault()" class="mb-3 rounded bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25">← Back to All Examination Vaults</button><h2 class="text-xl font-extrabold">📘 ${escapeHtml(exam.title)} Examination Vault</h2><p class="mt-1 text-xs text-indigo-100">${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))} · Session ${escapeHtml(selectedAcademicSession)}</p></div><div class="flex items-start"><button type="button" onclick="editSelectedVaultDetails()" class="rounded bg-white px-3 py-1 text-xs font-bold text-indigo-900">✏️ Edit Details</button></div></div><div class="mt-4 grid grid-cols-2 gap-3 border-t border-white/20 pt-4 text-xs md:grid-cols-4"><div><span class="text-indigo-200">Schedule Days</span><b class="mt-1 block text-lg">${days}</b></div><div><span class="text-indigo-200">Required Papers</span><b class="mt-1 block text-lg">${qpKeys}</b></div><div><span class="text-indigo-200">QP Received</span><b class="mt-1 block text-lg">${received}</b></div><div><span class="text-indigo-200">Pre-Exam Progress</span><b class="mt-1 block text-lg">${preProgress}%</b></div></div></div><section class="rounded-xl border bg-white p-5 shadow-sm"><div class="mb-4"><h3 class="font-bold text-slate-900">📊 Examination Lifecycle Workspaces</h3><p class="text-xs text-slate-500">Continue the three stages below in order inside this examination vault.</p></div><div class="grid grid-cols-1 gap-4 md:grid-cols-3"><button type="button" onclick="openPreExamFullPageWorkspace(${Number(exam.id)})" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-indigo-200 bg-indigo-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-indigo-700 px-2 py-1 text-[10px] font-bold text-white">STAGE 1</span><h4 class="mt-3 font-extrabold text-indigo-950">🚀 Pre-Exam Preparation</h4><p class="mt-2 text-xs leading-5 text-slate-600">Date sheet, QP requirements, office orders, receipt and printing, roll directory, seating, invigilation and rooms.</p></div><span class="mt-4 block rounded bg-indigo-700 py-2 text-center text-xs font-bold text-white">Open Pre-Exam Workspace</span></button><button type="button" onclick="openLifecycleStage('during')" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-amber-200 bg-amber-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-amber-600 px-2 py-1 text-[10px] font-bold text-white">STAGE 2</span><h4 class="mt-3 font-extrabold text-amber-950">🧭 During-Exam Operations & Assistance</h4><p class="mt-2 text-xs leading-5 text-slate-600">Daily command desk, attendance, absentees, relief support, incidents, QP movement and room supplies.</p></div><span class="mt-4 block rounded bg-amber-600 py-2 text-center text-xs font-bold text-white">Open During-Exam Workspace</span></button><button type="button" onclick="openLifecycleStage('post')" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-emerald-200 bg-emerald-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-emerald-700 px-2 py-1 text-[10px] font-bold text-white">STAGE 3</span><h4 class="mt-3 font-extrabold text-emerald-950">📦 After-Exam Follow-up & Binding</h4><p class="mt-2 text-xs leading-5 text-slate-600">Answer-script receipt, bundling, evaluator issue and return, marks follow-up, binding and closure.</p></div><span class="mt-4 block rounded bg-emerald-700 py-2 text-center text-xs font-bold text-white">Open After-Exam Workspace</span></button></div></section></div>`;
+            return `<div id="selected-exam-vault-workspace" class="scroll-mt-24 space-y-5"><div class="rounded-xl bg-gradient-to-r from-indigo-950 via-indigo-800 to-blue-700 p-5 text-white shadow"><div class="flex flex-wrap justify-between gap-4"><div><button type="button" onclick="closeExamVault()" class="mb-3 rounded bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25">← Back to All Examination Vaults</button><h2 class="text-xl font-extrabold">📘 ${escapeHtml(exam.title)} Examination Vault</h2><p class="mt-1 text-xs text-indigo-100">${escapeHtml(examDateSummary(exam))} · Session ${escapeHtml(selectedAcademicSession)}</p></div><div class="flex items-start"><button type="button" onclick="editSelectedVaultDetails()" class="rounded bg-white px-3 py-1 text-xs font-bold text-indigo-900">✏️ Edit Details</button></div></div><div class="mt-4 grid grid-cols-2 gap-3 border-t border-white/20 pt-4 text-xs md:grid-cols-4"><div><span class="text-indigo-200">Schedule Days</span><b class="mt-1 block text-lg">${days}</b></div><div><span class="text-indigo-200">Required Papers</span><b class="mt-1 block text-lg">${qpKeys}</b></div><div><span class="text-indigo-200">QP Received</span><b class="mt-1 block text-lg">${received}</b></div><div><span class="text-indigo-200">Pre-Exam Progress</span><b class="mt-1 block text-lg">${preProgress}%</b></div></div></div><section class="rounded-xl border bg-white p-5 shadow-sm"><div class="mb-4"><h3 class="font-bold text-slate-900">📊 Examination Lifecycle Workspaces</h3><p class="text-xs text-slate-500">Continue the three stages below in order inside this examination vault.</p></div><div class="grid grid-cols-1 gap-4 md:grid-cols-3"><button type="button" onclick="openPreExamFullPageWorkspace(${Number(exam.id)})" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-indigo-200 bg-indigo-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-indigo-700 px-2 py-1 text-[10px] font-bold text-white">STAGE 1</span><h4 class="mt-3 font-extrabold text-indigo-950">🚀 Pre-Exam Preparation</h4><p class="mt-2 text-xs leading-5 text-slate-600">Date sheet, QP requirements, office orders, receipt and printing, roll directory, seating, invigilation and rooms.</p></div><span class="mt-4 block rounded bg-indigo-700 py-2 text-center text-xs font-bold text-white">Open Pre-Exam Workspace</span></button><button type="button" onclick="openLifecycleStage('during')" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-amber-200 bg-amber-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-amber-600 px-2 py-1 text-[10px] font-bold text-white">STAGE 2</span><h4 class="mt-3 font-extrabold text-amber-950">🧭 During-Exam Operations & Assistance</h4><p class="mt-2 text-xs leading-5 text-slate-600">Daily command desk, attendance, absentees, relief support, incidents, QP movement and room supplies.</p></div><span class="mt-4 block rounded bg-amber-600 py-2 text-center text-xs font-bold text-white">Open During-Exam Workspace</span></button><button type="button" onclick="openLifecycleStage('post')" class="flex min-h-48 flex-col justify-between rounded-xl border-2 border-emerald-200 bg-emerald-50 p-5 text-left transition hover:-translate-y-0.5 hover:shadow-lg"><div><span class="rounded-full bg-emerald-700 px-2 py-1 text-[10px] font-bold text-white">STAGE 3</span><h4 class="mt-3 font-extrabold text-emerald-950">📦 After-Exam Follow-up & Binding</h4><p class="mt-2 text-xs leading-5 text-slate-600">Answer-script receipt, bundling, evaluator issue and return, marks follow-up, binding and closure.</p></div><span class="mt-4 block rounded bg-emerald-700 py-2 text-center text-xs font-bold text-white">Open After-Exam Workspace</span></button></div></section></div>`;
         }
 
         function renderMainLifecycleHub() {
@@ -3205,13 +3211,13 @@
                             <div class="overflow-x-auto">
                                 <table class="w-full text-xs text-left text-slate-200">
                                     <thead class="bg-slate-800 uppercase">
-                                        <tr><th class="px-3 py-2">Title</th><th class="px-3 py-2">Duration</th><th class="px-3 py-2 text-right">Actions</th></tr>
+                                        <tr><th class="px-3 py-2">Title</th><th class="px-3 py-2">Examination Dates</th><th class="px-3 py-2 text-right">Actions</th></tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-800">
                                         ${archivedExams.map(ex => `
                                             <tr>
                                                 <td class="px-3 py-2"><button type="button" onclick="openExamVault(${Number(ex.id)})" class="font-bold text-amber-300 hover:text-amber-100 hover:underline">${escapeHtml(ex.title)}</button></td>
-                                                <td class="px-3 py-2">${escapeHtml(formatOrderDate(ex.fromDate))} to ${escapeHtml(formatOrderDate(ex.toDate))}</td>
+                                                <td class="px-3 py-2">${escapeHtml(examDateSummary(ex))}</td>
                                                 <td class="px-3 py-2 text-right space-x-1">
                                                     <button type="button" onclick="loadArchivedExamToEdit(${Number(ex.id)})" class="bg-indigo-600 text-white text-[11px] px-3 py-1 rounded">✏️ Edit Details</button>
                                                     <button type="button" onclick="openExamVault(${Number(ex.id)})" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded">📂 Open Vault</button>
@@ -3231,20 +3237,19 @@
                                 <div><span class="text-[10px] font-bold text-indigo-600">STEP 1 · ${archivedExams.some(ex=>String(ex.id)===String(activeExamId)&&!ex.isDraft)?'EDIT':'CREATE'}</span><h3 class="text-sm font-bold text-indigo-950">📋 ${archivedExams.some(ex=>String(ex.id)===String(activeExamId)&&!ex.isDraft)?'Edit Examination Vault':'Create Examination Vault'}</h3><p class="mt-1 text-[11px] text-slate-600">Complete the details and schedule here. Saving will show the next action without leaving this page.</p></div>
                                 <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded">💾 Save</button>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                                <div class="col-span-2">
+                            <div class="grid grid-cols-1 gap-4">
+                                <div>
                                     <label class="block text-[11px] font-bold uppercase mb-1">Exam Name</label>
                                     <select id="exam-name-select" onchange="saveMainHeaderConfig()" class="w-full text-xs p-2 border rounded bg-white font-semibold">
                                         ${examOptionsList.map(o => `<option value="${escapeHtml(o.id)}" ${mainHeaderConfig.name === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}
                                     </select>
                                 </div>
-                                <div><label class="block text-[11px] font-bold uppercase mb-1">From Date</label><input type="date" id="exam-from-date" value="${escapeHtml(mainHeaderConfig.fromDate)}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded"></div>
-                                <div><label class="block text-[11px] font-bold uppercase mb-1">To Date</label><input type="date" id="exam-to-date" value="${escapeHtml(mainHeaderConfig.toDate)}" onchange="updateExamDates()" class="w-full text-xs p-2 border rounded"></div>
+                                <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><b>📅 Select actual examination dates below.</b> Sundays, holidays and preparation gaps will not be added automatically.</p>
                             </div>
                         </div>
                         <div class="space-y-4">
                             <div id="datesheet-days-container" class="space-y-3"></div>
-                            <button type="button" onclick="addNextDatesheetDay()" class="bg-emerald-600 text-white font-bold text-xs px-5 py-3 rounded">➕ Add Next Day</button>
+                            <div class="flex flex-wrap items-end gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><label class="text-xs font-bold text-emerald-950">Add another examination date<input id="new-exam-date" type="date" class="mt-1 block rounded border bg-white p-2 text-xs"></label><button type="button" onclick="addNextDatesheetDay()" class="bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded">➕ Add Exam Date</button><span class="text-[11px] text-slate-600">Choose only a day on which a paper will be held.</span></div>
                         </div>
                         <div class="pt-4 border-t flex justify-between">
                             <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-200 text-slate-800 font-bold text-xs px-5 py-2.5 rounded">📁 Minimize</button>
@@ -3320,7 +3325,9 @@
                             <h4 class="text-xs font-bold text-slate-800">${escapeHtml(dateDisplay)}</h4>
                         </div>
                         <div class="flex items-center gap-2" onclick="event.stopPropagation()">
+                            <label class="text-[10px] font-bold text-slate-600">EXAM DATE <input type="date" value="${escapeHtml(dayObj.dateStr)}" onchange="updateExamDayDate(${Number(dayObj.id)},this.value)" class="ml-1 rounded border bg-white p-1.5 text-xs font-semibold"></label>
                             ${dayObj.saved ? `<button type="button" onclick="editDayConfig(${Number(dayObj.id)})" class="text-xs bg-amber-600 text-white font-bold px-3 py-1 rounded">✏️ Edit</button>` : `<button type="button" onclick="saveOrUpdateDayConfig(${Number(dayObj.id)})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded">💾 Save Day</button>`}
+                            <button type="button" onclick="removeExamDay(${Number(dayObj.id)})" class="text-xs border border-red-200 bg-red-50 text-red-700 font-bold px-2.5 py-1 rounded">🗑️ Remove Date</button>
                         </div>
                     </div>
                     <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-4">

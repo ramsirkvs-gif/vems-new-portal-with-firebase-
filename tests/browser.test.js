@@ -480,12 +480,16 @@ async function main() {
         console.log('PASS: issued QP office order auto-links setters, syncs, and opens an in-app A4 preview');
 
         const count = Object.values(data.archivedExams).length;
-        await a.evaluate(() => startNewExamSetup());
+        await a.evaluate(() => {isPreExamFullPageOpen=false;activeLifecycleStage=null;isVaultOverviewOpen=false;return startNewExamSetup();});
         await b.waitForFunction(count => archivedExams.length === count + 1, count);
         const created = Object.values(data.archivedExams).find(exam => exam.id !== 100);
+        await a.fill('#new-exam-date','2026-10-26');
+        await a.evaluate(() => addNextDatesheetDay());
+        await b.waitForFunction(id => archivedExams.find(exam=>exam.id===id)?.datesheetSnapshot?.some(day=>day.dateStr==='2026-10-26'), created.id);
+        assert.deepEqual(await a.evaluate(() => ({count:datesheetDays.length,added:datesheetDays.some(day=>day.dateStr==='2026-10-26'),gap:datesheetDays.some(day=>['2026-10-24','2026-10-25'].includes(day.dateStr))})), {count:2,added:true,gap:false}, 'only explicitly selected examination dates should be added');
         assert.equal(await a.evaluate(id => currentQpOfficeOrder(id).instructions[0], created.id), 'Use the approved blueprint.');
         await b.evaluate(id => loadArchivedExamToEdit(id), created.id);
-        assert.equal(await b.evaluate(() => datesheetDays.length), 1);
+        assert.equal(await b.evaluate(() => datesheetDays.length), 2);
         await a.evaluate(async ({id,title}) => {const oldConfirm=window.confirm,oldPrompt=window.prompt;window.confirm=()=>true;window.prompt=()=>title;try{await deleteArchivedExam(id);}finally{window.confirm=oldConfirm;window.prompt=oldPrompt;}}, {id:created.id,title:created.title});
         await b.waitForFunction(id => !archivedExams.some(exam => exam.id === id) && !isExamConfigOpen, created.id);
         console.log('PASS: drafts are shared, reopen on another device, and remote deletion closes the editor');
