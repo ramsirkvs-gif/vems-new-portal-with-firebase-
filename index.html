@@ -3213,8 +3213,8 @@
                                                 <td class="px-3 py-2"><button type="button" onclick="openExamVault(${Number(ex.id)})" class="font-bold text-amber-300 hover:text-amber-100 hover:underline">${escapeHtml(ex.title)}</button></td>
                                                 <td class="px-3 py-2">${escapeHtml(formatOrderDate(ex.fromDate))} to ${escapeHtml(formatOrderDate(ex.toDate))}</td>
                                                 <td class="px-3 py-2 text-right space-x-1">
-                                                    <button type="button" onclick="openExamVault(${Number(ex.id)})" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded">📂 Open Vault</button>
                                                     <button type="button" onclick="loadArchivedExamToEdit(${Number(ex.id)})" class="bg-indigo-600 text-white text-[11px] px-3 py-1 rounded">✏️ Edit Details</button>
+                                                    <button type="button" onclick="openExamVault(${Number(ex.id)})" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded">📂 Open Vault</button>
                                                     <button type="button" onclick="deleteArchivedExam(${Number(ex.id)})" class="bg-red-700 text-white text-[11px] px-3 py-1 rounded">🗑️ Delete Vault</button>
                                                 </td>
                                             </tr>
