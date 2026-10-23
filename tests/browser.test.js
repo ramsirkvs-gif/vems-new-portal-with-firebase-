@@ -155,7 +155,11 @@ async function main() {
         await a.evaluate(async () => {
             teachers[0].allotments = [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }];
             await saveData(['teachers']);
+            renderTeachers();
         });
+        assert.equal(await a.evaluate(() => facultyEvaluatorDisplay(teachers[0],teachers[0].allotments[0])),'New Shared Teacher');
+        assert.match(await a.locator('#teacher-table-body').innerText(),/Eval: New Shared Teacher/);
+        assert.doesNotMatch(await a.locator('#teacher-table-body').innerText(),/Eval: Self/);
         console.log('PASS: faculty save is confirmed and appears on the other device');
 
         await a.evaluate(() => toggleFacultyRosterPublishing());
