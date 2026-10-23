@@ -8,69 +8,89 @@
         ".write": false
       }
     },
-    "students": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal'"
-    },
-    "sectionConfigs": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal'"
-    },
-    "publishedSubjectDirectories": {
+    "academicSessions": {
       ".read": true,
       ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal'"
     },
+    "systemSettings": {
+      ".read": true,
+      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal'"
+    },
+    "sessionData": {
+      "$session": {
+        ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+        "$collection": {
+          ".write": "auth != null && root.child('academicSessions').child($session).child('status').val() !== 'frozen' && (root.child('roles').child(auth.uid).val() === 'principal' || ((root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic') && $collection !== 'students' && $collection !== 'sectionConfigs' && $collection !== 'teachers' && $collection !== 'classTeacherAssignments' && $collection !== 'examOptionsList' && $collection !== 'publishedSubjectDirectories'))"
+        },
+        "publishedSubjectDirectories": {
+          ".read": "root.child('systemSettings').child('activeSession').val() === $session",
+          ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal' && root.child('academicSessions').child($session).child('status').val() !== 'frozen'"
+        }
+      }
+    },
+    "students": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "(auth != null && root.child('roles').child(auth.uid).val() === 'principal') && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
+    "sectionConfigs": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "(auth != null && root.child('roles').child(auth.uid).val() === 'principal') && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
+    "publishedSubjectDirectories": {
+      ".read": "!root.child('systemSettings').child('activeSession').exists() || root.child('systemSettings').child('activeSession').val() === '2026-27'",
+      ".write": "(auth != null && root.child('roles').child(auth.uid).val() === 'principal') && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
     "teachers": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal'"
+      ".write": "(auth != null && root.child('roles').child(auth.uid).val() === 'principal') && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "classTeacherAssignments": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal'"
+      ".write": "(auth != null && root.child('roles').child(auth.uid).val() === 'principal') && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "examOptionsList": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal'"
+      ".write": "(auth != null && root.child('roles').child(auth.uid).val() === 'principal') && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "archivedExams": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "qpSubmissionsTracker": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "qpPrintingTracker": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "qpSubmissionDeadlines": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "qpOfficeOrders": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "qpOfficeOrderSettings": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "dateSheetInstructions": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "dateSheetSettings": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "seatingRooms": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     },
     "seatingPlans": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
-      ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     }
   }
 }

@@ -16,7 +16,10 @@
             const result = await window.testSignIn(email, password);
             if (!result) throw Object.assign(new Error('Invalid test credentials'), { code: 'auth/invalid-credential' });
             const sameUser = user?.uid === result.uid;
-            user = result;
+            user = { ...result,
+                async reauthenticateWithCredential(credential) { const verified=await window.testSignIn(credential.email,credential.password); if(!verified||verified.uid!==result.uid) throw Object.assign(new Error('Invalid credential'),{code:'auth/invalid-credential'}); },
+                async updatePassword(password) { await window.testUpdatePassword(result.uid,password); }
+            };
             auth.currentUser = user;
             if (!sameUser) authListener?.(user);
             return { user };
@@ -48,5 +51,7 @@
             };
         }
     };
-    window.firebase = { initializeApp() {}, database: () => db, auth: () => auth };
+    const authFactory=()=>auth;
+    authFactory.EmailAuthProvider={credential:(email,password)=>({email,password})};
+    window.firebase = { initializeApp() {}, database: () => db, auth: authFactory };
 })();

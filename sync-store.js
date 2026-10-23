@@ -80,7 +80,7 @@
         return result;
     }
     class Store {
-        constructor(db, names, onValue, onStatus) {
+        constructor(db, names, onValue, onStatus, paths = {}) {
             this.db = db;
             this.names = names;
             this.onValue = onValue;
@@ -94,7 +94,9 @@
             this.imports = 0;
             this.active = true;
             this.unsubscribers = [];
+            this.paths = paths;
         }
+        path(name) { return this.paths[name] || name; }
         get ready() { return this.active && this.loaded.size === this.names.length && !this.error; }
         get pendingCount() { return this.imports + Object.values(this.pending).reduce((n, list) => n + list.length, 0); }
         status() { this.onStatus({ ready: this.ready, connected: this.connected, pending: this.pendingCount, error: this.error }); }
@@ -109,7 +111,7 @@
                 this.unsubscribers.push(() => ref.off('value', next));
             };
             listen('.info/connected', snapshot => { this.connected = snapshot.val() === true; this.status(); });
-            this.names.forEach(name => listen(name, snapshot => {
+            this.names.forEach(name => listen(this.path(name), snapshot => {
                 if (!this.active) return;
                 try {
                     this.remote[name] = normalize(name, snapshot.val());
@@ -140,7 +142,7 @@
             const job = (this.queues[name] || Promise.resolve()).catch(() => {}).then(async () => {
                 if (!this.active) throw new Error('The session changed before the save finished. Sign in and check the record.');
                 let conflict = false;
-                const result = await this.db.ref(name).transaction(current => {
+                const result = await this.db.ref(this.path(name)).transaction(current => {
                     if (!this.active) return;
                     // Saves start only after this root's listener has populated the SDK cache.
                     const normalized = normalize(name, current);
@@ -171,7 +173,7 @@
             this.imports++;
             this.status();
             try {
-                const result = await this.db.ref(name).transaction(current => {
+                const result = await this.db.ref(this.path(name)).transaction(current => {
                     if (!this.active) return;
                     return missingOnly(normalize(name, current), incoming);
                 }, undefined, false);

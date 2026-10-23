@@ -54,6 +54,7 @@ async function main() {
             page.on('pageerror', error => failures.push(error.message));
             page.on('dialog', dialog => { if (dialog.message() === 'XSS') failures.push('Stored script executed'); return dialog.accept(); });
             await page.exposeFunction('testSignIn', async (email, password) => accounts[email] && password === rolePasscodes[data.roles[accounts[email]]] ? { uid: accounts[email], email } : null);
+            await page.exposeFunction('testUpdatePassword', async (uid, password) => { rolePasscodes[data.roles[uid]]=password; });
             await page.exposeFunction('testSubscribe', async (name, id, uid) => {
                 subscriptions.push({ path: name, id, page });
                 const value = name === '.info/connected' ? true : name.startsWith('roles/') ? data.roles[name.slice(6)] ?? null : data[name] ?? null;
@@ -385,6 +386,33 @@ async function main() {
         await notify('archivedExams');
         console.log('PASS: database-controlled HTML and nested ID payloads render safely');
 
+        await a.evaluate(() => switchTab('settings'));
+        await a.fill('#current-role-password','test-principal-passcode'); await a.fill('#new-role-password','NewPrincipalPass1!'); await a.fill('#confirm-role-password','NewPrincipalPass1!');
+        await a.locator('button',{hasText:'Update My Role Passcode'}).click();
+        await a.waitForFunction(() => document.getElementById('password-change-status').textContent.includes('successfully'));
+        assert.equal(rolePasscodes.principal,'NewPrincipalPass1!');
+        await a.evaluate(() => document.getElementById('password-change-status').textContent='');
+        await a.fill('#current-role-password','NewPrincipalPass1!'); await a.fill('#new-role-password','test-principal-passcode'); await a.fill('#confirm-role-password','test-principal-passcode'); await a.locator('button',{hasText:'Update My Role Passcode'}).click();
+        await a.waitForFunction(() => document.getElementById('password-change-status').textContent.includes('successfully'));
+        console.log('PASS: signed-in role securely changes and re-verifies its own portal passcode');
+        await a.evaluate(() => { document.getElementById('new-session-id').value='2027-28'; });
+        await a.evaluate(() => createAcademicSession());
+        await a.waitForFunction(() => selectedAcademicSession==='2027-28' && sharedStore?.ready);
+        assert.deepEqual(await a.evaluate(() => ({sections:sectionConfigs,students,teachers,exams:archivedExams})), {sections:{},students:[],teachers:[],exams:[]}, 'new session must start empty');
+        await a.evaluate(async()=>{sectionConfigs={'6-A':['ENGLISH']};await saveData(['sectionConfigs']);});
+        assert.deepEqual(data['sessionData/2027-28/sectionConfigs'], {'6-A':['ENGLISH']});
+        await a.evaluate(() => selectAcademicSession('2026-27'));
+        await a.waitForFunction(() => selectedAcademicSession==='2026-27' && sharedStore?.ready);
+        assert.equal(await a.evaluate(() => sectionConfigs['10-A'].includes('MATHS')), true, 'existing 2026-27 records must remain intact');
+        await a.evaluate(() => selectAcademicSession('2027-28'));
+        await a.waitForFunction(() => sharedStore?.ready && sectionConfigs['6-A']);
+        await a.evaluate(() => freezeSelectedSession());
+        await a.waitForFunction(() => isSelectedSessionFrozen());
+        assert.equal(await a.evaluate(() => canEditSharedData('principal')), false, 'frozen session must be read-only');
+        await a.evaluate(() => selectAcademicSession('2026-27'));
+        await a.waitForFunction(() => sharedStore?.ready && selectedAcademicSession==='2026-27');
+        console.log('PASS: academic sessions isolate records, preserve 2026-27 data and enforce frozen read-only state');
+
         const secondary = await pageFor();
         await login(secondary, 'secondary@example.test', 'sec-ic');
         assert.equal(await secondary.locator('#area-principal').isVisible(), false);
@@ -430,7 +458,7 @@ async function main() {
         assert.equal(await secondary.locator('#area-sec-ic').isVisible(), false);
         console.log('PASS: role revocation clears staff data and closes the workspace');
         assert.deepEqual(failures, [], `Unexpected browser errors: ${failures.join('; ')}`);
-        console.log('Browser integration: 19 scenarios passed (Firebase contract double; no live writes).');
+        console.log('Browser integration scenarios passed (Firebase contract double; no live writes).');
     } finally {
         await browser.close();
         await new Promise(resolve => server.close(resolve));

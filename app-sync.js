@@ -24,7 +24,41 @@ let loadingStaffData = false;
 let lastConfirmedSave = '';
 let sectionFormDirty = false;
 let assignmentRenderBaseline = {};
+const DEFAULT_ACADEMIC_SESSION = '2026-27';
+let academicSessions = { [DEFAULT_ACADEMIC_SESSION]: { id: DEFAULT_ACADEMIC_SESSION, status: 'active', createdAt: '2026-04-01' } };
+let systemSettings = { activeSession: DEFAULT_ACADEMIC_SESSION };
+let selectedAcademicSession = localStorage.getItem('vems_selected_session') || DEFAULT_ACADEMIC_SESSION;
+let sessionMetadataSubscriptions = [];
+let publicDirectorySubscription = null;
 const editorBaselines = { teacher: null, student: null, section: null, assignments: null, exam: null };
+
+function sessionCollectionPath(name, sessionId = selectedAcademicSession) {
+    return sessionId === DEFAULT_ACADEMIC_SESSION ? name : `sessionData/${sessionId}/${name}`;
+}
+function selectedSessionRecord() { return academicSessions[selectedAcademicSession] || { id: selectedAcademicSession, status: 'open' }; }
+function isSelectedSessionFrozen() { return selectedSessionRecord().status === 'frozen'; }
+function updateSessionChrome() {
+    const badge = document.getElementById('header-session-badge');
+    if (badge) badge.textContent = `Session: ${selectedAcademicSession}${isSelectedSessionFrozen() ? ' · FROZEN' : ''}`;
+    const printLabel = document.getElementById('print-session-label');
+    if (printLabel) printLabel.textContent = `Session: ${selectedAcademicSession} | Student Subject & Roll Verification Roster`;
+    const banner = document.getElementById('frozen-session-banner');
+    if (banner) { banner.textContent = `Viewing frozen historical session ${selectedAcademicSession} — records are read-only.`; banner.classList.toggle('hidden', !isSelectedSessionFrozen()); }
+    const roleLabel = document.getElementById('password-role-label');
+    if (roleLabel) roleLabel.textContent = authorizedRole === 'principal' ? 'Principal' : authorizedRole === 'sec-ic' ? 'Secondary IC' : authorizedRole === 'pri-ic' ? 'Primary IC' : 'Current role';
+    renderSessionSettings();
+}
+function renderSessionSettings() {
+    const select = document.getElementById('settings-session-select');
+    const rows = Object.values(academicSessions).sort((a,b) => String(b.id).localeCompare(String(a.id)));
+    if (select) { select.innerHTML = rows.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.id)}${item.id===systemSettings.activeSession?' — ACTIVE':''}${item.status==='frozen'?' — FROZEN':''}</option>`).join(''); select.value=selectedAcademicSession; }
+    const status=document.getElementById('settings-session-status'), active=document.getElementById('settings-active-session'), list=document.getElementById('academic-session-list');
+    if(status) status.textContent=String(selectedSessionRecord().status||'open').toUpperCase();
+    if(active) active.textContent=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
+    if(list) list.innerHTML=rows.map(item=>`<tr class="border-b"><td class="p-3 font-bold">${escapeHtml(item.id)}</td><td class="p-3">${escapeHtml(String(item.status||'open').toUpperCase())}</td><td class="p-3">${escapeHtml(item.createdAt?formatOrderDate(item.createdAt.slice(0,10)):'—')}</td><td class="p-3">${escapeHtml(item.frozenAt?`Frozen ${formatOrderDate(item.frozenAt.slice(0,10))}`:item.reopenedAt?`Reopened ${formatOrderDate(item.reopenedAt.slice(0,10))}`:'—')}</td></tr>`).join('');
+    const empty=document.getElementById('session-empty-note');
+    if(empty) empty.classList.toggle('hidden', !!(Object.keys(sectionConfigs||{}).length||students.length||teachers.length||archivedExams.length));
+}
 
 function newRecordId() {
     // Numeric IDs preserve compatibility with the existing inline handlers.
@@ -53,7 +87,7 @@ function showSyncStatus(state) {
             : 'Offline — displayed records may be out of date. Reconnect before editing.';
         else if (!state.ready) text = 'Connected — loading shared records…';
         else if (state.pending) text = `Saving to Firebase… (${state.pending} pending)`;
-        else { text = `Live sync connected${lastConfirmedSave ? ' · Last save confirmed at ' + lastConfirmedSave : ''}`; good = true; }
+        else { text = `Live sync connected · Session ${selectedAcademicSession}${lastConfirmedSave ? ' · Last save confirmed at ' + lastConfirmedSave : ''}`; good = true; }
     }
     element.textContent = text;
     element.className = `no-print px-6 py-3 text-sm ${good ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}`;
@@ -62,6 +96,7 @@ function showSyncStatus(state) {
 function canEditSharedData(required = 'exam') {
     const allowed = authorizedRole === 'principal' || (required === 'exam' && ['sec-ic', 'pri-ic'].includes(authorizedRole));
     if (!allowed) { showSyncError('Your staff role cannot make this change. Sign in with the appropriate account.'); return false; }
+    if (isSelectedSessionFrozen()) { showSyncError(`Session ${selectedAcademicSession} is frozen and read-only. Select an open session or ask the Principal to unfreeze it.`); return false; }
     try { sharedStore.assertWritable(); return true; }
     catch (error) { showSyncError(error.message); return false; }
 }
@@ -154,6 +189,7 @@ function refreshSharedViews() {
     if (!editorBaselines.assignments) renderClassTeacherCoordinationTable();
     if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) renderExamCreatorModule();
     populateLegacyExamOptions();
+    updateSessionChrome();
 }
 document.addEventListener('focusout', scheduleSharedRender);
 document.addEventListener('input', event => {
@@ -336,13 +372,81 @@ async function importLegacyBrowserData() {
     } catch (error) { status.textContent = `Import stopped: ${error.message}. Earlier successful collections remain saved; retrying is safe.`; }
 }
 
+function sessionStorePaths(sessionId) { return Object.fromEntries(sharedNames.map(name => [name, sessionCollectionPath(name, sessionId)])); }
+function resetSessionViews() {
+    sharedNames.filter(name => name !== 'publishedSubjectDirectories').forEach(name => acceptSharedValue(name, {}));
+    activeExamId=null; selectedPreExamVaultId=null; isExamConfigOpen=false; isPreExamFullPageOpen=false; datesheetDays=[];
+    Object.keys(editorBaselines).forEach(key => { editorBaselines[key]=null; });
+}
+function startSelectedSessionStore() {
+    if (!authorizedRole) return;
+    sharedStore?.stop();
+    resetSessionViews();
+    loadingStaffData=true;
+    sharedStore=new VemsSync.Store(db,sharedNames,acceptSharedValue,state=>{loadingStaffData=!state.ready;showSyncStatus(state);},sessionStorePaths(selectedAcademicSession));
+    sharedStore.start();
+    bindPublicDirectory();
+    updateSessionChrome();
+}
+async function selectAcademicSession(sessionId) {
+    if (!academicSessions[sessionId] || sessionId===selectedAcademicSession) return;
+    if (sharedStore?.pendingCount) { showSyncError('Wait for pending saves before changing the academic session.'); return; }
+    selectedAcademicSession=sessionId;
+    localStorage.setItem('vems_selected_session',sessionId);
+    startSelectedSessionStore();
+}
+function bindPublicDirectory() {
+    if (!db) return;
+    if (publicDirectorySubscription) publicDirectorySubscription.ref.off('value',publicDirectorySubscription.listener);
+    const activeSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
+    const ref=db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession));
+    const listener=snapshot=>{publicPublishedSubjectDirectories=snapshot.val()||{};renderPublicSubjectDirectory();};
+    publicDirectorySubscription={ref,listener}; ref.on('value',listener,()=>{publicPublishedSubjectDirectories={};renderPublicSubjectDirectory();});
+}
+function bindSessionMetadata() {
+    sessionMetadataSubscriptions.forEach(item=>item.ref.off('value',item.listener)); sessionMetadataSubscriptions=[];
+    const bind=(path,handler)=>{const ref=db.ref(path),listener=snapshot=>handler(snapshot.val()||{});ref.on('value',listener);sessionMetadataSubscriptions.push({ref,listener});};
+    bind('academicSessions',value=>{academicSessions=Object.keys(value).length?value:{[DEFAULT_ACADEMIC_SESSION]:{id:DEFAULT_ACADEMIC_SESSION,status:'active',createdAt:'2026-04-01'}};if(!academicSessions[selectedAcademicSession])selectedAcademicSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;updateSessionChrome();});
+    bind('systemSettings',value=>{const previous=systemSettings.activeSession;systemSettings={activeSession:DEFAULT_ACADEMIC_SESSION,...value};if(previous!==systemSettings.activeSession)bindPublicDirectory();updateSessionChrome();});
+}
+async function saveSessionMetadata(nextSessions=academicSessions,nextSettings=systemSettings) {
+    if(authorizedRole!=='principal'){showSyncError('Only the Principal can manage academic sessions.');return false;}
+    try{await db.ref('academicSessions').transaction(()=>cloneData(nextSessions));await db.ref('systemSettings').transaction(()=>cloneData(nextSettings));academicSessions=nextSessions;systemSettings=nextSettings;updateSessionChrome();return true;}catch(error){showSyncError(`Session settings not saved: ${error.message}`);return false;}
+}
+async function createAcademicSession() {
+    const input=document.getElementById('new-session-id'),id=(input?.value||'').trim();
+    const match=id.match(/^(\d{4})-(\d{2})$/),valid=match&&Number(match[2])===(Number(match[1])+1)%100;
+    if(!valid){alert('Enter a session in the format 2027-28. The ending year must follow the starting year.');return;}
+    if(academicSessions[id]){alert('This academic session already exists.');return;}
+    const next={...academicSessions,[id]:{id,status:'open',createdAt:new Date().toISOString(),createdBy:authorizedRole}};
+    if(await saveSessionMetadata(next,systemSettings)){input.value='';await selectAcademicSession(id);}
+}
+async function makeSelectedSessionActive() {
+    if(!confirm(`Set ${selectedAcademicSession} as the official active session for the portal?`))return;
+    const next=cloneData(academicSessions);Object.values(next).forEach(item=>{if(item.status==='active')item.status='open';});next[selectedAcademicSession].status='active';
+    if(await saveSessionMetadata(next,{...systemSettings,activeSession:selectedAcademicSession,updatedAt:new Date().toISOString()}))bindPublicDirectory();
+}
+async function freezeSelectedSession() {
+    if(isSelectedSessionFrozen())return;
+    if(!confirm(`Freeze session ${selectedAcademicSession}? All its records will become read-only.`))return;
+    const next=cloneData(academicSessions);next[selectedAcademicSession]={...next[selectedAcademicSession],status:'frozen',frozenAt:new Date().toISOString(),frozenBy:authorizedRole};await saveSessionMetadata(next,systemSettings);
+}
+async function unfreezeSelectedSession() {
+    if(!isSelectedSessionFrozen())return;
+    const reason=(prompt('Enter the reason for reopening this frozen session:')||'').trim();if(!reason)return;
+    const next=cloneData(academicSessions);next[selectedAcademicSession]={...next[selectedAcademicSession],status:selectedAcademicSession===systemSettings.activeSession?'active':'open',reopenedAt:new Date().toISOString(),reopenedBy:authorizedRole,reopenReason:reason};await saveSessionMetadata(next,systemSettings);
+}
+async function changeCurrentRolePassword(event) {
+    event.preventDefault();const status=document.getElementById('password-change-status'),current=document.getElementById('current-role-password').value,next=document.getElementById('new-role-password').value,confirmValue=document.getElementById('confirm-role-password').value;
+    if(next!==confirmValue){status.textContent='New passcodes do not match.';status.className='text-xs text-red-700 font-bold';return;}if(next.length<8){status.textContent='Use at least 8 characters.';status.className='text-xs text-red-700 font-bold';return;}
+    try{const user=firebase.auth().currentUser,credential=firebase.auth.EmailAuthProvider.credential(roleAccounts[authorizedRole],current);await user.reauthenticateWithCredential(credential);await user.updatePassword(next);event.target.reset();status.textContent='Passcode updated successfully for this role.';status.className='text-xs text-emerald-700 font-bold';}catch(error){status.textContent=error.code?.startsWith('auth/')?'Current passcode was not accepted.':'Passcode update failed. Check the connection and try again.';status.className='text-xs text-red-700 font-bold';}
+}
+
 function initializeSharedApp() {
     activateArea('public');
     if (!db) { showSyncError('Firebase could not load. Check access to www.gstatic.com and reload the page.'); showSyncStatus(); return; }
-    db.ref('publishedSubjectDirectories').on('value', snapshot => {
-        publishedSubjectDirectories = snapshot.val() || {};
-        renderPublicSubjectDirectory();
-    }, () => { publishedSubjectDirectories = {}; renderPublicSubjectDirectory(); });
+    bindSessionMetadata();
+    bindPublicDirectory();
     firebase.auth().onAuthStateChanged(user => {
         const generation = ++authGeneration;
         clearStaffState();
@@ -374,8 +478,7 @@ function initializeSharedApp() {
             loadingStaffData = false;
             showSyncError('');
             closeLoginModal();
-            sharedStore = new VemsSync.Store(db, sharedNames, acceptSharedValue, showSyncStatus);
-            sharedStore.start();
+            startSelectedSessionStore();
             activateArea(currentActiveRole);
         };
         roleSubscription = { ref, listener };
