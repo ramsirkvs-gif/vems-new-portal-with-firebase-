@@ -44,8 +44,6 @@ function updateSessionChrome() {
     if (printLabel) printLabel.textContent = `Session: ${selectedAcademicSession} | Student Subject & Roll Verification Roster`;
     const banner = document.getElementById('frozen-session-banner');
     if (banner) { banner.textContent = `Viewing frozen historical session ${selectedAcademicSession} — records are read-only.`; banner.classList.toggle('hidden', !isSelectedSessionFrozen()); }
-    const roleLabel = document.getElementById('password-role-label');
-    if (roleLabel) roleLabel.textContent = authorizedRole === 'principal' ? 'Principal' : authorizedRole === 'sec-ic' ? 'Secondary IC' : authorizedRole === 'pri-ic' ? 'Primary IC' : 'Current role';
     renderSessionSettings();
 }
 function renderSessionSettings() {
@@ -436,11 +434,22 @@ async function unfreezeSelectedSession() {
     const reason=(prompt('Enter the reason for reopening this frozen session:')||'').trim();if(!reason)return;
     const next=cloneData(academicSessions);next[selectedAcademicSession]={...next[selectedAcademicSession],status:selectedAcademicSession===systemSettings.activeSession?'active':'open',reopenedAt:new Date().toISOString(),reopenedBy:authorizedRole,reopenReason:reason};await saveSessionMetadata(next,systemSettings);
 }
-async function changeCurrentRolePassword(event) {
-    event.preventDefault();const status=document.getElementById('password-change-status'),current=document.getElementById('current-role-password').value,next=document.getElementById('new-role-password').value,confirmValue=document.getElementById('confirm-role-password').value;
-    if(next!==confirmValue){status.textContent='New passcodes do not match.';status.className='text-xs text-red-700 font-bold';return;}if(next.length<8){status.textContent='Use at least 8 characters.';status.className='text-xs text-red-700 font-bold';return;}
-    try{const user=firebase.auth().currentUser,credential=firebase.auth.EmailAuthProvider.credential(roleAccounts[authorizedRole],current);await user.reauthenticateWithCredential(credential);await user.updatePassword(next);event.target.reset();status.textContent='Passcode updated successfully for this role.';status.className='text-xs text-emerald-700 font-bold';}catch(error){status.textContent=error.code?.startsWith('auth/')?'Current passcode was not accepted.':'Passcode update failed. Check the connection and try again.';status.className='text-xs text-red-700 font-bold';}
+async function changeRolePassword(event, role) {
+    event.preventDefault();
+    const form=event.target,status=form.querySelector('[data-password-status]'),current=form.elements.current.value,next=form.elements.next.value,confirmValue=form.elements.confirm.value;
+    if(!Object.hasOwn(roleAccounts,role))return;
+    if(next!==confirmValue){status.textContent='New passcodes do not match.';status.className='text-[11px] text-red-700 font-bold';return;}
+    if(next.length<8){status.textContent='Use at least 8 characters.';status.className='text-[11px] text-red-700 font-bold';return;}
+    status.textContent='Verifying current passcode…';status.className='text-[11px] text-slate-600 font-bold';
+    let secondaryApp=null;
+    try{
+        if(role===authorizedRole){const user=firebase.auth().currentUser,credential=firebase.auth.EmailAuthProvider.credential(roleAccounts[role],current);await user.reauthenticateWithCredential(credential);await user.updatePassword(next);}
+        else{secondaryApp=firebase.initializeApp(firebaseConfig,`password-change-${role}-${Date.now()}`);const credential=await secondaryApp.auth().signInWithEmailAndPassword(roleAccounts[role],current);await credential.user.updatePassword(next);await secondaryApp.auth().signOut();}
+        form.reset();status.textContent='Passcode updated successfully.';status.className='text-[11px] text-emerald-700 font-bold';
+    }catch(error){status.textContent=error.code?.startsWith('auth/')?'Current passcode was not accepted.':'Passcode update failed. Check the connection and try again.';status.className='text-[11px] text-red-700 font-bold';}
+    finally{if(secondaryApp)try{await secondaryApp.delete();}catch(_) {}}
 }
+async function changeCurrentRolePassword(event){return changeRolePassword(event,authorizedRole);}
 
 function initializeSharedApp() {
     activateArea('public');

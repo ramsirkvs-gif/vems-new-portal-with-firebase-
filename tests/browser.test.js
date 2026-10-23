@@ -388,11 +388,11 @@ async function main() {
 
         await a.evaluate(() => switchTab('settings'));
         await a.fill('#current-role-password','test-principal-passcode'); await a.fill('#new-role-password','NewPrincipalPass1!'); await a.fill('#confirm-role-password','NewPrincipalPass1!');
-        await a.locator('button',{hasText:'Update My Role Passcode'}).click();
+        await a.locator('button',{hasText:'Update Principal Passcode'}).click();
         await a.waitForFunction(() => document.getElementById('password-change-status').textContent.includes('successfully'));
         assert.equal(rolePasscodes.principal,'NewPrincipalPass1!');
         await a.evaluate(() => document.getElementById('password-change-status').textContent='');
-        await a.fill('#current-role-password','NewPrincipalPass1!'); await a.fill('#new-role-password','test-principal-passcode'); await a.fill('#confirm-role-password','test-principal-passcode'); await a.locator('button',{hasText:'Update My Role Passcode'}).click();
+        await a.fill('#current-role-password','NewPrincipalPass1!'); await a.fill('#new-role-password','test-principal-passcode'); await a.fill('#confirm-role-password','test-principal-passcode'); await a.locator('button',{hasText:'Update Principal Passcode'}).click();
         await a.waitForFunction(() => document.getElementById('password-change-status').textContent.includes('successfully'));
         console.log('PASS: signed-in role securely changes and re-verifies its own portal passcode');
         await a.evaluate(() => { document.getElementById('new-session-id').value='2027-28'; });
