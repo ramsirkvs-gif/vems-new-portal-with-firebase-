@@ -180,6 +180,13 @@ async function main() {
         await b.waitForFunction(() => sectionConfigs['10-A']?.includes('MATHS'));
         console.log('PASS: subject mappings synchronize');
 
+        await a.locator('#cfg-subjects-container button[title="Move up"]').last().click();
+        assert.deepEqual(await a.locator('.cfg-sub-input').evaluateAll(inputs=>inputs.map(input=>input.value)), ['MATHS','SCIENCE']);
+        await a.evaluate(() => saveSectionConfig({ preventDefault() {} }));
+        await b.waitForFunction(() => sectionConfigs['10-A']?.[0] === 'MATHS' && sectionConfigs['10-A']?.[1] === 'SCIENCE');
+        assert.deepEqual(await a.evaluate(() => reorderedStudentSubjects({subjects:['SCIENCE','MATHS']},['SCIENCE','MATHS'],['MATHS','SCIENCE'],'10')), ['MATHS','SCIENCE']);
+        console.log('PASS: subject cards reorder responsively and saved order controls CSV/data columns');
+
         assert.equal(await a.evaluate(() => getSectionStream('11', 'A')), 'Science');
         assert.equal(await a.evaluate(() => getSectionStream('11', 'C')), 'Commerce');
         assert.equal(await a.evaluate(() => getSectionStream('12', 'E')), 'Humanities');
