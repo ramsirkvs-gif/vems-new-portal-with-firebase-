@@ -158,6 +158,16 @@ async function main() {
         });
         console.log('PASS: faculty save is confirmed and appears on the other device');
 
+        await a.evaluate(() => toggleFacultyRosterPublishing());
+        await a.waitForFunction(() => publicPortalBoards.facultyRoster?.rows?.length === 1);
+        await a.evaluate(() => renderPublicFacultyRoster());
+        assert.doesNotMatch(await a.locator('#public-faculty-roster-section').getAttribute('class'),/(^|\s)hidden(\s|$)/);
+        assert.equal(await a.locator('#public-faculty-select option').filter({hasText:'New Shared Teacher'}).count(),1);
+        assert.match(await a.locator('#public-faculty-roster-section > div.max-h-56').getAttribute('class'),/overflow-y-auto/);
+        await a.evaluate(() => {document.getElementById('public-faculty-search').value='science';renderPublicFacultyRoster();});
+        assert.match(await a.locator('#public-faculty-roster-body').innerText(),/New Shared Teacher/);
+        console.log('PASS: published faculty roster provides public dropdown, search and compact scrolling window');
+
         await a.evaluate(() => {resetTeacherForm();document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('10','A','SCIENCE');window._facultyAlert=window.alert;window.facultyConflictAlert='';window.alert=message=>window.facultyConflictAlert=message;});
         await a.fill('#tch-name-input','Conflicting Teacher');
         await a.fill('#tch-desig-input','TGT SCIENCE');
