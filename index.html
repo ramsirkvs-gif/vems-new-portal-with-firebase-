@@ -1851,9 +1851,7 @@
         function confirmMajorDeletion(recordType,recordName){
             const name=String(recordName||'').trim();
             if(!confirm(`Delete ${recordType} "${name}"?\n\nThis is a major deletion and may affect linked examination work.`))return false;
-            const entered=prompt(`FINAL WARNING\n\nThis action cannot be undone after it is saved.\nType the exact name below to permanently delete it:\n\n${name}`,'');
-            if(String(entered??'').trim()!==name){if(entered!==null)alert('Deletion cancelled. The entered name did not match exactly.');return false;}
-            return true;
+            return confirm(`FINAL WARNING\n\n${name}\n\nThis action cannot be undone after it is saved. Permanently delete this ${recordType}?`);
         }
 
         async function deleteArchivedExam(id) {
