@@ -142,6 +142,13 @@ async function main() {
         await a.evaluate(() => switchTab('teachers'));
         await a.fill('#tch-name-input', 'New Shared Teacher');
         await a.fill('#tch-desig-input', 'PGT SCIENCE');
+        assert.equal(await a.locator('.teaching-row .sub-sel').first().inputValue(),'SCIENCE','designation subject must become the default allotment subject');
+        await a.selectOption('.teaching-row .sub-sel','ENGLISH');
+        await a.fill('#tch-desig-input','PGT HINDI');
+        assert.equal(await a.locator('.teaching-row .sub-sel').first().inputValue(),'ENGLISH','manual subject choice must be preserved');
+        await a.selectOption('.teaching-row .sub-sel','SCIENCE');
+        await a.fill('#tch-desig-input','PGT SCIENCE');
+        assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('PGT-History',['ENGLISH','HISTORY'])),'HISTORY');
         await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
         assert.equal(Object.values(data.teachers).length, 1);
