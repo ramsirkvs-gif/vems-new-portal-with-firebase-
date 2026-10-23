@@ -1274,6 +1274,28 @@
             const normalized=String(value||'').trim().toUpperCase();
             return !normalized || ['NIL','NONE','N/A','NA'].includes(normalized) || /^[-\u2012\u2013\u2014\u2212]+$/.test(normalized);
         }
+        function validateMathematicsChoice(configuredSubjects,studentSubjects) {
+            const labels=(configuredSubjects||[]).map(value=>String(value).trim().toUpperCase());
+            const standardIndex=labels.findIndex(value=>value.includes('MATH')&&value.includes('STANDARD'));
+            const basicIndex=labels.findIndex(value=>value.includes('MATH')&&value.includes('BASIC'));
+            if(standardIndex<0||basicIndex<0)return {valid:true};
+            const standardTaken=!isSubjectNotTaken(studentSubjects?.[standardIndex]);
+            const basicTaken=!isSubjectNotTaken(studentSubjects?.[basicIndex]);
+            if(standardTaken===basicTaken)return {valid:false,reason:standardTaken?'Both MATHS STANDARD and MATHS BASIC are selected. Select only one.':'Neither MATHS STANDARD nor MATHS BASIC is selected. Every student must take one.'};
+            return {valid:true};
+        }
+        function validateCompulsorySubjects(cls,configuredSubjects,studentSubjects) {
+            const classNumber=String(cls),labels=(configuredSubjects||[]).map(value=>String(value).trim().toUpperCase());
+            const requiredIndexes=[];
+            labels.forEach((label,index)=>{
+                const english=label.includes('ENGLISH');
+                const classNineTen=['9','10'].includes(classNumber);
+                const coreNineTen=classNineTen&&(label.includes('HINDI')||label==='SCIENCE'||label==='SOCIAL SCIENCE');
+                if(english||coreNineTen)requiredIndexes.push(index);
+            });
+            const missing=requiredIndexes.filter(index=>isSubjectNotTaken(studentSubjects?.[index])).map(index=>labels[index]);
+            return missing.length?{valid:false,missing}:{valid:true,missing:[]};
+        }
 
         function uploadCSV(event) {
             const file = event.target.files[0]; if (!file) return;
@@ -1341,6 +1363,10 @@
                                 studentMappedSubs.push('-');
                             }
                         }
+                        const mathsChoice=validateMathematicsChoice(expectedClean,studentMappedSubs);
+                        if(!mathsChoice.valid){alert(`❌ CSV Upload Stopped: Mathematics choice error at data row ${i} (Roll No ${cols[1]}).\n\n${mathsChoice.reason}`);event.target.value='';return;}
+                        const compulsory=validateCompulsorySubjects(cls,expectedClean,studentMappedSubs);
+                        if(!compulsory.valid){alert(`❌ CSV Upload Stopped: Compulsory subject missing at data row ${i} (Roll No ${cols[1]}).\n\nRequired subject: ${compulsory.missing.join(', ')}\n\nEvery student must take the configured compulsory subject(s).`);event.target.value='';return;}
                         parsedRows.push({
                             sno: Number(cols[0]),
                             roll: Number(cols[1]),
@@ -1412,6 +1438,10 @@
             const rollConflict=schoolwideRollConflict(enteredRoll,{excludeId:id});
             if(rollConflict){showDuplicateRollAlert(enteredRoll,rollConflict,id?'student edit':'manual entry');return;}
             let studentSubjects = []; document.querySelectorAll('.modal-sub-input').forEach(inp => studentSubjects.push(sanitizeText(inp.value)));
+            const mathsChoice=validateMathematicsChoice(sectionConfigs[`${cls}-${sec}`]||[],studentSubjects);
+            if(!mathsChoice.valid){alert(`❌ Mathematics choice error for Roll No ${enteredRoll}.\n\n${mathsChoice.reason}`);return;}
+            const compulsory=validateCompulsorySubjects(cls,sectionConfigs[`${cls}-${sec}`]||[],studentSubjects);
+            if(!compulsory.valid){alert(`❌ Compulsory subject missing for Roll No ${enteredRoll}.\n\nRequired subject: ${compulsory.missing.join(', ')}\n\nEvery student must take the configured compulsory subject(s).`);return;}
             
             const studentRef = id ? db.ref(`students/${cls}/${sec}/${id}`) : db.ref(`students/${cls}/${sec}`).push();
             const stuId = id || studentRef.key;

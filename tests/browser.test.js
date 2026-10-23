@@ -228,6 +228,23 @@ async function main() {
         await a.evaluate(async () => { delete studentRecords['9']; await saveData(['students']); });
         console.log('PASS: Classes IX-XII accept optional blank subjects and exclude them from QP and seating counts');
 
+        await a.evaluate(async () => { sectionConfigs['10-C']=['ENGLISH','HINDI','MATHS STANDARD','MATHS BASIC','SCIENCE','SOCIAL SCIENCE','AI']; await saveData(['sectionConfigs']); switchTab('students'); initSelectors(); });
+        await a.selectOption('#filter-class','10');
+        await a.selectOption('#filter-section','C');
+        await a.evaluate(() => { window._mathAlert=window.alert;window.mathChoiceAlert='';window.alert=message=>window.mathChoiceAlert=message; });
+        await a.setInputFiles('#csv-file-input',{name:'class-10-c.csv',mimeType:'text/csv',buffer:Buffer.from('SNo,RollNo,StudentName,ENGLISH,HINDI,MATHS STANDARD,MATHS BASIC,SCIENCE,SOCIAL SCIENCE,AI\n1,10101,No Maths Choice,ENGLISH,HINDI,-,—,SCIENCE,SOCIAL SCIENCE,AI')});
+        await a.waitForFunction(() => window.mathChoiceAlert);
+        assert.match(await a.evaluate(() => window.mathChoiceAlert), /Neither MATHS STANDARD nor MATHS BASIC.*must take one/s);
+        assert.equal(data.students?.['10']?.C, undefined, 'student without either Mathematics option must not upload');
+        assert.equal(await a.evaluate(() => validateMathematicsChoice(['MATHS STANDARD','MATHS BASIC'],['MATHS STANDARD','MATHS BASIC']).valid), false, 'both Mathematics choices must also be rejected');
+        await a.evaluate(() => {window.mathChoiceAlert='';});
+        await a.setInputFiles('#csv-file-input',{name:'class-10-c-missing-english.csv',mimeType:'text/csv',buffer:Buffer.from('SNo,RollNo,StudentName,ENGLISH,HINDI,MATHS STANDARD,MATHS BASIC,SCIENCE,SOCIAL SCIENCE,AI\n1,10102,No English Choice,-,HINDI,MATHS STANDARD,-,SCIENCE,SOCIAL SCIENCE,AI')});
+        await a.waitForFunction(() => /Compulsory subject missing/.test(window.mathChoiceAlert));
+        assert.match(await a.evaluate(() => window.mathChoiceAlert), /Required subject: ENGLISH/);
+        assert.equal(data.students?.['10']?.C, undefined, 'student without a compulsory subject must not upload');
+        await a.evaluate(() => {window.alert=window._mathAlert;delete window._mathAlert;delete window.mathChoiceAlert;document.getElementById('filter-section').value='B';rememberStudentLocation();filterStudents();});
+        console.log('PASS: each student must select exactly one of Maths Standard or Maths Basic');
+
         await b.reload();
         await login(b, 'principal2@example.test');
         assert.equal(await b.locator('#filter-section').inputValue(), 'B', 'reload must restore the selected section');
