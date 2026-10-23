@@ -214,6 +214,20 @@ async function main() {
         await a.evaluate(() => { window.alert=window._originalAlert; delete window._originalAlert; delete window.csvValidationAlert; });
         console.log('PASS: Classes VI-VIII reject CSV rows with an empty subject cell');
 
+        await a.evaluate(async () => { sectionConfigs['9-A']=['SCIENCE','AI']; await saveData(['sectionConfigs']); switchTab('students'); initSelectors(); });
+        await a.selectOption('#filter-class','9');
+        await a.selectOption('#filter-section','A');
+        await a.setInputFiles('#csv-file-input',{name:'class-9-a.csv',mimeType:'text/csv',buffer:Buffer.from('SNo,RollNo,StudentName,SCIENCE,AI\n1,9101,Dash Optional Child,SCIENCE,-\n2,9102,Blank Optional Child,SCIENCE,\n3,9103,Long Dash Optional Child,SCIENCE,—')});
+        await a.waitForFunction(() => students.filter(student => String(student.class) === '9').length === 3);
+        assert.deepEqual(Object.values(data.students['9'].A).map(student => student.subjects), [['SCIENCE','-'],['SCIENCE','-'],['SCIENCE','-']]);
+        assert.equal(await a.evaluate(() => decodeCsvBuffer(new Uint8Array([0x97]).buffer)), '—', 'Excel Windows-1252 dash must decode correctly');
+        assert.equal(await a.evaluate(() => studentTakesSubject(students.find(student => Number(student.roll) === 9101),'SCIENCE')), true);
+        assert.equal(await a.evaluate(() => studentTakesSubject(students.find(student => Number(student.roll) === 9101),'AI')), false);
+        assert.equal(await a.evaluate(() => examSlotCandidateCount({cls:'9',subject:'AI',selectedSections:['A']})), 0);
+        assert.equal(await a.evaluate(() => seatingCandidates({datesheetSnapshot:[{dateStr:'2026-11-02',paperSlots:[{cls:'9',subject:'AI',selectedSections:['A']}]}]},'2026-11-02').candidates.length), 0);
+        await a.evaluate(async () => { delete studentRecords['9']; await saveData(['students']); });
+        console.log('PASS: Classes IX-XII accept optional blank subjects and exclude them from QP and seating counts');
+
         await b.reload();
         await login(b, 'principal2@example.test');
         assert.equal(await b.locator('#filter-section').inputValue(), 'B', 'reload must restore the selected section');

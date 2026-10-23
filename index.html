@@ -1048,6 +1048,17 @@
         function showDuplicateRollAlert(roll, existing, source='entry') {
             alert(`❌ DUPLICATE ROLL NUMBER — ${source.toUpperCase()} STOPPED\n\nRoll No. ${roll} is already assigned in the school database.\n\nExisting student: ${existing.name}\nClass / Section: ${formatClass(existing.class)}-${existing.section}\nStatus: ${isStudentActive(existing)?'ACTIVE':'INACTIVE'}\n\nUse a unique school-wide roll number before saving.`);
         }
+        function studentTakesSubject(student, subject) {
+            if (!student || !subject) return false;
+            if (!['9','10','11','12'].includes(String(student.class))) return true;
+            if (!Array.isArray(student.subjects) || !student.subjects.length) return true;
+            const configured = sectionConfigs[`${student.class}-${student.section}`] || [];
+            const wanted = String(subject).trim().toUpperCase();
+            const index = configured.findIndex(item => String(item).trim().toUpperCase() === wanted);
+            if (index < 0) return false;
+            const selected = String(student.subjects?.[index] || '').trim().toUpperCase();
+            return selected === wanted;
+        }
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             if(!classSel) return;
@@ -1255,6 +1266,15 @@
             const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `Class_${formatClass(cls)}_Sec_${sec}_Students.csv`; a.click();
         }
 
+        function decodeCsvBuffer(buffer) {
+            try { return new TextDecoder('utf-8',{fatal:true}).decode(buffer); }
+            catch (_) { return new TextDecoder('windows-1252').decode(buffer); }
+        }
+        function isSubjectNotTaken(value) {
+            const normalized=String(value||'').trim().toUpperCase();
+            return !normalized || ['NIL','NONE','N/A','NA'].includes(normalized) || /^[-\u2012\u2013\u2014\u2212]+$/.test(normalized);
+        }
+
         function uploadCSV(event) {
             const file = event.target.files[0]; if (!file) return;
             const cls = document.getElementById('filter-class').value; 
@@ -1263,7 +1283,7 @@
             const reader = new FileReader();
             
             reader.onload = async function(e) {
-                const text = e.target.result.replace(/\r/g, '');
+                const text = decodeCsvBuffer(e.target.result).replace(/^\uFEFF/,'').replace(/\r/g, '');
                 const lines = text.split('\n');
                 if (lines.length === 0 || !lines[0].trim()) {
                     alert("❌ Upload Aborted: The uploaded CSV file is empty.");
@@ -1303,13 +1323,14 @@
                         let studentMappedSubs = [];
                         for (let subIdx = 0; subIdx < expectedClean.length; subIdx++) {
                             const rawSubjectValue = cols[3 + subIdx]?.trim() || '';
-                            if (['6','7','8'].includes(String(cls)) && !rawSubjectValue) {
+                            const notTaken=isSubjectNotTaken(rawSubjectValue);
+                            if (['6','7','8'].includes(String(cls)) && notTaken) {
                                 alert(`❌ CSV Upload Stopped: Empty subject cell at data row ${i} (Roll No ${cols[1]}).\n\nMissing subject: ${expectedClean[subIdx]}\n\nFor Classes VI to VIII, every subject cell must be filled.`);
                                 event.target.value = '';
                                 return;
                             }
-                            let val = rawSubjectValue ? rawSubjectValue.toUpperCase() : '-';
-                            if (val && val !== '-' && val !== 'NIL' && val !== 'NONE') {
+                            let val = notTaken ? '-' : rawSubjectValue.toUpperCase();
+                            if (val !== '-') {
                                 if (val !== expectedClean[subIdx]) {
                                     alert(`❌ CSV Student Data Mismatch Error at Row ${i} (Roll: ${cols[1] || 'Unknown'})!\n\nInvalid subject entry found: "${val}" under column "${expectedClean[subIdx]}".\nUpload Aborted!`);
                                     event.target.value = '';
@@ -1356,7 +1377,7 @@
                 event.target.value = '';
 
             };
-            reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
         }
 
         function openStudentModal(id = null) {
@@ -1589,7 +1610,7 @@
                 
                 if(t.allotments) {
                     t.allotments.forEach(al => {
-                        let count = students.filter(s => isStudentActive(s) && String(s.class) === String(al.cls) && String(s.section) === String(al.sec)).length;
+                        let count = students.filter(s => isStudentActive(s) && String(s.class) === String(al.cls) && String(s.section) === String(al.sec) && studentTakesSubject(s,al.subject)).length;
                         totalStudentsAllotted += count;
                         allotmentsHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> (${count} Booklets)</div>`;
                         
@@ -2368,7 +2389,7 @@
             
             let tableRowsHtml = subjectsList.map((q, idx) => {
                 let count = students.filter(student => isStudentActive(student) && String(student.class) === String(q.cls)
-                    && (!q.sections?.length || q.sections.includes(String(student.section)))).length;
+                    && (!q.sections?.length || q.sections.includes(String(student.section))) && studentTakesSubject(student,q.subject)).length;
                 let buffer = Math.ceil(count * 0.05);
                 let finalDemand = count + buffer;
                 return `
@@ -2384,9 +2405,9 @@
                 `;
             }).join('');
             let totEnrolled = subjectsList.reduce((total, q) => total + students.filter(student => isStudentActive(student) && String(student.class) === String(q.cls)
-                && (!q.sections?.length || q.sections.includes(String(student.section)))).length, 0);
+                && (!q.sections?.length || q.sections.includes(String(student.section))) && studentTakesSubject(student,q.subject)).length, 0);
             let totBuffer = subjectsList.reduce((total, q) => { const count=students.filter(student => isStudentActive(student) && String(student.class) === String(q.cls)
-                && (!q.sections?.length || q.sections.includes(String(student.section)))).length; return total + Math.ceil(count * 0.05); }, 0);
+                && (!q.sections?.length || q.sections.includes(String(student.section))) && studentTakesSubject(student,q.subject)).length; return total + Math.ceil(count * 0.05); }, 0);
             let totFinal = totEnrolled + totBuffer;
             printWin.document.write(`
                 <!DOCTYPE html>
@@ -2495,7 +2516,7 @@
 
         function examSlotCandidateCount(slot) {
             return students.filter(student => isStudentActive(student) && String(student.class) === String(slot.cls)
-                && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section)))).length;
+                && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section))) && studentTakesSubject(student,slot.subject)).length;
         }
 
         function seatingRoomList() {
@@ -2514,7 +2535,7 @@
             const result = [];
             const seenStudents = new Set();
             slots.forEach(slot => students.filter(student => isStudentActive(student) && String(student.class) === String(slot.cls)
-                && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section)))).forEach(student => {
+                && (!(slot.selectedSections || []).length || slot.selectedSections.includes(String(student.section))) && studentTakesSubject(student,slot.subject)).forEach(student => {
                     const id = String(student.id ?? `${student.class}-${student.section}-${student.roll}`);
                     if (seenStudents.has(id)) return;
                     seenStudents.add(id);
@@ -2910,7 +2931,7 @@
                                     <tbody class="divide-y bg-white">
                                         ${subjectsList.map(sub => {
                                             let count = students.filter(student => isStudentActive(student) && String(student.class) === String(sub.cls)
-                                                && (!sub.sections?.length || sub.sections.includes(String(student.section)))).length;
+                                                && (!sub.sections?.length || sub.sections.includes(String(student.section))) && studentTakesSubject(student,sub.subject)).length;
                                             let buffer = Math.ceil(count * 0.05), final = count + buffer;
                                             let status = qpPrintingTracker[sub.key] || 'Pending';
                                             const receiving = qpReceivingStatus(qpSubmissionsTracker[sub.key]);
