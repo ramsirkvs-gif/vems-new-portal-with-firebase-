@@ -1035,6 +1035,15 @@
         // =========================================================================
         // MODULE 2: STUDENTS & CSV VALIDATION
         // =========================================================================
+        function schoolwideRollConflict(roll, options = {}) {
+            const normalized=String(Number(roll));
+            return students.find(student => String(Number(student.roll))===normalized
+                && (!options.excludeId || String(student.id)!==String(options.excludeId))
+                && (!options.excludeSection || `${student.class}-${student.section}`!==options.excludeSection));
+        }
+        function showDuplicateRollAlert(roll, existing, source='entry') {
+            alert(`❌ DUPLICATE ROLL NUMBER — ${source.toUpperCase()} STOPPED\n\nRoll No. ${roll} is already assigned in the school database.\n\nExisting student: ${existing.name}\nClass / Section: ${formatClass(existing.class)}-${existing.section}\nStatus: ${isStudentActive(existing)?'ACTIVE':'INACTIVE'}\n\nUse a unique school-wide roll number before saving.`);
+        }
         function initSelectors() {
             const classSel = document.getElementById('filter-class');
             if(!classSel) return;
@@ -1282,6 +1291,8 @@
                             alert(`❌ CSV roll-number error at data row ${i}. Roll No must contain digits only and be greater than zero.`); event.target.value=''; return;
                         }
                         if (seenRolls.has(Number(cols[1]))) { alert(`❌ Duplicate Roll No ${cols[1]} found at data row ${i}. Upload stopped.`); event.target.value=''; return; }
+                        const schoolConflict=schoolwideRollConflict(cols[1],{excludeSection:`${cls}-${sec}`});
+                        if(schoolConflict){showDuplicateRollAlert(cols[1],schoolConflict,`CSV row ${i}`);event.target.value='';return;}
                         if (!cols[2]) { alert(`❌ Student name is blank at data row ${i}. Upload stopped.`); event.target.value=''; return; }
                         seenRolls.add(Number(cols[1]));
                         let studentMappedSubs = [];
@@ -1371,6 +1382,9 @@
         async function saveStudent(e) {
             e.preventDefault();
             const cls = document.getElementById('filter-class').value; const sec = document.getElementById('filter-section').value; const id = document.getElementById('stu-id').value;
+            const enteredRoll=parseInt(document.getElementById('stu-roll').value);
+            const rollConflict=schoolwideRollConflict(enteredRoll,{excludeId:id});
+            if(rollConflict){showDuplicateRollAlert(enteredRoll,rollConflict,id?'student edit':'manual entry');return;}
             let studentSubjects = []; document.querySelectorAll('.modal-sub-input').forEach(inp => studentSubjects.push(sanitizeText(inp.value)));
             
             const studentRef = id ? db.ref(`students/${cls}/${sec}/${id}`) : db.ref(`students/${cls}/${sec}`).push();
@@ -1380,7 +1394,7 @@
             const stuData = { 
                 id: stuId, 
                 sno: parseInt(document.getElementById('stu-sno').value), 
-                roll: parseInt(document.getElementById('stu-roll').value), 
+                roll: enteredRoll,
                 name: document.getElementById('stu-name').value, 
                 class: cls, 
                 section: sec, 

@@ -229,6 +229,13 @@ async function main() {
         await a.fill('#stu-roll', '101');
         await a.evaluate(() => saveStudent({ preventDefault() {} }));
         await b.waitForFunction(() => students.some(s => s.name === 'Test Student'));
+        await a.evaluate(() => { window.duplicateRollAlert='';window._duplicateAlert=window.alert;window.alert=message=>window.duplicateRollAlert=message;openStudentModal(); });
+        await a.fill('#stu-name', 'Duplicate Roll Student');
+        await a.fill('#stu-roll', '101');
+        await a.evaluate(() => saveStudent({ preventDefault() {} }));
+        assert.match(await a.evaluate(() => duplicateRollAlert), /DUPLICATE ROLL NUMBER/);
+        assert.equal(Object.values(data.students).flatMap(sections=>Object.values(sections)).flatMap(records=>Object.values(records)).filter(student=>Number(student.roll)===101).length, 1);
+        await a.evaluate(() => {closeStudentModal();window.alert=window._duplicateAlert;delete window._duplicateAlert;delete window.duplicateRollAlert;});
         const studentId = Object.values(data.students).flatMap(sections=>Object.values(sections)).flatMap(records=>Object.values(records)).find(student=>student.name==='Test Student').id;
         await a.evaluate(id => deleteStudent(id), studentId);
         await b.waitForFunction(() => students.length === 0);
