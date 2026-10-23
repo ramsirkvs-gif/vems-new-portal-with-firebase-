@@ -123,11 +123,18 @@ async function main() {
         console.log('PASS: session-linked examination circular saves with reusable subject and recipient snapshot');
 
         await a.evaluate(() => switchTab('settings'));
+        await a.fill('#signature-name-sec-ic', 'Test Secondary Exam IC');
+        await a.locator('button[onclick="saveSignatureProfile(\'sec-ic\')"]').click();
+        await a.waitForFunction(() => signatureProfiles['sec-ic']?.name === 'Test Secondary Exam IC');
+        assert.equal(await a.evaluate(() => signatureProfiles['sec-ic'].image || ''), '', 'name-only profile must not require a signature image');
+        assert.match(await a.locator('#signature-status-sec-ic').textContent(), /saved successfully/i);
+        console.log('PASS: official name and designation save without a signature image');
+
         await a.fill('#signature-name-principal', 'Test Principal');
         await a.setInputFiles('#signature-file-principal', { name: 'principal-signature.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') });
         await a.waitForTimeout(120);
         assert.equal(await a.locator('#signature-file-principal').evaluate(input => input.files.length), 1, 'signature selection must survive UI refresh');
-        await a.getByRole('button', { name: 'Save Name & Signature' }).first().click();
+        await a.getByRole('button', { name: 'Save Official Profile' }).first().click();
         await a.waitForFunction(() => !!signatureProfiles.principal?.image);
         assert.match(await a.locator('#signature-status-principal').textContent(), /saved successfully/i);
         console.log('PASS: signature file selection survives refresh and saves to the shared profile');
