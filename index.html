@@ -42,7 +42,18 @@
             }
         }
         html { scroll-behavior: smooth; }
-        body { overflow-x: hidden; }
+        body { overflow-x: hidden; font-size: 15px; line-height: 1.5; }
+        @media screen {
+            main h2 { font-size: clamp(1.25rem, 1.6vw, 1.5rem); line-height: 1.3; }
+            main h3 { font-size: clamp(1rem, 1.25vw, 1.125rem); line-height: 1.35; }
+            main h4 { font-size: .9375rem; line-height: 1.4; }
+            main .text-xs { font-size: .8125rem; line-height: 1.4; }
+            main .text-sm { font-size: .9rem; line-height: 1.45; }
+            main button, main select, main input, main textarea { font-size: .875rem; line-height: 1.35; }
+            main th, main td { font-size: .8125rem; line-height: 1.4; }
+            main th { letter-spacing: .01em; }
+            #sync-status, #sync-error, #frozen-session-banner { font-size: .8125rem; }
+        }
         #login-modal, #student-modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
         #login-modal.hidden, #student-modal.hidden { display: none !important; }
         button, select, input, textarea { transition: border-color .18s ease, box-shadow .18s ease, transform .12s ease; }
@@ -54,17 +65,20 @@
             .portal-identity { text-align: center; margin-bottom: .6rem; }
             .portal-identity h1 { justify-content: center; font-size: 1.1rem; }
             .role-switcher { width: 100%; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .35rem; }
-            .role-switcher button { justify-content: center; min-height: 38px; padding: .4rem .3rem; font-size: 10px; line-height: 1.15; white-space: normal; }
+            .role-switcher button { justify-content: center; min-height: 40px; padding: .45rem .35rem; font-size: 11.5px; line-height: 1.2; white-space: normal; }
             .session-zone { width: 100%; justify-content: center; flex-wrap: wrap; }
             .session-zone > * { min-height: 34px; display: inline-flex; align-items: center; }
-            #sync-status, #sync-error { padding: .55rem .75rem; font-size: 11px; }
+            #sync-status, #sync-error { padding: .6rem .75rem; font-size: 12.5px; }
             main { padding: .75rem !important; }
             main .p-6 { padding: 1rem !important; }
             main .p-5 { padding: .9rem !important; }
             main .gap-4 { gap: .65rem !important; }
             main .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem !important; }
             main .justify-between { flex-wrap: wrap; gap: .6rem; }
-            main button, main select, main input:not([type="checkbox"]):not([type="radio"]) { min-height: 40px; }
+            main button, main select, main input:not([type="checkbox"]):not([type="radio"]) { min-height: 42px; font-size: 16px; }
+            main button { font-size: 13.5px; }
+            main textarea { font-size: 16px; }
+            main th, main td { font-size: 13px; padding-top: .65rem !important; padding-bottom: .65rem !important; }
             main button { line-height: 1.2; }
             main h2 { line-height: 1.25; }
             .module-tabs { gap: .25rem; scroll-snap-type: x proximity; padding-bottom: .25rem; }
