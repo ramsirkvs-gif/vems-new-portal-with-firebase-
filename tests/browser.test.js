@@ -359,7 +359,12 @@ async function main() {
         await b.waitForFunction(() => students.length === 0);
         console.log('PASS: student creation and deletion propagate, including an empty list');
 
-        await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); });
+        await a.evaluate(() => { switchTab('exam-creator-prin'); openExamVault(100); });
+        assert.match(await a.locator('#exam-creator-mount-prin h2').innerText(),/Existing Exam Examination Vault/);
+        assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open Pre-Exam Workspace'}).count(),1);
+        assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open During-Exam Workspace'}).count(),1);
+        assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open Post-Exam Workspace'}).count(),1);
+        await a.evaluate(() => openPreExamFullPageWorkspace(100));
         await a.evaluate(() => switchPreExamSubTab('datesheet-orders'));
         assert.match(await a.locator('h3', { hasText: 'Date Sheet' }).textContent(), /Date Sheet/);
         assert.match(await a.locator('text=01/11/2026').first().textContent(), /01\/11\/2026/);
@@ -580,12 +585,12 @@ async function main() {
         assert.equal(await primary.evaluate(() => authorizedRole), null);
         await login(primary, null, 'pri-ic');
         assert.equal(await primary.locator('#area-pri-ic').isVisible(), true);
-        assert.equal(await primary.locator('#exam-creator-mount-pri').getByRole('button', { name: '➕ Create New Exam' }).count(), 1);
+        assert.equal(await primary.locator('#exam-creator-mount-pri').getByRole('button', { name: '＋ Create New Examination Vault' }).count(), 1);
         await primary.evaluate(() => startNewExamSetup());
         await primary.evaluate(() => addPaperSlotToDay(1));
         const primaryId = await primary.evaluate(() => activeExamId);
         await b.waitForFunction(id => archivedExams.some(exam => exam.id === id && exam.datesheetSnapshot[0].paperSlots[0]?.cls === '1'), primaryId);
-        await primary.evaluate(id => deleteArchivedExam(id), primaryId);
+        await primary.evaluate(async id => {const exam=archivedExams.find(item=>item.id===id),oldConfirm=window.confirm,oldPrompt=window.prompt;window.confirm=()=>true;window.prompt=()=>exam.title;try{await deleteArchivedExam(id);}finally{window.confirm=oldConfirm;window.prompt=oldPrompt;}}, primaryId);
         assert.equal(await primary.evaluate(() => canEditSharedData('principal')), false);
         console.log('PASS: primary staff use passcode-only entry and create/save primary exam schedules');
 
