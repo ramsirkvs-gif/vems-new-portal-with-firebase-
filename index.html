@@ -399,12 +399,14 @@
                             </div>
                         </div>
                         <div class="overflow-x-auto border rounded-lg shadow-sm">
-                            <table class="w-full text-xs text-left text-slate-600">
+                            <table class="w-full min-w-[1120px] table-fixed text-xs text-left text-slate-600">
+                                <colgroup><col class="w-[15%]"><col class="w-[18%]"><col class="w-[24%]"><col class="w-[17%]"><col class="w-[9%]"><col class="w-[8%]"><col class="w-[9%]"></colgroup>
                                 <thead class="bg-indigo-900 text-white uppercase font-semibold border-b">
                                     <tr>
                                         <th class="px-4 py-3">Teacher Name & Desig</th>
                                         <th class="px-4 py-3">Teaching Allotments</th>
-                                        <th class="px-4 py-3">Class-Wise Duties (QP / Eval)</th>
+                                        <th class="px-4 py-3">QP Setter(s)</th>
+                                        <th class="px-4 py-3">Evaluator</th>
                                         <th class="px-4 py-3 text-center bg-indigo-950">Booklets</th>
                                         <th class="px-4 py-3 text-center bg-emerald-950">Bundles</th>
                                         <th class="px-4 py-3 text-right">Actions</th>
@@ -1693,33 +1695,17 @@
                 return;
             }
             filteredTeachers.forEach((t) => {
-                let totalStudentsAllotted = 0; 
-                let allotmentsHtml = '';
-                let dutiesHtml = '';
-                
-                if(t.allotments) {
-                    t.allotments.forEach(al => {
-                        let count = students.filter(s => isStudentActive(s) && String(s.class) === String(al.cls) && String(s.section) === String(al.sec) && studentTakesSubject(s,al.subject)).length;
-                        totalStudentsAllotted += count;
-                        allotmentsHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> (${count} Booklets)</div>`;
-                        
-                        let qpText = facultyQpSetterDisplay(t,al);
-                        let evalText = facultyEvaluatorDisplay(t,al);
-                        dutiesHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: QP: <strong class="text-indigo-900">${escapeHtml(qpText)}</strong> | Eval: <strong class="text-indigo-900">${escapeHtml(evalText)}</strong></div>`;
-                    });
-                }
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 border-b">
-                        <td class="px-4 py-3 font-semibold">${escapeHtml(t.name)}<br><span class="px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${escapeHtml(t.desig)}</span></td>
-                        <td class="px-4 py-3">${allotmentsHtml || '<i>No allotments</i>'}</td>
-                        <td class="px-4 py-3">${dutiesHtml || '<i>No duties assigned</i>'}</td>
-                        <td class="px-4 py-3 text-center bg-indigo-50/50 font-bold text-indigo-900">${totalStudentsAllotted} Booklets</td>
-                        <td class="px-4 py-3 text-center bg-emerald-50/50 font-bold text-emerald-900">${t.allotments ? t.allotments.length : 0} Bundle(s)</td>
-                        <td class="px-4 py-3 text-right space-x-2">
-                            <button type="button" onclick="editTeacher(${Number(t.id)})" class="text-indigo-600 hover:underline font-bold">Edit</button>
-                            <button type="button" onclick="deleteTeacher(${Number(t.id)})" class="text-red-600 hover:underline font-bold">Delete</button>
-                        </td>
+                const allotments=t.allotments?.length?t.allotments:[null],counts=allotments.map(al=>al?students.filter(s=>isStudentActive(s)&&String(s.class)===String(al.cls)&&String(s.section)===String(al.sec)&&studentTakesSubject(s,al.subject)).length:0),totalStudentsAllotted=counts.reduce((sum,count)=>sum+count,0),rowspan=allotments.length;
+                allotments.forEach((al,index)=>{
+                    const first=index===0,groupBorder=index===rowspan-1?'border-b-2 border-indigo-200':'border-b border-slate-100';
+                    tbody.innerHTML+=`<tr class="${groupBorder} hover:bg-slate-50 align-top">
+                        ${first?`<td rowspan="${rowspan}" class="px-4 py-3 align-middle font-semibold border-r border-slate-100"><div class="text-slate-900">${escapeHtml(t.name)}</div><span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${escapeHtml(t.desig)}</span></td>`:''}
+                        <td class="px-4 py-2.5">${al?`<div class="font-semibold text-slate-800">Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}</div><div class="mt-0.5 font-bold text-indigo-900">${escapeHtml(al.subject)}</div><div class="text-[10px] text-slate-500">${counts[index]} student booklet(s)</div>`:'<i class="text-slate-400">No allotment</i>'}</td>
+                        <td class="px-4 py-2.5 font-semibold text-indigo-900 break-words">${al?escapeHtml(facultyQpSetterDisplay(t,al)):'—'}</td>
+                        <td class="px-4 py-2.5 font-semibold text-slate-800 break-words">${al?escapeHtml(facultyEvaluatorDisplay(t,al)):'—'}</td>
+                        ${first?`<td rowspan="${rowspan}" class="px-3 py-3 align-middle text-center bg-indigo-50/60 font-bold text-indigo-900"><div class="text-base">${totalStudentsAllotted}</div><div class="text-[10px]">Booklets</div></td><td rowspan="${rowspan}" class="px-3 py-3 align-middle text-center bg-emerald-50/60 font-bold text-emerald-900"><div class="text-base">${t.allotments?.length||0}</div><div class="text-[10px]">Bundle(s)</div></td><td rowspan="${rowspan}" class="px-3 py-3 align-middle text-right"><div class="flex flex-col items-end gap-2"><button type="button" onclick="editTeacher(${Number(t.id)})" class="text-indigo-600 hover:underline font-bold">Edit</button><button type="button" onclick="deleteTeacher(${Number(t.id)})" class="text-red-600 hover:underline font-bold">Delete</button></div></td>`:''}
                     </tr>`;
+                });
             });
         }
 

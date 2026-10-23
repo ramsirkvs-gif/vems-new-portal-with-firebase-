@@ -158,8 +158,9 @@ async function main() {
             renderTeachers();
         });
         assert.equal(await a.evaluate(() => facultyEvaluatorDisplay(teachers[0],teachers[0].allotments[0])),'New Shared Teacher');
-        assert.match(await a.locator('#teacher-table-body').innerText(),/Eval: New Shared Teacher/);
-        assert.doesNotMatch(await a.locator('#teacher-table-body').innerText(),/Eval: Self/);
+        assert.deepEqual(await a.locator('#teacher-table-body').locator('xpath=..').locator('thead th').allTextContents(),['Teacher Name & Desig','Teaching Allotments','QP Setter(s)','Evaluator','Booklets','Bundles','Actions']);
+        assert.equal((await a.locator('#teacher-table-body tr').first().locator('td').nth(3).innerText()).trim(),'New Shared Teacher');
+        assert.doesNotMatch(await a.locator('#teacher-table-body').innerText(),/\bSelf\b/);
         console.log('PASS: faculty save is confirmed and appears on the other device');
 
         await a.evaluate(() => toggleFacultyRosterPublishing());
