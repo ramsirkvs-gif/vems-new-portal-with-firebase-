@@ -179,7 +179,8 @@ async function main() {
         assert.match(await a.locator('#public-faculty-roster-section > div.max-h-56').getAttribute('class'),/overflow-y-auto/);
         await a.evaluate(() => {document.getElementById('public-faculty-search').value='science';renderPublicFacultyRoster();});
         assert.match(await a.locator('#public-faculty-roster-body').innerText(),/New Shared Teacher/);
-        assert.deepEqual(await a.locator('#public-faculty-roster-section thead th').allTextContents(),['Faculty','Teaching Allotments','QP Setter(s)','Evaluator']);
+        assert.deepEqual(await a.locator('#public-faculty-roster-section thead th').allTextContents(),['Faculty','Teaching Allotments / Strength','QP Setter(s)','Evaluator','Booklets','Bundles']);
+        assert.match(await a.locator('#public-faculty-roster-body').innerText(),/0\s*Booklets\s*1\s*Bundle\(s\)/);
         assert.equal(await a.locator('#public-faculty-roster-section button', {hasText:'PDF / Print'}).count(),1);
         assert.equal(await a.locator('#public-faculty-roster-section button', {hasText:'Share PDF to WhatsApp'}).count(),1);
         assert.equal(await a.evaluate(async()=>new TextDecoder().decode((await publishedFacultyRosterPdfBlob().arrayBuffer()).slice(0,8))),'%PDF-1.4');
