@@ -225,7 +225,10 @@ function refreshSharedViews() {
     renderSignatureProfiles();
     updateSessionChrome();
 }
-document.addEventListener('focusout', scheduleSharedRender);
+document.addEventListener('focusout', event => {
+    if (event.target.closest('#settings-signature-profiles') || event.target.id?.startsWith('circular-signature-')) return;
+    scheduleSharedRender();
+});
 document.addEventListener('input', event => {
     if (event.target.matches('.cfg-sub-input')) sectionFormDirty = true;
     if (event.target.closest('#qp-instructions-list') || event.target.id?.startsWith('qp-order-')) captureQpOfficeOrderDraft();

@@ -122,6 +122,15 @@ async function main() {
         assert.equal(Object.values(data.examCirculars || {}).length, 1);
         console.log('PASS: session-linked examination circular saves with reusable subject and recipient snapshot');
 
+        await a.evaluate(() => switchTab('settings'));
+        await a.setInputFiles('#signature-file-principal', { name: 'principal-signature.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') });
+        await a.waitForTimeout(120);
+        assert.equal(await a.locator('#signature-file-principal').evaluate(input => input.files.length), 1, 'signature selection must survive UI refresh');
+        await a.getByRole('button', { name: 'Save / Replace' }).first().click();
+        await a.waitForFunction(() => !!signatureProfiles.principal?.image);
+        assert.match(await a.locator('#signature-status-principal').textContent(), /saved successfully/i);
+        console.log('PASS: signature file selection survives refresh and saves to the shared profile');
+
         await a.evaluate(() => switchTab('teachers'));
         await a.fill('#tch-name-input', 'New Shared Teacher');
         await a.fill('#tch-desig-input', 'PGT SCIENCE');
