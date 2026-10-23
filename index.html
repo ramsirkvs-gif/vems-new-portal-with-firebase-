@@ -1946,14 +1946,16 @@
         }
 
         async function addNextDatesheetDay() {
-            const input=document.getElementById('new-exam-date'),nextDateStr=input?.value;
-            if(!nextDateStr){alert('Select the next examination date.');return;}
-            if(datesheetDays.some(day=>day.dateStr===nextDateStr)){alert('This examination date is already added. Choose another date.');return;}
+            const lastDate=datesheetDays.length?new Date(`${[...datesheetDays].sort((a,b)=>String(a.dateStr).localeCompare(String(b.dateStr))).at(-1).dateStr}T12:00:00`):new Date();
+            lastDate.setDate(lastDate.getDate()+1);
+            if(lastDate.getDay()===0)lastDate.setDate(lastDate.getDate()+1);
+            const nextDateStr=lastDate.toISOString().slice(0,10);
             datesheetDays.forEach(d => d.isCollapsed = true);
             datesheetDays.push({ id: datesheetDays.length+1, dateStr: nextDateStr, isCollapsed: false, saved: false, paperSlots: [] });
             syncExamDateBounds();
             if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
+            setTimeout(()=>{const cards=document.querySelectorAll('.exam-day-card');cards[cards.length-1]?.scrollIntoView({behavior:'smooth',block:'center'});},50);
         }
 
         async function removeExamDay(dayId){
@@ -3253,7 +3255,7 @@
                         </div>
                         <div class="space-y-4">
                             <div id="datesheet-days-container" class="space-y-3"></div>
-                            <div class="flex flex-wrap items-end gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><label class="text-xs font-bold text-emerald-950">Add another examination date<input id="new-exam-date" type="date" class="mt-1 block rounded border bg-white p-2 text-xs"></label><button type="button" onclick="addNextDatesheetDay()" class="bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded">➕ Add Exam Date</button><span class="text-[11px] text-slate-600">Choose only a day on which a paper will be held.</span></div>
+                            <div class="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><button type="button" onclick="addNextDatesheetDay()" class="bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded">➕ Add Day ${datesheetDays.length+1}</button><span class="text-[11px] text-slate-600">Creates the complete next day. Change its date inside the new day card when a holiday or gap occurs.</span></div>
                         </div>
                         <div class="pt-4 border-t flex justify-between">
                             <button type="button" onclick="minimizeActiveWorkspace()" class="bg-slate-200 text-slate-800 font-bold text-xs px-5 py-2.5 rounded">📁 Minimize</button>
