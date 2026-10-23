@@ -198,6 +198,9 @@ async function main() {
         assert.match(await b.evaluate(async()=>new TextDecoder().decode(await publishedSubjectDirectoryPdfBlob().arrayBuffer())), /\(Class \/ Section\).*\(Subjects\)/s);
         console.log('PASS: stream rules, Subject Mapping PDF, publish and public directory synchronize');
 
+        assert.deepEqual(await a.evaluate(() => rollDirectoryColumnPairs(Array.from({length:6},(_,index)=>({roll:index+1}))).map(pair=>[pair.leftNumber,pair.rightNumber])), [[1,4],[2,5],[3,6]]);
+        console.log('PASS: roll-directory PDF completes the left column before continuing in the right column');
+
         await a.evaluate(async () => { sectionConfigs['10-B']=['SCIENCE']; await saveData(['sectionConfigs']); });
         await b.waitForFunction(() => Array.isArray(sectionConfigs['10-B']));
         await b.evaluate(() => { switchTab('students'); document.getElementById('filter-class').value='10'; handleClassChange(); document.getElementById('filter-section').value='B'; rememberStudentLocation(); filterStudents(); switchTab('students'); });
