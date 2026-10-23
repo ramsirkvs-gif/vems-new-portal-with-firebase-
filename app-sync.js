@@ -2,7 +2,7 @@
 'use strict';
 const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'archivedExams',
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings',
-    'dateSheetInstructions', 'dateSheetSettings', 'publishedSubjectDirectories', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
+    'dateSheetInstructions', 'dateSheetSettings', 'publishedSubjectDirectories', 'publicPortalBoards', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
 sharedNames.push('seatingRooms', 'seatingPlans');
 const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList', 'publishedSubjectDirectories'];
 // Login identifiers only. Firebase stores and verifies each role's passcode.
@@ -32,6 +32,7 @@ let portalGateReady = false;
 let selectedAcademicSession = localStorage.getItem('vems_selected_session') || DEFAULT_ACADEMIC_SESSION;
 let sessionMetadataSubscriptions = [];
 let publicDirectorySubscription = null;
+let publicBoardsSubscription = null;
 const editorBaselines = { teacher: null, student: null, section: null, assignments: null, exam: null };
 
 function sessionCollectionPath(name, sessionId = selectedAcademicSession) {
@@ -132,7 +133,7 @@ function canEditSharedData(required = 'exam') {
 function sharedValue(name) {
     return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, archivedExams,
         examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings,
-        dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans, publishedSubjectDirectories, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
+        dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
 }
 function acceptSharedValue(name, value) {
     switch (name) {
@@ -167,6 +168,7 @@ function acceptSharedValue(name, value) {
         case 'dateSheetInstructions': dateSheetInstructions = value; break;
         case 'dateSheetSettings': dateSheetSettings = value; break;
         case 'publishedSubjectDirectories': publishedSubjectDirectories = value; renderPublicSubjectDirectory(); break;
+        case 'publicPortalBoards': publicPortalBoards = value; renderPublicPortalBoards(); break;
         case 'seatingRooms': seatingRooms = value; break;
         case 'seatingPlans': seatingPlans = value; break;
         case 'examCirculars': examCirculars = value; break;
@@ -439,6 +441,10 @@ function bindPublicDirectory() {
     const ref=db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession));
     const listener=snapshot=>{publicPublishedSubjectDirectories=snapshot.val()||{};renderPublicSubjectDirectory();};
     publicDirectorySubscription={ref,listener}; ref.on('value',listener,()=>{publicPublishedSubjectDirectories={};renderPublicSubjectDirectory();});
+    if(publicBoardsSubscription)publicBoardsSubscription.ref.off('value',publicBoardsSubscription.listener);
+    const boardsRef=db.ref(sessionCollectionPath('publicPortalBoards',activeSession));
+    const boardsListener=snapshot=>{publicVisiblePortalBoards=snapshot.val()||{};renderPublicPortalBoards();};
+    publicBoardsSubscription={ref:boardsRef,listener:boardsListener};boardsRef.on('value',boardsListener,()=>{publicVisiblePortalBoards={};renderPublicPortalBoards();});
 }
 function bindSessionMetadata() {
     sessionMetadataSubscriptions.forEach(item=>item.ref.off('value',item.listener)); sessionMetadataSubscriptions=[];

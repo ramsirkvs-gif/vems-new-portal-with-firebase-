@@ -175,30 +175,19 @@
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
                 <div class="flex justify-between items-center border-b pb-3">
                     <div>
-                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                            <span>📢</span> Live Teacher Duty & Exam Schedule Board
-                        </h2>
-                        <p class="text-xs text-slate-500">Public notice area for staff room display screens and teacher mobile view.</p>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2"><span>📢</span> Examination Information & Notice Board</h2>
+                        <p class="text-xs text-slate-500">Approved examination information published by the Examination Cell.</p>
                     </div>
                     <span class="text-xs bg-indigo-100 text-indigo-800 font-bold px-3 py-1 rounded-full">Sign in to view shared records</span>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-indigo-50/60 border border-indigo-100 rounded-lg p-4 space-y-2">
-                        <h3 class="text-xs font-bold text-indigo-900 uppercase tracking-wider">📋 Today's Invigilation Duties</h3>
-                        <div class="p-3 bg-white rounded border border-indigo-100 text-xs text-slate-500 italic">No active invigilation roster published for today.</div>
-                    </div>
-                    <div class="bg-amber-50/60 border border-amber-100 rounded-lg p-4 space-y-2">
-                        <h3 class="text-xs font-bold text-amber-900 uppercase tracking-wider">📌 Important Instructions</h3>
-                        <ul class="text-xs text-slate-700 space-y-1 list-disc pl-4">
-                            <li>Collect answer-book bundles from Exam Control Room 15 mins prior.</li>
-                            <li>Verify student roll numbers against seating arrangement.</li>
-                        </ul>
-                    </div>
-                </div>
+                <section id="public-exam-notice-board" class="hidden bg-red-50 border-2 border-red-300 rounded-xl p-4"><div class="flex items-center gap-2"><span class="animate-pulse text-xl">🚨</span><h3 class="font-extrabold text-red-900">1. EXAMINATION NOTICE BOARD</h3></div><div id="public-urgent-notice" class="mt-3"></div></section>
+                <section class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-3"><h3 class="font-bold text-indigo-950">2. 👩‍🏫 Live Examination Duty</h3><div id="public-live-duty" class="text-xs text-slate-500 italic">No live examination duty has been published.</div></section>
+                <section class="bg-sky-50 border border-sky-200 rounded-xl p-4 space-y-3"><div class="flex flex-wrap justify-between gap-3"><div><h3 class="font-bold text-sky-950">3. 🪑 Seating Arrangement Display</h3><p class="text-xs text-slate-500">Search the published seating plan by date, class, student name or roll number.</p></div><div class="flex flex-wrap gap-2"><select id="public-seating-date" onchange="renderPublicPortalBoards()" class="border rounded p-2 bg-white"></select><input id="public-seating-search" oninput="renderPublicPortalBoards()" placeholder="Name, class or roll number" class="border rounded p-2"></div></div><div class="overflow-x-auto border rounded bg-white"><table class="w-full"><thead class="bg-sky-900 text-white"><tr><th class="p-2">Student</th><th class="p-2">Class / Section</th><th class="p-2">Roll No.</th><th class="p-2">Room</th><th class="p-2">Desk / Seat</th></tr></thead><tbody id="public-seating-body"></tbody></table></div></section>
+                <section class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3"><div class="flex flex-wrap justify-between gap-3"><div><h3 class="font-bold text-emerald-950">4. 🔢 Published Roll Number Directory</h3><p class="text-xs text-slate-500">Class Teachers: verify each student with the Samagam Portal and inform students properly.</p></div><div class="flex gap-2"><select id="public-roll-class" onchange="renderPublicPortalBoards()" class="border rounded p-2 bg-white"></select><input id="public-roll-search" oninput="renderPublicPortalBoards()" placeholder="Student or roll number" class="border rounded p-2"></div></div><div class="overflow-x-auto border rounded bg-white"><table class="w-full"><thead class="bg-emerald-900 text-white"><tr><th class="p-2">Class / Section</th><th class="p-2">Roll No.</th><th class="p-2">Student Name</th></tr></thead><tbody id="public-roll-body"></tbody></table></div></section>
                 <div class="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
                         <div>
-                            <h3 class="text-sm font-bold text-indigo-950">📚 Published Subject Directory (Secondary)</h3>
+                            <h3 class="text-sm font-bold text-indigo-950">5. 📚 Published Subject Directory (Secondary)</h3>
                             <p class="text-xs text-slate-500">Select a class to view its latest subject mapping published by the Examination Cell.</p>
                         </div>
                         <div class="flex flex-wrap gap-2 no-print">
@@ -320,6 +309,7 @@
                         <label class="bg-sky-600 text-white text-xs font-medium px-3 py-2 rounded cursor-pointer">📤 Upload CSV<input type="file" id="csv-file-input" accept=".csv" onchange="uploadCSV(event)" class="hidden"></label>
                         <button type="button" onclick="toggleStudentStatusPanel()" class="bg-amber-600 text-white text-xs font-medium px-3 py-2 rounded">🔎 Search / Deactivate</button>
                         <button id="inactive-students-button" type="button" onclick="showInactiveStudents()" class="bg-slate-700 text-white text-xs font-medium px-3 py-2 rounded">⛔ Inactive Students (0)</button>
+                        <button id="roll-directory-publish-button" type="button" onclick="toggleRollDirectoryPublishing()" class="bg-teal-700 text-white text-xs font-medium px-3 py-2 rounded">📢 Publish Roll Directory</button>
                         <button type="button" onclick="generateStudentPDFReport()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded flex items-center gap-1 shadow">
                             <span>🖨️</span> PDF / Print Report
                         </button>
@@ -619,6 +609,8 @@
         let sectionConfigs = {};
         let publishedSubjectDirectories = {};
         let publicPublishedSubjectDirectories = {};
+        let publicPortalBoards = {};
+        let publicVisiblePortalBoards = {};
         let students = [];
         let studentDeactivationTarget = null;
         let teachers = [];
@@ -2932,6 +2924,19 @@
             `;
         }
 
+        function visiblePortalBoards(){return currentActiveRole==='public'?publicVisiblePortalBoards:publicPortalBoards;}
+        function renderPublicBoardPublisher(){const notice=publicPortalBoards.notice||{};return `<section class="border-2 border-red-200 rounded-xl p-4 bg-red-50/40 space-y-3"><div><h3 class="font-bold text-red-950">🚨 Urgent Text for Public Examination Notice Board</h3><p class="text-xs text-slate-600">Publish an urgent or important message above all other Public View boards.</p></div><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><input id="exam-notice-heading" value="${escapeHtml(notice.heading||'URGENT EXAMINATION NOTICE')}" placeholder="Notice heading" class="border rounded p-2"><input id="exam-notice-text" value="${escapeHtml(notice.text||'')}" placeholder="Short notice text" class="md:col-span-2 border rounded p-2"><select id="exam-notice-priority" class="border rounded p-2"><option>Important</option><option ${notice.priority==='Urgent'?'selected':''}>Urgent</option><option ${notice.priority==='Normal'?'selected':''}>Normal</option></select></div><div class="flex flex-wrap gap-2 justify-end"><button onclick="publishUrgentExamNotice()" class="bg-red-700 text-white rounded px-4 py-2 font-bold">📢 Publish / Update Notice</button><button onclick="stopUrgentExamNotice()" class="bg-slate-700 text-white rounded px-4 py-2 font-bold">Stop Notice</button><button onclick="publishLiveDutyBoard()" class="bg-indigo-700 text-white rounded px-4 py-2 font-bold">Publish Live Duty</button><button onclick="publishSeatingBoard()" class="bg-sky-700 text-white rounded px-4 py-2 font-bold">Publish Seating</button></div></section>`;}
+        async function publishUrgentExamNotice(){const heading=document.getElementById('exam-notice-heading').value.trim(),text=document.getElementById('exam-notice-text').value.trim();if(!text){alert('Enter the urgent notice text.');return;}publicPortalBoards={...publicPortalBoards,notice:{heading,text,priority:document.getElementById('exam-notice-priority').value,publishedAt:new Date().toISOString(),publishedBy:authorizedRole}};if(await saveData(['publicPortalBoards']))renderExamCreatorModule();}
+        async function stopUrgentExamNotice(){delete publicPortalBoards.notice;if(await saveData(['publicPortalBoards']))renderExamCreatorModule();}
+        async function publishLiveDutyBoard(){const exam=archivedExams.find(x=>x.id===selectedPreExamVaultId)||archivedExams[0];if(!exam){alert('Create or select an examination first.');return;}const duties=Object.entries(classTeacherAssignments||{}).filter(([,x])=>x.assignedOnDuty).map(([classSection,x])=>({classSection,teacher:x.assignedOnDuty,duty:'On-Duty / Relief Support'}));publicPortalBoards={...publicPortalBoards,liveDuty:{examId:exam.id,examTitle:exam.title,date:new Date().toISOString().slice(0,10),duties,publishedAt:new Date().toISOString()}};if(await saveData(['publicPortalBoards']))alert('Live examination duty published.');}
+        async function publishSeatingBoard(){const exam=archivedExams.find(x=>x.id===selectedPreExamVaultId)||archivedExams[0],plans=exam?seatingPlans[String(exam.id)]:null;if(!exam||!plans||!Object.keys(plans).length){alert('Generate and save a seating plan for the selected examination first.');return;}publicPortalBoards={...publicPortalBoards,seating:{examId:exam.id,examTitle:exam.title,plans:cloneData(plans),publishedAt:new Date().toISOString()}};if(await saveData(['publicPortalBoards']))alert('Seating arrangement published.');}
+        async function toggleRollDirectoryPublishing(){if(publicPortalBoards.rollDirectory){delete publicPortalBoards.rollDirectory;}else{const rows=students.filter(isStudentActive).map(s=>({name:s.name,roll:s.roll,cls:String(s.class),section:String(s.section)}));if(!rows.length){alert('No active students are available to publish.');return;}publicPortalBoards={...publicPortalBoards,rollDirectory:{rows,publishedAt:new Date().toISOString(),publishedBy:authorizedRole}};}if(await saveData(['publicPortalBoards'])){renderPublicPortalBoards();updateRollPublishButton();}}
+        function updateRollPublishButton(){const b=document.getElementById('roll-directory-publish-button');if(b){b.textContent=publicPortalBoards.rollDirectory?'⛔ Stop Publishing Rolls':'📢 Publish Roll Directory';b.className=`${publicPortalBoards.rollDirectory?'bg-red-700':'bg-teal-700'} text-white text-xs font-medium px-3 py-2 rounded`;}}
+        function renderPublicPortalBoards(){const boards=visiblePortalBoards(),notice=boards.notice,noticeBoard=document.getElementById('public-exam-notice-board');if(noticeBoard){noticeBoard.classList.toggle('hidden',!notice);document.getElementById('public-urgent-notice').innerHTML=notice?`<div class="font-extrabold text-red-950 ${notice.priority==='Urgent'?'animate-pulse':''}">${escapeHtml(notice.heading)}</div><p class="mt-1 text-red-900">${escapeHtml(notice.text)}</p><p class="mt-2 text-[11px] text-red-700">${escapeHtml(notice.priority)} · Published ${escapeHtml(new Date(notice.publishedAt).toLocaleString('en-IN'))}</p>`:'';}
+            const duty=document.getElementById('public-live-duty'),live=boards.liveDuty;if(duty)duty.innerHTML=live?`<div class="font-bold text-indigo-950">${escapeHtml(live.examTitle)} · ${escapeHtml(formatOrderDate(live.date))}</div>${live.duties?.length?`<div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">${live.duties.map(x=>`<div class="bg-white border rounded p-2"><b>${escapeHtml(x.teacher)}</b><br>${escapeHtml(x.duty)} · ${escapeHtml(x.classSection)}</div>`).join('')}</div>`:'<p class="mt-2">No assigned on-duty staff found in Faculty mapping.</p>'}`:'No live examination duty has been published.';
+            const seating=boards.seating,dates=Object.keys(seating?.plans||{}).sort(),dateSelect=document.getElementById('public-seating-date');if(dateSelect){const selected=dateSelect.value;dateSelect.innerHTML='<option value="">Select exam date</option>'+dates.map(d=>`<option value="${d}">${escapeHtml(formatDateWithDay(d))}</option>`).join('');dateSelect.value=dates.includes(selected)?selected:(dates[0]||'');}const date=dateSelect?.value||dates[0],term=(document.getElementById('public-seating-search')?.value||'').toLowerCase(),assignments=(seating?.plans?.[date]?.assignments||[]).filter(x=>`${x.name} ${x.roll} ${x.cls} ${x.section} ${x.roomName}`.toLowerCase().includes(term)),seatBody=document.getElementById('public-seating-body');if(seatBody)seatBody.innerHTML=assignments.length?assignments.map(x=>`<tr class="border-b"><td class="p-2 font-bold">${escapeHtml(x.name)}</td><td class="p-2">${escapeHtml(formatClass(x.cls))}-${escapeHtml(x.section)}</td><td class="p-2">${escapeHtml(x.roll)}</td><td class="p-2">${escapeHtml(x.roomName)}</td><td class="p-2">${escapeHtml(x.desk)} / ${escapeHtml(x.seat)}</td></tr>`).join(''):'<tr><td colspan="5" class="p-4 text-center text-slate-400">No published seating record found.</td></tr>';
+            const roll=boards.rollDirectory,rollRows=roll?.rows||[],classSelect=document.getElementById('public-roll-class');if(classSelect){const selected=classSelect.value,classes=[...new Set(rollRows.map(x=>x.cls))].sort((a,b)=>Number(a)-Number(b));classSelect.innerHTML='<option value="">All Classes</option>'+classes.map(x=>`<option value="${x}">Class ${escapeHtml(formatClass(x))}</option>`).join('');classSelect.value=classes.includes(selected)?selected:'';}const cls=classSelect?.value||'',rollTerm=(document.getElementById('public-roll-search')?.value||'').toLowerCase(),filtered=rollRows.filter(x=>(!cls||x.cls===cls)&&`${x.name} ${x.roll}`.toLowerCase().includes(rollTerm)),rollBody=document.getElementById('public-roll-body');if(rollBody)rollBody.innerHTML=filtered.length?filtered.map(x=>`<tr class="border-b"><td class="p-2">Class ${escapeHtml(formatClass(x.cls))}-${escapeHtml(x.section)}</td><td class="p-2 font-bold">${escapeHtml(x.roll)}</td><td class="p-2 font-bold">${escapeHtml(x.name)}</td></tr>`).join(''):'<tr><td colspan="3" class="p-4 text-center text-slate-400">No roll directory has been published.</td></tr>';updateRollPublishButton();}
+
         function signatureRoleLabel(role){return role==='principal'?'Principal':role==='sec-ic'?'Secondary Exam IC':'Primary Exam IC';}
         function renderSignatureProfiles(){
             const mount=document.getElementById('settings-signature-profiles');if(!mount)return;
@@ -2994,6 +2999,7 @@
                             <span>📌</span> Create Exam & End-to-End Lifecycle Operations Hub
                         </h2>
                     </div>
+                    ${renderPublicBoardPublisher()}
                     ${renderCircularsWorkspace()}
                     <div class="relative overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-950 via-indigo-800 to-blue-700 px-5 py-4 text-white shadow-sm">
                         <div class="absolute -right-5 -top-8 text-7xl opacity-10">📚</div>
