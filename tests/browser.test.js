@@ -495,6 +495,9 @@ async function main() {
         assert.equal(await a.evaluate(id => currentQpOfficeOrder(id).instructions[0], created.id), 'Use the approved blueprint.');
         await b.evaluate(id => loadArchivedExamToEdit(id), created.id);
         assert.equal(await b.evaluate(() => datesheetDays.length), 2);
+        await b.evaluate(() => bindupAndSaveExamRecord());
+        await b.locator('#selected-exam-vault-workspace').waitFor({state:'attached'});
+        assert.deepEqual(await b.evaluate(() => ({id:selectedPreExamVaultId,open:isVaultOverviewOpen})), {id:created.id,open:true}, 'Save Vault & Continue must open the same vault');
         await a.evaluate(async ({id,title}) => {const oldConfirm=window.confirm,oldPrompt=window.prompt;window.confirm=()=>true;window.prompt=()=>title;try{await deleteArchivedExam(id);}finally{window.confirm=oldConfirm;window.prompt=oldPrompt;}}, {id:created.id,title:created.title});
         await b.waitForFunction(id => !archivedExams.some(exam => exam.id === id) && !isExamConfigOpen, created.id);
         console.log('PASS: drafts are shared, reopen on another device, and remote deletion closes the editor');

@@ -628,7 +628,6 @@
         let selectedPreExamVaultId = Number(localStorage.getItem('vems_pre_exam_id')) || null;
         let isVaultOverviewOpen = sessionStorage.getItem('vems_vault_overview_open') === '1';
         let activeLifecycleStage = null;
-        let recentlySavedVaultId = null;
         let lastRenderedTab = null;
         let workspaceScrollTimer = null;
         let qpSubmissionDeadline = '';
@@ -1779,7 +1778,6 @@
         // MODULE 4: EXAM CREATOR, DATESHEET BUILDER & PRE-EXAM LOGISTICS HUB
         // =========================================================================
         async function startNewExamSetup() {
-            recentlySavedVaultId = null;
             editorBaselines.exam = null;
             activeExamId = newRecordId();
             mainHeaderConfig = {
@@ -1831,7 +1829,6 @@
         function loadArchivedExamToEdit(id) {
             const target = archivedExams.find(ex => ex.id === id);
             if (!target) return;
-            recentlySavedVaultId = null;
             editorBaselines.exam = null;
             activeExamId = target.id;
             if (target.headerSnapshot) {
@@ -1892,11 +1889,9 @@
             // Close the editor only after the server confirms the save.
             if (!await saveData(['archivedExams'])) return;
             isExamConfigOpen = false;
-            recentlySavedVaultId = activeExamId;
             selectedPreExamVaultId = activeExamId;
             alert(`🎉 EXAM FULLY SAVED TO VAULT!\n\nExam: ${examTitle}\nTotal Days: ${datesheetDays.length}`);
-            renderExamCreatorModule();
-            setTimeout(()=>document.getElementById('vault-save-next-step')?.scrollIntoView({behavior:'smooth',block:'center'}),50);
+            openExamVault(activeExamId);
         }
 
         function examDateSummary(exam){
@@ -3236,7 +3231,6 @@
                             </div>
                         `}
                     </div>
-                    ${recentlySavedVaultId&&archivedExams.some(ex=>String(ex.id)===String(recentlySavedVaultId))?`<div id="vault-save-next-step" class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 shadow-sm"><div class="flex flex-wrap items-center justify-between gap-3"><div><b class="text-emerald-950">✅ Vault details saved successfully</b><p class="mt-1 text-xs text-slate-600">Next, open the vault and work through Pre-Exam, During Exam and After Exam in order.</p></div><div class="flex flex-wrap gap-2"><button type="button" onclick="loadArchivedExamToEdit(${Number(recentlySavedVaultId)})" class="rounded border border-indigo-300 bg-white px-4 py-2 text-xs font-bold text-indigo-800">✏️ Continue Editing</button><button type="button" onclick="openExamVault(${Number(recentlySavedVaultId)})" class="rounded bg-emerald-700 px-5 py-2 text-xs font-bold text-white shadow">Next: Open Vault →</button></div></div></div>`:''}
                     ${isExamConfigOpen ? `
                         <div id="exam-vault-editor" class="scroll-mt-24 bg-indigo-50 border-2 border-indigo-200 rounded-xl p-5 space-y-5">
                             <div class="flex justify-between items-center border-b pb-2">
