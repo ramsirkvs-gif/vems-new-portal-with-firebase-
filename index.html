@@ -2472,7 +2472,7 @@
         }
 
         function renderExamCreatorModule() {
-            const htmlContent = isPreExamFullPageOpen ? renderFullPagePreExamWorkstation() : renderMainLifecycleHub();
+            const htmlContent = isPreExamFullPageOpen ? renderFullPagePreExamWorkstation() : activeLifecycleStage ? renderLifecycleFullPage(activeLifecycleStage) : renderMainLifecycleHub();
             let prinMount = document.getElementById('exam-creator-mount-prin');
             let secMount = document.getElementById('exam-creator-mount-sec');
             let priMount = document.getElementById('exam-creator-mount-pri');
@@ -2984,6 +2984,7 @@
             const tasks=stage==='during'?during:post,title=stage==='during'?'During-Exam Operations & Assistance':'Post-Exam Follow-up & Binding',colour=stage==='during'?'amber':'emerald';
             return `<div id="lifecycle-stage-workspace" class="mt-5 border-2 border-${colour}-200 rounded-xl bg-${colour}-50/50 p-4 space-y-4"><div class="flex justify-between items-center gap-3"><div><h3 class="font-bold text-${colour}-950">${stage==='during'?'🧭':'📦'} ${title}</h3><p class="text-xs text-slate-600">${exam?`Working with: ${escapeHtml(exam.title)} · ${escapeHtml(formatOrderDate(exam.fromDate))} to ${escapeHtml(formatOrderDate(exam.toDate))}`:'Create or select an examination vault record to begin.'}</p></div><button onclick="closeLifecycleStage()" class="bg-white border rounded px-3 py-2 font-bold">✕ Close</button></div>${!exam?'<div class="bg-amber-100 border border-amber-300 rounded p-3 font-bold">No examination vault is available for this session.</div>':`<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${tasks.map((task,index)=>`<div class="bg-white border rounded-xl p-4"><div class="text-xl">${task[0]}</div><h4 class="mt-1 font-bold">${index+1}. ${task[1]}</h4><p class="mt-1 text-xs text-slate-600">${task[2]}</p>${stage==='during'&&index===1?'<button onclick="openLinkedPreExamTool(\'invigilation\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Invigilation</button>':stage==='during'&&index===5?'<button onclick="openLinkedPreExamTool(\'inventory\')" class="mt-3 bg-amber-600 text-white rounded px-3 py-2 font-bold">Open Inventory</button>':''}</div>`).join('')}</div>`}</div>`;
         }
+        function renderLifecycleFullPage(stage){const title=stage==='during'?'During-Exam Operations & Assistance':'Post-Exam Follow-up & Binding';return `<div class="space-y-5"><div class="bg-indigo-950 text-white rounded-xl p-5 flex flex-wrap justify-between items-center gap-3 shadow"><div><span class="text-[10px] bg-indigo-700 rounded-full px-3 py-1 font-bold">FULL WORKSPACE</span><h2 class="mt-2 font-extrabold">${stage==='during'?'🧭':'📦'} ${title}</h2><p class="text-xs text-indigo-100">Session ${escapeHtml(selectedAcademicSession)} · Examination lifecycle workspace</p></div><button onclick="closeLifecycleStage()" class="bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2 font-bold">⬅ Exit / Back</button></div>${renderLifecycleStageWorkspace(stage)}</div>`;}
 
         function renderMainLifecycleHub() {
             return `
@@ -3060,23 +3061,22 @@
                     <div class="border-t pt-6">
                         <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide mb-3">📊 Operational Tasks & Lifecycle Management</h3>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div class="bg-indigo-50 border p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                            <button type="button" onclick="openPreExamFullPageWorkspace()" class="text-left bg-indigo-50 border border-indigo-200 p-4 rounded-xl space-y-3 flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition min-h-36">
                                 <div>
                                     <h4 class="text-xs font-bold text-indigo-900 uppercase">1️⃣ Pre-Exam Preparation</h4>
                                     <p class="text-[11px] text-slate-600 mt-1">Datesheet, office orders, QP receipt and printing, seating, invigilation and room inventory.</p>
                                 </div>
-                                <button type="button" onclick="openPreExamFullPageWorkspace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 rounded shadow">🚀 Open Full Pre-Exam Hub</button>
-                            </div>
-                            <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                                <span class="block text-center w-full bg-indigo-600 text-white font-bold text-xs py-2 rounded shadow">🚀 Open Pre-Exam Workspace</span>
+                            </button>
+                            <button type="button" onclick="openLifecycleStage('during')" class="text-left bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-3 flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition min-h-36">
                                 <div><h4 class="text-xs font-bold text-amber-900 uppercase">2️⃣ During-Exam Operations & Assistance</h4><p class="text-[11px] text-slate-600 mt-1">Day command desk, attendance and absentees, relief support, incidents, QP movement and room supplies.</p></div>
-                                <button type="button" onclick="openLifecycleStage('during')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2 rounded shadow">🧭 Open During-Exam Desk</button>
-                            </div>
-                            <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                                <span class="block text-center w-full bg-amber-600 text-white font-bold text-xs py-2 rounded shadow">🧭 Open During-Exam Workspace</span>
+                            </button>
+                            <button type="button" onclick="openLifecycleStage('post')" class="text-left bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-3 flex flex-col justify-between hover:shadow-md hover:-translate-y-0.5 transition min-h-36">
                                 <div><h4 class="text-xs font-bold text-emerald-900 uppercase">3️⃣ Post-Exam Follow-up & Binding</h4><p class="text-[11px] text-slate-600 mt-1">Answer-script receipt, bundling, evaluation issue/return, marks follow-up, records and closure.</p></div>
-                                <button type="button" onclick="openLifecycleStage('post')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs py-2 rounded shadow">📦 Open Post-Exam Desk</button>
-                            </div>
+                                <span class="block text-center w-full bg-emerald-700 text-white font-bold text-xs py-2 rounded shadow">📦 Open Post-Exam Workspace</span>
+                            </button>
                         </div>
-                        ${activeLifecycleStage ? renderLifecycleStageWorkspace(activeLifecycleStage) : ''}
                     </div>
                 </div>
             `;
