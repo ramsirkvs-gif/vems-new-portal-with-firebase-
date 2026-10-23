@@ -135,6 +135,23 @@ function sharedValue(name) {
         examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings,
         dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
 }
+function samePublishedData(left,right){return JSON.stringify(left)===JSON.stringify(right);}
+function liveFacultyRosterRows(){return teachers.map(teacher=>({id:String(teacher.id),name:teacher.name,desig:teacher.desig,allotments:(teacher.allotments||[]).map(allotment=>({cls:String(allotment.cls),sec:String(allotment.sec),subject:allotment.subject,qpSetter:facultyQpSetterDisplay(teacher,allotment),evaluator:facultyEvaluatorDisplay(teacher,allotment)}))}));}
+function refreshPublishedDataForChanges(inputNames){
+    const names=[...new Set(inputNames)],changed=new Set(names),now=new Date().toISOString();let boardsChanged=false;
+    if(changed.has('sectionConfigs')&&publishedSubjectDirectories.current){const sections=cloneData(sectionConfigs);if(!samePublishedData(publishedSubjectDirectories.current.sections,sections)){publishedSubjectDirectories={current:{...publishedSubjectDirectories.current,sessionId:selectedAcademicSession,publishedAt:now,publishedBy:authorizedRole,sections}};names.push('publishedSubjectDirectories');}}
+    if(changed.has('teachers')&&publicPortalBoards.facultyRoster){const rows=liveFacultyRosterRows();if(!samePublishedData(publicPortalBoards.facultyRoster.rows,rows)){publicPortalBoards={...publicPortalBoards,facultyRoster:{...publicPortalBoards.facultyRoster,rows,publishedAt:now,publishedBy:authorizedRole}};boardsChanged=true;}}
+    if((changed.has('students')||changed.has('sectionConfigs'))&&publicPortalBoards.rollDirectory){const oldSections=rollDirectorySections(publicPortalBoards.rollDirectory),sections={};Object.keys(oldSections).forEach(key=>{const [cls,section]=key.split('-');sections[key]=students.filter(student=>isStudentActive(student)&&String(student.class)===cls&&String(student.section)===section).map(student=>({name:student.name,roll:student.roll,cls,section}));});const mappedClasses=Object.keys(sectionConfigs).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));if(!samePublishedData(oldSections,sections)||!samePublishedData(publicPortalBoards.rollDirectory.mappedClasses,mappedClasses)){publicPortalBoards={...publicPortalBoards,rollDirectory:{...publicPortalBoards.rollDirectory,sections,mappedClasses,publishedAt:now,publishedBy:authorizedRole}};boardsChanged=true;}}
+    if((changed.has('seatingPlans')||changed.has('archivedExams'))&&publicPortalBoards.seating){const exam=archivedExams.find(item=>String(item.id)===String(publicPortalBoards.seating.examId)),plans=cloneData(seatingPlans[String(publicPortalBoards.seating.examId)]||{}),examTitle=exam?.title||publicPortalBoards.seating.examTitle;if(!samePublishedData(publicPortalBoards.seating.plans,plans)||publicPortalBoards.seating.examTitle!==examTitle){publicPortalBoards={...publicPortalBoards,seating:{...publicPortalBoards.seating,examTitle,plans,publishedAt:now}};boardsChanged=true;}}
+    if((changed.has('classTeacherAssignments')||changed.has('archivedExams'))&&publicPortalBoards.liveDuty){const exam=archivedExams.find(item=>String(item.id)===String(publicPortalBoards.liveDuty.examId)),duties=Object.entries(classTeacherAssignments||{}).filter(([,value])=>value.assignedOnDuty).map(([classSection,value])=>({classSection,teacher:value.assignedOnDuty,duty:'On-Duty / Relief Support'})),examTitle=exam?.title||publicPortalBoards.liveDuty.examTitle;if(!samePublishedData(publicPortalBoards.liveDuty.duties,duties)||publicPortalBoards.liveDuty.examTitle!==examTitle){publicPortalBoards={...publicPortalBoards,liveDuty:{...publicPortalBoards.liveDuty,examTitle,duties,publishedAt:now}};boardsChanged=true;}}
+    if(boardsChanged&&!names.includes('publicPortalBoards'))names.push('publicPortalBoards');
+    return names;
+}
+async function reconcilePublishedDataNow(){
+    if(authorizedRole!=='principal'||!sharedStore?.active||!sharedStore.ready||sharedStore.pendingCount)return;
+    const refreshed=refreshPublishedDataForChanges(['sectionConfigs','teachers','students','seatingPlans','archivedExams','classTeacherAssignments']),targets=[...new Set(refreshed.filter(name=>name==='publicPortalBoards'||name==='publishedSubjectDirectories'))];
+    if(targets.length)await saveData(targets);
+}
 function acceptSharedValue(name, value) {
     switch (name) {
         case 'students':
@@ -180,6 +197,7 @@ function acceptSharedValue(name, value) {
 }
 async function saveData(names, expected = {}) {
     if (!Array.isArray(names) || !names.length) throw new Error('Choose the records to save.');
+    names=refreshPublishedDataForChanges(names);
     const required = names.some(name => principalCollections.includes(name)) ? 'principal' : 'exam';
     if (!canEditSharedData(required)) { restoreSharedValues(names); return false; }
     const store = sharedStore;
@@ -266,6 +284,7 @@ function switchPortalArea(area) {
     if (area === 'public' || authorizedRole === 'principal' || authorizedRole === area) {
         currentActiveRole = area;
         activateArea(area);
+        if(area==='public'&&authorizedRole==='principal')reconcilePublishedDataNow();
     } else openLoginModal(area);
 }
 function openLoginModal(role) {

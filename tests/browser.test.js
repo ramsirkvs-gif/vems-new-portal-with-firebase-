@@ -182,6 +182,9 @@ async function main() {
         assert.equal(await a.evaluate(async()=>new TextDecoder().decode((await publishedFacultyRosterPdfBlob().arrayBuffer()).slice(0,8))),'%PDF-1.4');
         assert.match(await a.evaluate(async()=>new TextDecoder().decode(await publishedFacultyRosterPdfBlob().arrayBuffer())),/EXAMINATION CELL - FACULTY ROSTER & EXAM DUTIES/);
         assert.match(await a.evaluate(async()=>new TextDecoder().decode(await publishedFacultyRosterPdfBlob().arrayBuffer())),/QP Setter.*Evaluator/s);
+        await a.evaluate(async()=>{teachers[0].desig='PGT SCIENCE UPDATED';await saveData(['teachers']);});
+        await b.waitForFunction(()=>publicPortalBoards.facultyRoster?.rows?.[0]?.desig==='PGT SCIENCE UPDATED');
+        await a.evaluate(async()=>{teachers[0].desig='PGT SCIENCE';await saveData(['teachers']);});
         console.log('PASS: published faculty roster provides public dropdown, search and compact scrolling window');
 
         await a.evaluate(() => {resetTeacherForm();document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('10','A','SCIENCE');window._facultyAlert=window.alert;window.facultyConflictAlert='';window.alert=message=>window.facultyConflictAlert=message;});
