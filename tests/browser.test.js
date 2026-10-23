@@ -99,6 +99,8 @@ async function main() {
         const a = await pageFor({ legacy: true });
         const b = await pageFor({ mobile: true, forgedRole: true });
         assert.equal(await a.locator('#student-modal').isVisible(), false, 'student modal must stay closed on initial entry');
+        assert.equal(await a.evaluate(()=>{const oldConfirm=window.confirm,oldPrompt=window.prompt;window.confirm=()=>true;window.prompt=()=> 'WRONG NAME';const result=confirmMajorDeletion('complete examination vault','PT-1');window.confirm=oldConfirm;window.prompt=oldPrompt;return result;}),false);
+        assert.equal(await a.evaluate(()=>{const oldConfirm=window.confirm,oldPrompt=window.prompt;window.confirm=()=>true;window.prompt=()=> 'PT-1';const result=confirmMajorDeletion('complete examination vault','PT-1');window.confirm=oldConfirm;window.prompt=oldPrompt;return result;}),true);
         assert.equal(await a.locator('#login-modal').isVisible(), false, 'login modal must stay closed until a role is selected');
         assert.equal(await b.getByRole('banner').getByText('PM SHRI Kendriya Vidyalaya No. 1, Itanagar', {exact:true}).isVisible(), true, 'school name must remain visible on mobile');
         assert.equal(await b.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'mobile layout must not overflow the viewport');
@@ -472,7 +474,7 @@ async function main() {
         assert.equal(await a.evaluate(id => currentQpOfficeOrder(id).instructions[0], created.id), 'Use the approved blueprint.');
         await b.evaluate(id => loadArchivedExamToEdit(id), created.id);
         assert.equal(await b.evaluate(() => datesheetDays.length), 1);
-        await a.evaluate(id => deleteArchivedExam(id), created.id);
+        await a.evaluate(async ({id,title}) => {const oldConfirm=window.confirm,oldPrompt=window.prompt;window.confirm=()=>true;window.prompt=()=>title;try{await deleteArchivedExam(id);}finally{window.confirm=oldConfirm;window.prompt=oldPrompt;}}, {id:created.id,title:created.title});
         await b.waitForFunction(id => !archivedExams.some(exam => exam.id === id) && !isExamConfigOpen, created.id);
         console.log('PASS: drafts are shared, reopen on another device, and remote deletion closes the editor');
 

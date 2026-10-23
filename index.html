@@ -842,7 +842,7 @@
             if (teachers.some(t => (t.allotments || []).some(a => String(a.cls)===cls && String(a.sec)===sec))) reasons.push('faculty allotments');
             if (archivedExams.some(ex => (ex.datesheetSnapshot || []).some(day => (day.paperSlots || []).some(slot => String(slot.cls)===cls && (slot.selectedSections || []).includes(sec))))) reasons.push('saved examinations');
             if (reasons.length) { alert(`Cannot delete Class ${formatClass(cls)}-${sec}. First remove its ${reasons.join(', ')}.`); return; }
-            if (!confirm(`Delete Class ${formatClass(cls)} - Section ${sec} and its subject mapping?`)) return;
+            if (!confirmMajorDeletion('class/section mapping',`Class ${formatClass(cls)}-${sec}`)) return;
             delete sectionConfigs[key];
             const refreshPublished=syncPublishedSubjectDirectorySnapshot();
             if (await saveData(['sectionConfigs',...(refreshPublished?['publishedSubjectDirectories']:[])])) { editorBaselines.section=null; initCfgSections(); renderMasterSubjectDirectory(); }
@@ -1839,13 +1839,21 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        function confirmMajorDeletion(recordType,recordName){
+            const name=String(recordName||'').trim();
+            if(!confirm(`Delete ${recordType} "${name}"?\n\nThis is a major deletion and may affect linked examination work.`))return false;
+            const entered=prompt(`FINAL WARNING\n\nThis action cannot be undone after it is saved.\nType the exact name below to permanently delete it:\n\n${name}`,'');
+            if(String(entered??'').trim()!==name){if(entered!==null)alert('Deletion cancelled. The entered name did not match exactly.');return false;}
+            return true;
+        }
+
         async function deleteArchivedExam(id) {
-            if (confirm("⚠️ Are you sure you want to delete this exam record from vault?")) {
-                archivedExams = archivedExams.filter(ex => ex.id !== id);
-                if (activeExamId === id) activeExamId = null;
-                if (!await saveData(['archivedExams'])) return;
-                renderExamCreatorModule();
-            }
+            const exam=archivedExams.find(ex=>ex.id===id);if(!exam)return;
+            if(!confirmMajorDeletion('complete examination vault',exam.title))return;
+            archivedExams = archivedExams.filter(ex => ex.id !== id);
+            if (activeExamId === id) activeExamId = null;
+            if (!await saveData(['archivedExams'])) return;
+            renderExamCreatorModule();
         }
 
         async function bindupAndSaveExamRecord() {
