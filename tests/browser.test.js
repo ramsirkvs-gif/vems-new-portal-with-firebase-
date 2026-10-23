@@ -92,6 +92,8 @@ async function main() {
         }
         const a = await pageFor({ legacy: true });
         const b = await pageFor({ mobile: true, forgedRole: true });
+        assert.equal(await a.locator('#student-modal').isVisible(), false, 'student modal must stay closed on initial entry');
+        assert.equal(await a.locator('#login-modal').isVisible(), false, 'login modal must stay closed until a role is selected');
         assert.equal(await b.getByText('PM SHRI Kendriya Vidyalaya No. 1, Itanagar', {exact:true}).isVisible(), true, 'school name must remain visible on mobile');
         assert.equal(await b.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'mobile layout must not overflow the viewport');
         assert.equal(await b.locator('.role-switcher').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length), 2, 'mobile role controls use a readable two-column grid');

@@ -44,6 +44,7 @@
         html { scroll-behavior: smooth; }
         body { overflow-x: hidden; }
         #login-modal, #student-modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
+        #login-modal.hidden, #student-modal.hidden { display: none !important; }
         button, select, input, textarea { transition: border-color .18s ease, box-shadow .18s ease, transform .12s ease; }
         button:active { transform: translateY(1px); }
         button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid rgba(59,130,246,.28); outline-offset: 1px; }
