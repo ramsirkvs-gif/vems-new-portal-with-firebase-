@@ -25,8 +25,10 @@ let lastConfirmedSave = '';
 let sectionFormDirty = false;
 let assignmentRenderBaseline = {};
 const DEFAULT_ACADEMIC_SESSION = '2026-27';
+const DEFAULT_PORTAL_GATE_HASH = '4a5622cc6d54ca807b1b0e941856ae795fc9b94d8a4c6328ddb80860984deece';
 let academicSessions = { [DEFAULT_ACADEMIC_SESSION]: { id: DEFAULT_ACADEMIC_SESSION, status: 'active', createdAt: '2026-04-01' } };
 let systemSettings = { activeSession: DEFAULT_ACADEMIC_SESSION };
+let portalGateReady = false;
 let selectedAcademicSession = localStorage.getItem('vems_selected_session') || DEFAULT_ACADEMIC_SESSION;
 let sessionMetadataSubscriptions = [];
 let publicDirectorySubscription = null;
@@ -36,6 +38,35 @@ function sessionCollectionPath(name, sessionId = selectedAcademicSession) {
     return sessionId === DEFAULT_ACADEMIC_SESSION ? name : `sessionData/${sessionId}/${name}`;
 }
 function selectedSessionRecord() { return academicSessions[selectedAcademicSession] || { id: selectedAcademicSession, status: 'open' }; }
+async function sha256Text(value) { const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));return [...new Uint8Array(bytes)].map(byte=>byte.toString(16).padStart(2,'0')).join(''); }
+function currentPortalGateHash(){return systemSettings.portalGateHash||DEFAULT_PORTAL_GATE_HASH;}
+function portalGateStorageKey(){return `vems_portal_gate_${currentPortalGateHash()}`;}
+function applyPortalCurtain(){
+    portalGateReady=true;
+    const curtain=document.getElementById('portal-curtain'),submit=document.getElementById('portal-curtain-submit'),status=document.getElementById('portal-curtain-status');
+    if(!curtain)return;
+    submit.disabled=false;
+    const trusted=localStorage.getItem(portalGateStorageKey())==='trusted';
+    curtain.classList.toggle('hidden',trusted);
+    status.textContent=trusted?'Device verified.':'Enter the KV staff curtain passcode.';
+}
+async function unlockPortalCurtain(event){
+    event.preventDefault();const input=document.getElementById('portal-curtain-password'),status=document.getElementById('portal-curtain-status');
+    if(!portalGateReady){status.textContent='Please wait while portal settings load.';return;}
+    const hash=await sha256Text(input.value);
+    if(hash!==currentPortalGateHash()){input.value='';status.textContent='Incorrect curtain passcode.';status.className='text-xs min-h-5 text-red-700 font-bold';input.focus();return;}
+    localStorage.setItem(portalGateStorageKey(),'trusted');input.value='';document.getElementById('portal-curtain').classList.add('hidden');
+}
+async function changePortalCurtainPassword(event){
+    event.preventDefault();const form=event.target,status=form.querySelector('[data-curtain-change-status]'),current=form.elements.current.value,next=form.elements.next.value,confirmValue=form.elements.confirm.value;
+    if(authorizedRole!=='principal'){status.textContent='Only the Principal can change this passcode.';status.className='md:col-span-4 text-xs text-red-700 font-bold';return;}
+    if(await sha256Text(current)!==currentPortalGateHash()){status.textContent='Current curtain passcode is incorrect.';status.className='md:col-span-4 text-xs text-red-700 font-bold';return;}
+    if(next!==confirmValue){status.textContent='New curtain passcodes do not match.';status.className='md:col-span-4 text-xs text-red-700 font-bold';return;}
+    if(next.length<6){status.textContent='Use at least 6 characters.';status.className='md:col-span-4 text-xs text-red-700 font-bold';return;}
+    const nextHash=await sha256Text(next),key=`vems_portal_gate_${nextHash}`;localStorage.setItem(key,'trusted');
+    try{await db.ref('systemSettings').transaction(currentValue=>({...currentValue,portalGateHash:nextHash,portalGateUpdatedAt:new Date().toISOString()}));form.reset();status.textContent='Curtain passcode changed. Other devices will require the new passcode.';status.className='md:col-span-4 text-xs text-emerald-700 font-bold';}
+    catch(error){localStorage.removeItem(key);status.textContent=`Not changed: ${error.message}`;status.className='md:col-span-4 text-xs text-red-700 font-bold';}
+}
 function isSelectedSessionFrozen() { return selectedSessionRecord().status === 'frozen'; }
 function updateSessionChrome() {
     const badge = document.getElementById('header-session-badge');
@@ -405,7 +436,7 @@ function bindSessionMetadata() {
     sessionMetadataSubscriptions.forEach(item=>item.ref.off('value',item.listener)); sessionMetadataSubscriptions=[];
     const bind=(path,handler)=>{const ref=db.ref(path),listener=snapshot=>handler(snapshot.val()||{});ref.on('value',listener);sessionMetadataSubscriptions.push({ref,listener});};
     bind('academicSessions',value=>{academicSessions=Object.keys(value).length?value:{[DEFAULT_ACADEMIC_SESSION]:{id:DEFAULT_ACADEMIC_SESSION,status:'active',createdAt:'2026-04-01'}};if(!academicSessions[selectedAcademicSession])selectedAcademicSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;updateSessionChrome();});
-    bind('systemSettings',value=>{const previous=systemSettings.activeSession;systemSettings={activeSession:DEFAULT_ACADEMIC_SESSION,...value};if(previous!==systemSettings.activeSession)bindPublicDirectory();updateSessionChrome();});
+    bind('systemSettings',value=>{const previous=systemSettings.activeSession;systemSettings={activeSession:DEFAULT_ACADEMIC_SESSION,...value};applyPortalCurtain();if(previous!==systemSettings.activeSession)bindPublicDirectory();updateSessionChrome();});
 }
 async function saveSessionMetadata(nextSessions=academicSessions,nextSettings=systemSettings) {
     if(authorizedRole!=='principal'){showSyncError('Only the Principal can manage academic sessions.');return false;}

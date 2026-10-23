@@ -79,6 +79,10 @@ async function main() {
             });
             if (options.forgedRole) await page.addInitScript(() => localStorage.setItem('vems_active_role', 'principal'));
             await page.goto(base);
+            await page.waitForFunction(() => portalGateReady === true);
+            await page.fill('#portal-curtain-password', 'kvs123');
+            await page.locator('#portal-curtain button[type="submit"]').click();
+            await page.waitForFunction(() => document.getElementById('portal-curtain').classList.contains('hidden'));
             return page;
         }
         async function login(page, email, role = 'principal') {
@@ -95,7 +99,7 @@ async function main() {
         const b = await pageFor({ mobile: true, forgedRole: true });
         assert.equal(await a.locator('#student-modal').isVisible(), false, 'student modal must stay closed on initial entry');
         assert.equal(await a.locator('#login-modal').isVisible(), false, 'login modal must stay closed until a role is selected');
-        assert.equal(await b.getByText('PM SHRI Kendriya Vidyalaya No. 1, Itanagar', {exact:true}).isVisible(), true, 'school name must remain visible on mobile');
+        assert.equal(await b.getByRole('banner').getByText('PM SHRI Kendriya Vidyalaya No. 1, Itanagar', {exact:true}).isVisible(), true, 'school name must remain visible on mobile');
         assert.equal(await b.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'mobile layout must not overflow the viewport');
         assert.equal(await b.locator('.role-switcher').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length), 2, 'mobile role controls use a readable two-column grid');
         assert.equal(await b.locator('#area-principal').isVisible(), false, 'a local role flag cannot grant access');
