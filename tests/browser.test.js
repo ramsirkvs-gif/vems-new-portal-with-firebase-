@@ -382,6 +382,7 @@ async function main() {
         const dateSheetText = await a.locator('#date-sheet-preview iframe').contentFrame().locator('body').textContent();
         assert.match(dateSheetText, /Existing Exam/);
         assert.match(dateSheetText, /SCIENCE/);
+        assert.match(dateSheetText, /From 01\/11\/2026 till 01\/11\/2026.*1 examination day/);
         await a.evaluate(() => document.getElementById('date-sheet-preview').remove());
         await a.locator('.datesheet-instruction-input').first().fill('Report 20 minutes before the examination.');
         await a.locator('button', { hasText: 'Add Instruction' }).click();
@@ -487,6 +488,7 @@ async function main() {
         await a.evaluate(() => addNextDatesheetDay());
         await b.waitForFunction(id => archivedExams.find(exam=>exam.id===id)?.datesheetSnapshot?.some(day=>day.dateStr==='2026-10-26'), created.id);
         assert.deepEqual(await a.evaluate(() => ({count:datesheetDays.length,added:datesheetDays.some(day=>day.dateStr==='2026-10-26'),gap:datesheetDays.some(day=>['2026-10-24','2026-10-25'].includes(day.dateStr))})), {count:2,added:true,gap:false}, 'only explicitly selected examination dates should be added');
+        assert.match(await a.evaluate(id => examPeriodSummary(archivedExams.find(exam=>exam.id===id)), created.id), /From .* till 26\/10\/2026.*2 examination days/);
         assert.equal(await a.evaluate(id => currentQpOfficeOrder(id).instructions[0], created.id), 'Use the approved blueprint.');
         await b.evaluate(id => loadArchivedExamToEdit(id), created.id);
         assert.equal(await b.evaluate(() => datesheetDays.length), 2);
