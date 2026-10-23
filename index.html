@@ -399,8 +399,8 @@
                             </div>
                         </div>
                         <div class="overflow-x-auto border rounded-lg shadow-sm">
-                            <table class="w-full min-w-[1120px] table-fixed text-xs text-left text-slate-600">
-                                <colgroup><col class="w-[15%]"><col class="w-[18%]"><col class="w-[24%]"><col class="w-[17%]"><col class="w-[9%]"><col class="w-[8%]"><col class="w-[9%]"></colgroup>
+                            <table class="w-full min-w-[1080px] table-fixed text-xs text-left text-slate-600">
+                                <colgroup><col class="w-[15%]"><col class="w-[20%]"><col class="w-[24%]"><col class="w-[17%]"><col class="w-[8%]"><col class="w-[7%]"><col class="w-[9%]"></colgroup>
                                 <thead class="bg-indigo-900 text-white uppercase font-semibold border-b">
                                     <tr>
                                         <th class="px-4 py-3">Teacher Name & Desig</th>
@@ -1695,17 +1695,17 @@
                 return;
             }
             filteredTeachers.forEach((t) => {
-                const allotments=t.allotments?.length?t.allotments:[null],counts=allotments.map(al=>al?students.filter(s=>isStudentActive(s)&&String(s.class)===String(al.cls)&&String(s.section)===String(al.sec)&&studentTakesSubject(s,al.subject)).length:0),totalStudentsAllotted=counts.reduce((sum,count)=>sum+count,0),rowspan=allotments.length;
-                allotments.forEach((al,index)=>{
-                    const first=index===0,groupBorder=index===rowspan-1?'border-b-2 border-indigo-200':'border-b border-slate-100';
-                    tbody.innerHTML+=`<tr class="${groupBorder} hover:bg-slate-50 align-top">
-                        ${first?`<td rowspan="${rowspan}" class="px-4 py-3 align-middle font-semibold border-r border-slate-100"><div class="text-slate-900">${escapeHtml(t.name)}</div><span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${escapeHtml(t.desig)}</span></td>`:''}
-                        <td class="px-4 py-2.5">${al?`<div class="font-semibold text-slate-800">Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}</div><div class="mt-0.5 font-bold text-indigo-900">${escapeHtml(al.subject)}</div><div class="text-[10px] text-slate-500">${counts[index]} student booklet(s)</div>`:'<i class="text-slate-400">No allotment</i>'}</td>
-                        <td class="px-4 py-2.5 font-semibold text-indigo-900 break-words">${al?escapeHtml(facultyQpSetterDisplay(t,al)):'—'}</td>
-                        <td class="px-4 py-2.5 font-semibold text-slate-800 break-words">${al?escapeHtml(facultyEvaluatorDisplay(t,al)):'—'}</td>
-                        ${first?`<td rowspan="${rowspan}" class="px-3 py-3 align-middle text-center bg-indigo-50/60 font-bold text-indigo-900"><div class="text-base">${totalStudentsAllotted}</div><div class="text-[10px]">Booklets</div></td><td rowspan="${rowspan}" class="px-3 py-3 align-middle text-center bg-emerald-50/60 font-bold text-emerald-900"><div class="text-base">${t.allotments?.length||0}</div><div class="text-[10px]">Bundle(s)</div></td><td rowspan="${rowspan}" class="px-3 py-3 align-middle text-right"><div class="flex flex-col items-end gap-2"><button type="button" onclick="editTeacher(${Number(t.id)})" class="text-indigo-600 hover:underline font-bold">Edit</button><button type="button" onclick="deleteTeacher(${Number(t.id)})" class="text-red-600 hover:underline font-bold">Delete</button></div></td>`:''}
-                    </tr>`;
-                });
+                let totalStudentsAllotted=0,allotmentsHtml='',qpHtml='',evaluatorHtml='';
+                (t.allotments||[]).forEach(al=>{const count=students.filter(s=>isStudentActive(s)&&String(s.class)===String(al.cls)&&String(s.section)===String(al.sec)&&studentTakesSubject(s,al.subject)).length,totalLabel=`Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}`;totalStudentsAllotted+=count;allotmentsHtml+=`<div class="py-1 leading-4"><span class="font-semibold text-slate-700">${totalLabel}:</span> <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> <span class="text-[10px] text-slate-500">(${count})</span></div>`;qpHtml+=`<div class="py-1 leading-4"><span class="text-slate-500">${totalLabel}:</span> <strong class="text-indigo-900">${escapeHtml(facultyQpSetterDisplay(t,al))}</strong></div>`;evaluatorHtml+=`<div class="py-1 leading-4"><span class="text-slate-500">${totalLabel}:</span> <strong class="text-slate-800">${escapeHtml(facultyEvaluatorDisplay(t,al))}</strong></div>`;});
+                tbody.innerHTML+=`<tr class="hover:bg-slate-50 border-b align-middle">
+                    <td class="px-4 py-3 font-semibold"><div class="text-slate-900">${escapeHtml(t.name)}</div><span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${escapeHtml(t.desig)}</span></td>
+                    <td class="px-4 py-2 align-top">${allotmentsHtml||'<i class="text-slate-400">No allotments</i>'}</td>
+                    <td class="px-4 py-2 align-top break-words">${qpHtml||'—'}</td>
+                    <td class="px-4 py-2 align-top break-words">${evaluatorHtml||'—'}</td>
+                    <td class="px-3 py-3 text-center bg-indigo-50/60 font-bold text-indigo-900"><div class="text-base">${totalStudentsAllotted}</div><div class="text-[10px]">Booklets</div></td>
+                    <td class="px-3 py-3 text-center bg-emerald-50/60 font-bold text-emerald-900"><div class="text-base">${t.allotments?.length||0}</div><div class="text-[10px]">Bundle(s)</div></td>
+                    <td class="px-3 py-3 text-right"><div class="flex flex-col items-end gap-2"><button type="button" onclick="editTeacher(${Number(t.id)})" class="text-indigo-600 hover:underline font-bold">Edit</button><button type="button" onclick="deleteTeacher(${Number(t.id)})" class="text-red-600 hover:underline font-bold">Delete</button></div></td>
+                </tr>`;
             });
         }
 
