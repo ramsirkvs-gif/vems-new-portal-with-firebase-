@@ -163,6 +163,7 @@ async function main() {
         assert.doesNotMatch(await a.locator('#teacher-table-body .faculty-qp-setter').first().innerText(),/Class X-A/);
         assert.match(await a.locator('#teacher-table-body .faculty-duty-line').first().getAttribute('class'),/border-b/);
         assert.equal(await a.locator('#teacher-table-body .faculty-duty-line').first().locator(':scope > div').count(),3);
+        assert.match(await a.locator('#teacher-table-body .faculty-teacher-name').first().getAttribute('class'),/whitespace-nowrap/);
         assert.doesNotMatch(await a.locator('#teacher-table-body').innerText(),/\bSelf\b/);
         console.log('PASS: faculty save is confirmed and appears on the other device');
 
