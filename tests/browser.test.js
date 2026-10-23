@@ -170,6 +170,8 @@ async function main() {
         assert.equal(await a.locator('#public-faculty-roster-section button', {hasText:'PDF / Print'}).count(),1);
         assert.equal(await a.locator('#public-faculty-roster-section button', {hasText:'Share PDF to WhatsApp'}).count(),1);
         assert.equal(await a.evaluate(async()=>new TextDecoder().decode((await publishedFacultyRosterPdfBlob().arrayBuffer()).slice(0,8))),'%PDF-1.4');
+        assert.match(await a.evaluate(async()=>new TextDecoder().decode(await publishedFacultyRosterPdfBlob().arrayBuffer())),/EXAMINATION CELL - FACULTY ROSTER & EXAM DUTIES/);
+        assert.match(await a.evaluate(async()=>new TextDecoder().decode(await publishedFacultyRosterPdfBlob().arrayBuffer())),/QP Setter.*Evaluator/s);
         console.log('PASS: published faculty roster provides public dropdown, search and compact scrolling window');
 
         await a.evaluate(() => {resetTeacherForm();document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('10','A','SCIENCE');window._facultyAlert=window.alert;window.facultyConflictAlert='';window.alert=message=>window.facultyConflictAlert=message;});
