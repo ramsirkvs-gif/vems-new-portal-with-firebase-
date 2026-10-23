@@ -167,6 +167,15 @@ async function main() {
         await a.evaluate(() => {window.alert=window._facultyAlert;delete window._facultyAlert;delete window.facultyConflictAlert;resetTeacherForm();});
         console.log('PASS: duplicate class-section-subject assignment to another teacher is blocked');
 
+        await a.evaluate(() => {document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('11','A','SCIENCE');});
+        await a.fill('#tch-name-input','Second Science Teacher');
+        const teamOption=await a.locator('.teaching-row .qp-sel option').filter({hasText:'Team: Second Science Teacher + New Shared Teacher'}).getAttribute('value');
+        assert.match(teamOption,/^TEAM::Self\|/);
+        await a.selectOption('.teaching-row .qp-sel',teamOption);
+        assert.equal(await a.evaluate(value=>qpSetterTeamDetails(value,{id:'self-id',name:'Second Science Teacher'}).name,teamOption),'Second Science Teacher + New Shared Teacher');
+        await a.evaluate(() => resetTeacherForm());
+        console.log('PASS: same-subject teachers from different classes/sections can be selected as a QP setter team');
+
         await a.selectOption('#ct-10-A', 'New Shared Teacher');
         await a.evaluate(() => saveClassTeacherAssignments());
         await b.waitForFunction(() => classTeacherAssignments['10-A']?.ct === 'New Shared Teacher');
