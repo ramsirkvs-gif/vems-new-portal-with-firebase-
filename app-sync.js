@@ -439,8 +439,8 @@ function bindPublicDirectory() {
     if (publicDirectorySubscription) publicDirectorySubscription.ref.off('value',publicDirectorySubscription.listener);
     const activeSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
     const ref=db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession));
-    const listener=snapshot=>{publicPublishedSubjectDirectories=snapshot.val()||{};renderPublicSubjectDirectory();};
-    publicDirectorySubscription={ref,listener}; ref.on('value',listener,()=>{publicPublishedSubjectDirectories={};renderPublicSubjectDirectory();});
+    const listener=snapshot=>{publicPublishedSubjectDirectories=snapshot.val()||{};renderPublicSubjectDirectory();renderPublicPortalBoards();};
+    publicDirectorySubscription={ref,listener}; ref.on('value',listener,()=>{publicPublishedSubjectDirectories={};renderPublicSubjectDirectory();renderPublicPortalBoards();});
     if(publicBoardsSubscription)publicBoardsSubscription.ref.off('value',publicBoardsSubscription.listener);
     const boardsRef=db.ref(sessionCollectionPath('publicPortalBoards',activeSession));
     const boardsListener=snapshot=>{publicVisiblePortalBoards=snapshot.val()||{};renderPublicPortalBoards();};
