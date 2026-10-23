@@ -161,6 +161,7 @@ async function main() {
         assert.deepEqual(await a.locator('#teacher-table-body').locator('xpath=..').locator('thead th').allTextContents(),['Teacher Name & Desig','Teaching Allotments','QP Setter(s)','Evaluator','Booklets','Bundles','Actions']);
         assert.equal((await a.locator('#teacher-table-body .faculty-evaluator').first().innerText()).trim(),'New Shared Teacher');
         assert.doesNotMatch(await a.locator('#teacher-table-body .faculty-qp-setter').first().innerText(),/Class X-A/);
+        assert.match(await a.locator('#teacher-table-body .faculty-qp-setter').first().getAttribute('class'),/whitespace-nowrap/);
         assert.match(await a.locator('#teacher-table-body .faculty-duty-line').first().getAttribute('class'),/border-b/);
         assert.equal(await a.locator('#teacher-table-body .faculty-duty-line').first().locator(':scope > div').count(),3);
         assert.match(await a.locator('#teacher-table-body .faculty-teacher-name').first().getAttribute('class'),/whitespace-nowrap/);
