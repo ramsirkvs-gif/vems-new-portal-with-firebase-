@@ -91,6 +91,22 @@
     "seatingPlans": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
       ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
+    "examCirculars": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
+    "circularSettings": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
+    "signatureProfiles": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
+    "documentApprovals": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     }
   }
 }

@@ -112,6 +112,16 @@ async function main() {
         assert.equal(await a.locator('#login-password').inputValue(), '');
         console.log('PASS: passcode-only role entry, same-account reauthentication, independent PC and mobile sessions');
 
+        await a.evaluate(() => switchTab('exam-creator-prin'));
+        await a.evaluate(() => openCircularEditor());
+        await a.fill('#circular-subject', 'Examination Committee Meeting');
+        await a.fill('#circular-body', 'All members shall attend the meeting at the notified time.');
+        await a.locator('[name="circular-target"]').first().check();
+        await a.evaluate(() => saveCircular(false));
+        await a.waitForFunction(() => Object.values(examCirculars).some(item => item.subject === 'Examination Committee Meeting' && item.status === 'DRAFT'));
+        assert.equal(Object.values(data.examCirculars || {}).length, 1);
+        console.log('PASS: session-linked examination circular saves with reusable subject and recipient snapshot');
+
         await a.evaluate(() => switchTab('teachers'));
         await a.fill('#tch-name-input', 'New Shared Teacher');
         await a.fill('#tch-desig-input', 'PGT SCIENCE');

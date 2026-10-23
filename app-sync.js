@@ -2,7 +2,7 @@
 'use strict';
 const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'archivedExams',
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings',
-    'dateSheetInstructions', 'dateSheetSettings', 'publishedSubjectDirectories'];
+    'dateSheetInstructions', 'dateSheetSettings', 'publishedSubjectDirectories', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
 sharedNames.push('seatingRooms', 'seatingPlans');
 const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList', 'publishedSubjectDirectories'];
 // Login identifiers only. Firebase stores and verifies each role's passcode.
@@ -132,7 +132,7 @@ function canEditSharedData(required = 'exam') {
 function sharedValue(name) {
     return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, archivedExams,
         examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings,
-        dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans, publishedSubjectDirectories })[name];
+        dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans, publishedSubjectDirectories, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
 }
 function acceptSharedValue(name, value) {
     switch (name) {
@@ -169,6 +169,10 @@ function acceptSharedValue(name, value) {
         case 'publishedSubjectDirectories': publishedSubjectDirectories = value; renderPublicSubjectDirectory(); break;
         case 'seatingRooms': seatingRooms = value; break;
         case 'seatingPlans': seatingPlans = value; break;
+        case 'examCirculars': examCirculars = value; break;
+        case 'circularSettings': circularSettings = value; break;
+        case 'signatureProfiles': signatureProfiles = value; break;
+        case 'documentApprovals': documentApprovals = value; break;
     }
     scheduleSharedRender();
 }
@@ -218,6 +222,7 @@ function refreshSharedViews() {
     if (!editorBaselines.assignments) renderClassTeacherCoordinationTable();
     if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) renderExamCreatorModule();
     populateLegacyExamOptions();
+    renderSignatureProfiles();
     updateSessionChrome();
 }
 document.addEventListener('focusout', scheduleSharedRender);
@@ -401,7 +406,7 @@ async function importLegacyBrowserData() {
     } catch (error) { status.textContent = `Import stopped: ${error.message}. Earlier successful collections remain saved; retrying is safe.`; }
 }
 
-function sessionStorePaths(sessionId) { return Object.fromEntries(sharedNames.map(name => [name, sessionCollectionPath(name, sessionId)])); }
+function sessionStorePaths(sessionId) { return Object.fromEntries(sharedNames.map(name => [name, name === 'signatureProfiles' ? 'signatureProfiles' : sessionCollectionPath(name, sessionId)])); }
 function resetSessionViews() {
     sharedNames.filter(name => name !== 'publishedSubjectDirectories').forEach(name => acceptSharedValue(name, {}));
     activeExamId=null; selectedPreExamVaultId=null; isExamConfigOpen=false; isPreExamFullPageOpen=false; datesheetDays=[];
