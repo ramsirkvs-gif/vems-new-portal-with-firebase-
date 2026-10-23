@@ -360,7 +360,10 @@ async function main() {
         await b.waitForFunction(() => students.length === 0);
         console.log('PASS: student creation and deletion propagate, including an empty list');
 
-        await a.evaluate(() => { switchTab('exam-creator-prin'); openExamVault(100); });
+        await a.evaluate(() => switchTab('exam-creator-prin'));
+        assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Delete Vault'}).count(),1);
+        await a.evaluate(() => openExamVault(100));
+        await a.locator('#selected-exam-vault-workspace').waitFor();
         assert.match(await a.locator('#exam-creator-mount-prin h2').innerText(),/Existing Exam Examination Vault/);
         assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open Pre-Exam Workspace'}).count(),1);
         assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open During-Exam Workspace'}).count(),1);
