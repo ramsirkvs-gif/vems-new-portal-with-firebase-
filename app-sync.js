@@ -2,7 +2,7 @@
 'use strict';
 const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'archivedExams',
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings',
-    'dateSheetInstructions', 'dateSheetSettings', 'publishedSubjectDirectories', 'publicPortalBoards', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
+    'dateSheetInstructions', 'dateSheetSettings', 'holidayCalendar', 'publishedSubjectDirectories', 'publicPortalBoards', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
 sharedNames.push('seatingRooms', 'seatingPlans');
 const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList', 'publishedSubjectDirectories'];
 // Login identifiers only. Firebase stores and verifies each role's passcode.
@@ -133,7 +133,7 @@ function canEditSharedData(required = 'exam') {
 function sharedValue(name) {
     return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, archivedExams,
         examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings,
-        dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
+        dateSheetInstructions, dateSheetSettings, holidayCalendar, seatingRooms, seatingPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
 }
 function samePublishedData(left,right){return JSON.stringify(left)===JSON.stringify(right);}
 function liveFacultyRosterRows(){return facultyPublishedRows();}
@@ -197,6 +197,7 @@ function acceptSharedValue(name, value) {
         case 'qpOfficeOrderSettings': qpOfficeOrderSettings = value; break;
         case 'dateSheetInstructions': dateSheetInstructions = value; break;
         case 'dateSheetSettings': dateSheetSettings = value; break;
+        case 'holidayCalendar': holidayCalendar = value; break;
         case 'publishedSubjectDirectories': publishedSubjectDirectories = value; renderPublicSubjectDirectory(); break;
         case 'publicPortalBoards': publicPortalBoards = value; renderPublicPortalBoards(); break;
         case 'seatingRooms': seatingRooms = value; break;

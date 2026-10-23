@@ -486,7 +486,9 @@ async function main() {
         const created = Object.values(data.archivedExams).find(exam => exam.id !== 100);
         assert.equal(await a.getByRole('button',{name:'➕ Add Day 2'}).count(),1);
         await a.evaluate(() => addNextDatesheetDay());
-        await a.evaluate(() => updateExamDayDate(2,'2026-10-26'));
+        await a.evaluate(async()=>{holidayCalendar={'2026-10-26':{name:'Test Holiday'}};await saveData(['holidayCalendar']);});
+        assert.equal(await a.evaluate(async()=>{const before=datesheetDays.find(day=>day.id===2).dateStr,old=window.confirm;window.confirm=()=>false;try{await updateExamDayDate(2,'2026-10-26');}finally{window.confirm=old;}return datesheetDays.find(day=>day.id===2).dateStr===before;}),true,'a cancelled holiday warning must keep the previous exam date');
+        await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await updateExamDayDate(2,'2026-10-26');}finally{window.confirm=old;}});
         await b.waitForFunction(id => archivedExams.find(exam=>exam.id===id)?.datesheetSnapshot?.some(day=>day.dateStr==='2026-10-26'), created.id);
         assert.deepEqual(await a.evaluate(() => ({count:datesheetDays.length,added:datesheetDays.some(day=>day.dateStr==='2026-10-26'),gap:datesheetDays.some(day=>['2026-10-24','2026-10-25'].includes(day.dateStr))})), {count:2,added:true,gap:false}, 'only explicitly selected examination dates should be added');
         assert.notEqual(await a.locator('.exam-day-card').nth(0).evaluate(el=>getComputedStyle(el).backgroundColor),await a.locator('.exam-day-card').nth(1).evaluate(el=>getComputedStyle(el).backgroundColor),'each examination day should have a distinct light background');
