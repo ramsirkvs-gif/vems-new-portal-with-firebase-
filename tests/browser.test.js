@@ -73,6 +73,7 @@ async function main() {
             await page.route('https://www.gstatic.com/**', route => route.fulfill({ contentType: 'application/javascript', body: route.request().url().includes('firebase-app-compat')
                 ? fs.readFileSync(path.join(__dirname, 'firebase-browser-double.js'), 'utf8') : '' }));
             await page.route('https://cdn.tailwindcss.com/**', route => route.fulfill({ contentType: 'application/javascript', body: `const style=document.createElement('style');style.textContent='.hidden{display:none!important}';document.head.appendChild(style);` }));
+            await page.addInitScript(() => { window.__vemsPublicUpdateDecision = 'update'; });
             if (options.legacy) await page.addInitScript(() => {
                 localStorage.setItem('vems_teachers', JSON.stringify([{ id: 9, name: 'Legacy Teacher', desig: 'PGT', allotments: [] }]));
                 localStorage.setItem('vems_qp_printing_tracker', JSON.stringify({ '10-SCIENCE': 'In-Printing' }));
@@ -182,9 +183,14 @@ async function main() {
         assert.equal(await a.evaluate(async()=>new TextDecoder().decode((await publishedFacultyRosterPdfBlob().arrayBuffer()).slice(0,8))),'%PDF-1.4');
         assert.match(await a.evaluate(async()=>new TextDecoder().decode(await publishedFacultyRosterPdfBlob().arrayBuffer())),/EXAMINATION CELL - FACULTY ROSTER & EXAM DUTIES/);
         assert.match(await a.evaluate(async()=>new TextDecoder().decode(await publishedFacultyRosterPdfBlob().arrayBuffer())),/QP Setter.*Evaluator/s);
-        await a.evaluate(async()=>{teachers[0].desig='PGT SCIENCE UPDATED';await saveData(['teachers']);});
+        await a.evaluate(()=>{window.__vemsPublicUpdateDecision='';teachers[0].desig='PGT SCIENCE UPDATED';});
+        const liveFacultySave=a.evaluate(()=>saveData(['teachers']));
+        await a.locator('#published-update-warning').waitFor();
+        assert.match(await a.locator('#published-update-warning').innerText(),/Faculty Roster & Exam Duties/);
+        await a.locator('#published-update-warning [data-choice="update"]').click();
+        assert.equal(await liveFacultySave,true);
         await b.waitForFunction(()=>publicPortalBoards.facultyRoster?.rows?.[0]?.desig==='PGT SCIENCE UPDATED');
-        await a.evaluate(async()=>{teachers[0].desig='PGT SCIENCE';await saveData(['teachers']);});
+        await a.evaluate(async()=>{window.__vemsPublicUpdateDecision='update';teachers[0].desig='PGT SCIENCE';await saveData(['teachers']);});
         console.log('PASS: published faculty roster provides public dropdown, search and compact scrolling window');
 
         await a.evaluate(() => {resetTeacherForm();document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('10','A','SCIENCE');window._facultyAlert=window.alert;window.facultyConflictAlert='';window.alert=message=>window.facultyConflictAlert=message;});
