@@ -1523,13 +1523,13 @@
         }
         function getQpSetterOptionsHtml(selectedVal='Self',subject=''){
             let options=getDutyOptionsHtml(selectedVal),currentName=document.getElementById('tch-name-input')?.value.trim()||'Self';
-            teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>String(allotment.subject).trim().toUpperCase()===String(subject).trim().toUpperCase())).forEach(teacher=>{const value=`TEAM::Self|${teacher.id}`,label=`Team: ${currentName} + ${teacher.name}`;options+=`<option value="${escapeHtml(value)}" ${selectedVal===value?'selected':''}>${escapeHtml(label)}</option>`;});
+            teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>String(allotment.subject).trim().toUpperCase()===String(subject).trim().toUpperCase())).forEach(teacher=>{const value=`TEAM::Self|${teacher.id}`,label=`Team: ${currentName} / ${teacher.name}`;options+=`<option value="${escapeHtml(value)}" ${selectedVal===value?'selected':''}>${escapeHtml(label)}</option>`;});
             return options;
         }
         function getAdditionalQpSetterOptionsHtml(selectedVal='',subject=''){let options=`<option value="">None / Single Setter</option>`,currentName=document.getElementById('tch-name-input')?.value.trim()||'';teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>String(allotment.subject).trim().toUpperCase()===String(subject).trim().toUpperCase())).forEach(teacher=>{options+=`<option value="${escapeHtml(String(teacher.id))}" ${String(selectedVal)===String(teacher.id)?'selected':''}>${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`;});return options;}
         function refreshRowQpSetterOptions(row,selectedVal=null,additionalVal=null){const select=row?.querySelector('.qp-sel'),additional=row?.querySelector('.qp-additional-sel');if(!select)return;const selected=(selectedVal??select.value)||'Self',selectedAdditional=additionalVal??additional?.value??'',subject=row.querySelector('.sub-sel')?.value||'';select.innerHTML=getDutyOptionsHtml(selected);if([...select.options].some(option=>option.value===selected))select.value=selected;if(additional){additional.innerHTML=getAdditionalQpSetterOptionsHtml(selectedAdditional,subject);if([...additional.options].some(option=>option.value===String(selectedAdditional)))additional.value=String(selectedAdditional);}}
         function refreshAllQpSetterOptions(){document.querySelectorAll('.teaching-row').forEach(row=>refreshRowQpSetterOptions(row));}
-        function qpSetterTeamDetails(value,subjectTeacher){if(!String(value||'').startsWith('TEAM::'))return null;const members=String(value).slice(6).split('|').map(token=>token==='Self'?subjectTeacher:teachers.find(teacher=>String(teacher.id)===String(token))).filter(Boolean);return members.length?{name:members.map(member=>member.name).join(' + '),desig:'QP SETTER TEAM',teacherId:members.map(member=>member.id).join('|')}:null;}
+        function qpSetterTeamDetails(value,subjectTeacher){if(!String(value||'').startsWith('TEAM::'))return null;const members=String(value).slice(6).split('|').map(token=>token==='Self'?subjectTeacher:teachers.find(teacher=>String(teacher.id)===String(token))).filter(Boolean);return members.length?{name:members.map(member=>member.name).join(' / '),desig:'QP SETTER TEAM',teacherId:members.map(member=>member.id).join('|')}:null;}
 
         function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self', additionalQpVal = '') {
             const container = document.getElementById('teaching-allotments-container');
@@ -1700,7 +1700,7 @@
                         allotmentsHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> (${count} Booklets)</div>`;
                         
                         const additionalTeacher=teachers.find(teacher=>String(teacher.id)===String(al.additionalQpSetter));
-                        let qpText = al.qpSetter === 'Self' ? t.name : (qpSetterTeamDetails(al.qpSetter,t)?.name||al.qpSetter);if(additionalTeacher&&!qpText.includes(additionalTeacher.name))qpText+=` + ${additionalTeacher.name}`;
+                        let qpText = al.qpSetter === 'Self' ? t.name : (qpSetterTeamDetails(al.qpSetter,t)?.name||al.qpSetter);if(additionalTeacher&&!qpText.includes(additionalTeacher.name))qpText+=` / ${additionalTeacher.name}`;
                         let evalText = al.evaluator === 'Self' ? 'Self' : al.evaluator;
                         dutiesHtml += `<div class="text-[11px]">• Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}: QP: <strong class="text-indigo-900">${escapeHtml(qpText)}</strong> | Eval: <strong class="text-indigo-900">${escapeHtml(evalText)}</strong></div>`;
                     });
@@ -2571,7 +2571,7 @@
                                 ? teachers.find(t => t.name === allotment.qpSetter) || subjectTeacher
                                 : subjectTeacher);
                             const additionalTeacher=teachers.find(teacher=>String(teacher.id)===String(allotment?.additionalQpSetter));
-                            if(assignedTeacher&&additionalTeacher&&!String(assignedTeacher.name).includes(additionalTeacher.name))assignedTeacher={name:`${assignedTeacher.name} + ${additionalTeacher.name}`,desig:'QP SETTER TEAM',id:`${assignedTeacher.id||assignedTeacher.teacherId}|${additionalTeacher.id}`};
+                            if(assignedTeacher&&additionalTeacher&&!String(assignedTeacher.name).includes(additionalTeacher.name))assignedTeacher={name:`${assignedTeacher.name} / ${additionalTeacher.name}`,desig:'QP SETTER TEAM',id:`${assignedTeacher.id||assignedTeacher.teacherId}|${additionalTeacher.id}`};
                             const order = suppliedOrder || currentQpOfficeOrder(vaultId);
                             const override = order.status === 'ISSUED' ? order.setters?.[key] : null;
                             if (override) assignedTeacher = teachers.find(t => String(t.id) === String(override.teacherId)) || override;
