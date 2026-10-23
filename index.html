@@ -3229,15 +3229,15 @@
                         <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3"><b class="text-xs text-emerald-950">3. Complete in Order</b><p class="mt-1 text-[11px] text-slate-600">Pre-Exam → During Exam → After Exam.</p></div>
                     </div>
                     ${holidayCalendarHtml()}
-                    <div class="bg-gradient-to-r from-teal-50 via-cyan-50 to-indigo-100 text-slate-900 border border-cyan-200 rounded-xl p-5 space-y-3 shadow-md">
-                        <div class="flex justify-between items-center border-b border-cyan-300 pb-2.5">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-teal-900">📚 Created Examinations Vault List (${archivedExams.length} Records)</h3>
+                    <div class="bg-gradient-to-br from-violet-100 via-sky-100 to-emerald-100 text-slate-900 border border-sky-300 rounded-xl p-5 space-y-3 shadow-md">
+                        <div class="flex justify-between items-center border-b border-sky-300 pb-2.5">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-950">📚 Created Examinations Vault List (${archivedExams.length} Records)</h3>
                             <button type="button" onclick="startNewExamSetup()" class="bg-emerald-600 text-white text-[11px] font-bold px-3.5 py-1.5 rounded">＋ Create New Examination Vault</button>
                         </div>
                         ${archivedExams.length === 0 ? '<p class="text-xs text-slate-500 italic py-2">No exam schedules created yet.</p>' : `
                             <div class="overflow-x-auto">
                                 <table class="w-full text-xs text-left text-slate-700">
-                                    <thead class="bg-teal-700 text-white uppercase">
+                                    <thead class="bg-gradient-to-r from-indigo-700 via-violet-700 to-teal-700 text-white uppercase">
                                         <tr><th class="px-3 py-2">Title</th><th class="px-3 py-2">Examination Dates</th><th class="px-3 py-2 text-right">Actions</th></tr>
                                     </thead>
                                     <tbody class="divide-y divide-cyan-200">
