@@ -163,6 +163,11 @@ async function main() {
             await saveData(['teachers']);
             renderTeachers();
         });
+        assert.deepEqual(await a.evaluate(() => sortedFacultyAllotments([
+            {cls:'11',sec:'D',subject:'ENGLISH'}, {cls:'8',sec:'B',subject:'SCIENCE'},
+            {cls:'11',sec:'A',subject:'ENGLISH'}, {cls:'6',sec:'A',subject:'SCIENCE'},
+            {cls:'11',sec:'B',subject:'ENGLISH'}
+        ]).map(item=>`${item.cls}-${item.sec}`)),['6-A','8-B','11-A','11-B','11-D']);
         assert.equal(await a.evaluate(() => facultyEvaluatorDisplay(teachers[0],teachers[0].allotments[0])),'New Shared Teacher');
         assert.deepEqual(await a.locator('#teacher-table-body').locator('xpath=..').locator('thead th').allTextContents(),['Teacher Name & Desig','Teaching Allotments','QP Setter(s)','Evaluator','Booklets','Bundles','Actions']);
         assert.equal((await a.locator('#teacher-table-body .faculty-evaluator').first().innerText()).trim(),'New Shared Teacher');
