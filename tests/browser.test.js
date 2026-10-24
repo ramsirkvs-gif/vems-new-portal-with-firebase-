@@ -154,6 +154,9 @@ async function main() {
         assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('PGT-History',['ENGLISH','HISTORY'])),'HISTORY');
         await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
+        await a.locator('#faculty-completeness-popup').waitFor();
+        assert.match(await a.locator('#faculty-completeness-popup').textContent(),/Faculty record saved successfully.*assignment\(s\) remain incomplete/s);
+        await a.locator('#faculty-completeness-popup button',{hasText:'Close'}).click();
         assert.equal(Object.values(data.teachers).length, 1);
         await a.evaluate(async () => {
             teachers[0].allotments = [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }];
@@ -486,19 +489,22 @@ async function main() {
         const created = Object.values(data.archivedExams).find(exam => exam.id !== 100);
         assert.equal(await a.getByRole('button',{name:'➕ Add Day 2'}).count(),1);
         await a.evaluate(() => addNextDatesheetDay());
-        await a.evaluate(async()=>{holidayCalendar={'2026-10-26':{name:'Test Holiday'}};await saveData(['holidayCalendar']);});
+        await a.evaluate(async()=>{holidayCalendar={'2026-10-28':{accountOf:'Test Holiday',remark:'GH'}};await saveData(['holidayCalendar']);});
         await a.evaluate(()=>switchTab('holidays'));
         assert.match(await a.locator('#holiday-manager-mount h2').textContent(),/4\. Holiday Manager/);
+        assert.deepEqual(await a.locator('#holiday-manager-mount thead th').allTextContents(),['S.No.','Date','Day','On Account Of','Remark','Action']);
+        assert.equal(await a.getByRole('button',{name:/Download CSV/}).count(),1);
+        assert.equal(await a.evaluate(()=>parseHolidayCsvDate('26/10/2026')),'2026-10-26');
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await toggleHolidayCalendarLock();}finally{window.confirm=old;}});
         assert.equal(await a.locator('#holiday-date').isDisabled(),true,'locked holiday calendar must disable feeding');
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await toggleHolidayCalendarLock();}finally{window.confirm=old;}switchTab('exam-creator-prin');});
-        assert.equal(await a.evaluate(async()=>{const before=datesheetDays.find(day=>day.id===2).dateStr,old=window.confirm;window.confirm=()=>false;try{await updateExamDayDate(2,'2026-10-26');}finally{window.confirm=old;}return datesheetDays.find(day=>day.id===2).dateStr===before;}),true,'a cancelled holiday warning must keep the previous exam date');
-        await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await updateExamDayDate(2,'2026-10-26');}finally{window.confirm=old;}});
-        await b.waitForFunction(id => archivedExams.find(exam=>exam.id===id)?.datesheetSnapshot?.some(day=>day.dateStr==='2026-10-26'), created.id);
-        assert.deepEqual(await a.evaluate(() => ({count:datesheetDays.length,added:datesheetDays.some(day=>day.dateStr==='2026-10-26'),gap:datesheetDays.some(day=>['2026-10-24','2026-10-25'].includes(day.dateStr))})), {count:2,added:true,gap:false}, 'only explicitly selected examination dates should be added');
+        assert.equal(await a.evaluate(async()=>{const before=datesheetDays.find(day=>day.id===2).dateStr,old=window.confirm;window.confirm=()=>false;try{await updateExamDayDate(2,'2026-10-28');}finally{window.confirm=old;}return datesheetDays.find(day=>day.id===2).dateStr===before;}),true,'a cancelled holiday warning must keep the previous exam date');
+        await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await updateExamDayDate(2,'2026-10-28');}finally{window.confirm=old;}});
+        await b.waitForFunction(id => archivedExams.find(exam=>exam.id===id)?.datesheetSnapshot?.some(day=>day.dateStr==='2026-10-28'), created.id);
+        assert.deepEqual(await a.evaluate(() => ({count:datesheetDays.length,added:datesheetDays.some(day=>day.dateStr==='2026-10-28'),gap:datesheetDays.some(day=>['2026-10-25','2026-10-26','2026-10-27'].includes(day.dateStr))})), {count:2,added:true,gap:false}, 'only explicitly selected examination dates should be added');
         assert.notEqual(await a.locator('.exam-day-card').nth(0).evaluate(el=>getComputedStyle(el).backgroundColor),await a.locator('.exam-day-card').nth(1).evaluate(el=>getComputedStyle(el).backgroundColor),'each examination day should have a distinct light background');
         assert.equal(await a.locator('.exam-day-card').nth(1).getByRole('button',{name:/Add Scheduled Paper Slot/}).count(),1);
-        assert.match(await a.evaluate(id => examPeriodSummary(archivedExams.find(exam=>exam.id===id)), created.id), /From .* till 26\/10\/2026.*2 examination days/);
+        assert.match(await a.evaluate(id => examPeriodSummary(archivedExams.find(exam=>exam.id===id)), created.id), /From .* till 28\/10\/2026.*2 examination days/);
         assert.equal(await a.evaluate(id => currentQpOfficeOrder(id).instructions[0], created.id), 'Use the approved blueprint.');
         await b.evaluate(id => loadArchivedExamToEdit(id), created.id);
         assert.equal(await b.evaluate(() => datesheetDays.length), 2);
