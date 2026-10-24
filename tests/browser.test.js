@@ -219,6 +219,7 @@ async function main() {
         assert.equal(await a.locator('.teaching-row .qp-additional-sel').inputValue(),additionalOption);
         const additionalEvaluatorOption=await a.locator('.teaching-row .eval-additional-sel option').filter({hasText:'New Shared Teacher'}).getAttribute('value');
         assert.ok(additionalEvaluatorOption);
+        assert.match(await a.evaluate(()=>{teachers.push({id:'emergency-test',name:'Emergency Employee',desig:'PGT-History',allotments:[]});try{return getAdditionalEvaluatorOptionsHtml('','SCIENCE');}finally{teachers.pop();}}),/Emergency Employee.*PGT-History/,'emergency evaluator options must include employees outside the relevant subject');
         await a.selectOption('.teaching-row .eval-additional-sel',additionalEvaluatorOption);
         assert.equal(await a.evaluate(id=>facultyEvaluatorDisplay({name:'Second Science Teacher'},{evaluator:'Self',additionalEvaluator:id}),additionalEvaluatorOption),'Second Science Teacher / New Shared Teacher');
         await a.evaluate(() => resetTeacherForm());
