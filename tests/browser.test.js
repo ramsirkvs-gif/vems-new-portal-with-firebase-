@@ -158,6 +158,13 @@ async function main() {
         assert.equal(await a.locator('.teaching-row .sub-sel').last().inputValue(),'MATHEMATICS STANDARD + MATHEMATICS BASIC','a newly added class must default from the designation subject');
         await a.locator('.teaching-row').last().locator('button',{hasText:'✕'}).click();
         await a.fill('#tch-desig-input','PGT SCIENCE');
+        const teachingRowCount=await a.locator('.teaching-row').count();
+        await a.locator('#add-teaching-class-button').click();
+        assert.equal(await a.locator('.teaching-row').count(),teachingRowCount+1,'Add Class must immediately create a complete default row');
+        await a.waitForFunction(()=>document.activeElement===document.querySelector('.teaching-row:last-child .cls-sel'));
+        assert.equal(await a.evaluate(()=>document.activeElement===document.querySelector('.teaching-row:last-child .cls-sel')),true,'the newly added class row must be brought into focus');
+        assert.equal(await a.locator('.teaching-row .sub-sel').last().inputValue(),'SCIENCE','the new row must use the designation subject default');
+        await a.locator('.teaching-row').last().locator('button',{hasText:'✕'}).click();
         await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
         await a.locator('#faculty-completeness-popup').waitFor();
