@@ -524,6 +524,7 @@ async function main() {
         assert.deepEqual(await a.evaluate(() => ({count:datesheetDays.length,added:datesheetDays.some(day=>day.dateStr==='2026-10-28'),gap:datesheetDays.some(day=>['2026-10-25','2026-10-26','2026-10-27'].includes(day.dateStr))})), {count:2,added:true,gap:false}, 'only explicitly selected examination dates should be added');
         assert.notEqual(await a.locator('.exam-day-card').nth(0).evaluate(el=>getComputedStyle(el).backgroundColor),await a.locator('.exam-day-card').nth(1).evaluate(el=>getComputedStyle(el).backgroundColor),'each examination day should have a distinct light background');
         assert.equal(await a.locator('.exam-day-card').nth(1).getByRole('button',{name:/Add Scheduled Paper Slot/}).count(),1);
+        assert.equal(await a.locator('.exam-day-card').nth(1).evaluate(card=>{const header=card.firstElementChild,body=card.lastElementChild;return !header.textContent.includes('Save Day')&&body.lastElementChild.classList.contains('day-save-actions')&&body.lastElementChild.textContent.includes('Save Day');}),true,'Save Day must follow the final paper-slot area');
         assert.match(await a.evaluate(id => examPeriodSummary(archivedExams.find(exam=>exam.id===id)), created.id), /From .* till 28\/10\/2026.*2 examination days/);
         assert.equal(await a.evaluate(id => currentQpOfficeOrder(id).instructions[0], created.id), 'Use the approved blueprint.');
         await b.evaluate(id => loadArchivedExamToEdit(id), created.id);

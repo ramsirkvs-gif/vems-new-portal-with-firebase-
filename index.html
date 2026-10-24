@@ -3435,13 +3435,15 @@
                             <label onclick="event.stopPropagation()" class="flex items-center gap-1.5 rounded-lg border border-white/80 bg-white/70 px-2 py-1 text-[10px] font-bold text-slate-600">CHANGE / SELECT DATE <input type="date" value="${escapeHtml(dayObj.dateStr)}" onchange="updateExamDayDate(${Number(dayObj.id)},this.value)" class="rounded border bg-white p-1.5 text-xs font-semibold"></label>
                         </div>
                         <div class="flex items-center gap-2" onclick="event.stopPropagation()">
-                            ${dayObj.saved ? `<button type="button" onclick="editDayConfig(${Number(dayObj.id)})" class="text-xs bg-amber-600 text-white font-bold px-3 py-1 rounded">✏️ Edit</button>` : `<button type="button" onclick="saveOrUpdateDayConfig(${Number(dayObj.id)})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1 rounded">💾 Save Day</button>`}
                             <button type="button" onclick="removeExamDay(${Number(dayObj.id)})" class="text-xs border border-red-200 bg-red-50 text-red-700 font-bold px-2.5 py-1 rounded">🗑️ Remove Date</button>
                         </div>
                     </div>
                     <div class="${dayObj.isCollapsed ? 'hidden' : 'block'} p-4 space-y-4">
                         <button type="button" onclick="addPaperSlotToDay(${Number(dayObj.id)})" class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded">➕ Add Scheduled Paper Slot</button>
                         <div class="space-y-3">${slotsHtml}</div>
+                        <div class="day-save-actions flex justify-end border-t pt-3" style="border-color:${dayPalette.border}">
+                            ${dayObj.saved ? `<button type="button" onclick="editDayConfig(${Number(dayObj.id)})" class="text-xs bg-amber-600 text-white font-bold px-4 py-2 rounded shadow-sm">✏️ Edit Day</button>` : `<button type="button" onclick="saveOrUpdateDayConfig(${Number(dayObj.id)})" class="text-xs bg-emerald-600 text-white font-bold px-4 py-2 rounded shadow-sm">💾 Save Day</button>`}
+                        </div>
                     </div>
                 `;
                 container.appendChild(dayCard);
