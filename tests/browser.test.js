@@ -217,8 +217,12 @@ async function main() {
         assert.ok(additionalOption);
         await a.selectOption('.teaching-row .qp-additional-sel',additionalOption);
         assert.equal(await a.locator('.teaching-row .qp-additional-sel').inputValue(),additionalOption);
+        const additionalEvaluatorOption=await a.locator('.teaching-row .eval-additional-sel option').filter({hasText:'New Shared Teacher'}).getAttribute('value');
+        assert.ok(additionalEvaluatorOption);
+        await a.selectOption('.teaching-row .eval-additional-sel',additionalEvaluatorOption);
+        assert.equal(await a.evaluate(id=>facultyEvaluatorDisplay({name:'Second Science Teacher'},{evaluator:'Self',additionalEvaluator:id}),additionalEvaluatorOption),'Second Science Teacher / New Shared Teacher');
         await a.evaluate(() => resetTeacherForm());
-        console.log('PASS: same-subject teachers from different classes/sections can be selected as a QP setter team');
+        console.log('PASS: same-subject teachers can be selected as additional QP setters and evaluators');
 
         await a.selectOption('#ct-10-A', 'New Shared Teacher');
         await a.evaluate(() => saveClassTeacherAssignments());

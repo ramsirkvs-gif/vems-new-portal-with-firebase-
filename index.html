@@ -1547,14 +1547,15 @@
             return options;
         }
         function getAdditionalQpSetterOptionsHtml(selectedVal='',subject=''){let options=`<option value="">None / Single Setter</option>`,currentName=document.getElementById('tch-name-input')?.value.trim()||'';teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>String(allotment.subject).trim().toUpperCase()===String(subject).trim().toUpperCase())).forEach(teacher=>{options+=`<option value="${escapeHtml(String(teacher.id))}" ${String(selectedVal)===String(teacher.id)?'selected':''}>${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`;});return options;}
-        function refreshRowQpSetterOptions(row,selectedVal=null,additionalVal=null){const select=row?.querySelector('.qp-sel'),additional=row?.querySelector('.qp-additional-sel');if(!select)return;const selected=(selectedVal??select.value)||'Self',selectedAdditional=additionalVal??additional?.value??'',subject=row.querySelector('.sub-sel')?.value||'';select.innerHTML=getDutyOptionsHtml(selected);if([...select.options].some(option=>option.value===selected))select.value=selected;if(additional){additional.innerHTML=getAdditionalQpSetterOptionsHtml(selectedAdditional,subject);if([...additional.options].some(option=>option.value===String(selectedAdditional)))additional.value=String(selectedAdditional);}}
+        function getAdditionalEvaluatorOptionsHtml(selectedVal='',subject=''){let options=`<option value="">None / Single Evaluator</option>`,currentName=document.getElementById('tch-name-input')?.value.trim()||'';teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>normalizedSubjectMatch(allotment.subject)===normalizedSubjectMatch(subject))).forEach(teacher=>{options+=`<option value="${escapeHtml(String(teacher.id))}" ${String(selectedVal)===String(teacher.id)?'selected':''}>${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`;});return options;}
+        function refreshRowQpSetterOptions(row,selectedVal=null,additionalVal=null,additionalEvaluatorVal=null){const select=row?.querySelector('.qp-sel'),additional=row?.querySelector('.qp-additional-sel'),additionalEvaluator=row?.querySelector('.eval-additional-sel');if(!select)return;const selected=(selectedVal??select.value)||'Self',selectedAdditional=additionalVal??additional?.value??'',selectedAdditionalEvaluator=additionalEvaluatorVal??additionalEvaluator?.value??'',subject=row.querySelector('.sub-sel')?.value||'';select.innerHTML=getDutyOptionsHtml(selected);if([...select.options].some(option=>option.value===selected))select.value=selected;if(additional){additional.innerHTML=getAdditionalQpSetterOptionsHtml(selectedAdditional,subject);if([...additional.options].some(option=>option.value===String(selectedAdditional)))additional.value=String(selectedAdditional);}if(additionalEvaluator){additionalEvaluator.innerHTML=getAdditionalEvaluatorOptionsHtml(selectedAdditionalEvaluator,subject);if([...additionalEvaluator.options].some(option=>option.value===String(selectedAdditionalEvaluator)))additionalEvaluator.value=String(selectedAdditionalEvaluator);}}
         function refreshAllQpSetterOptions(){document.querySelectorAll('.teaching-row').forEach(row=>refreshRowQpSetterOptions(row));}
         function qpSetterTeamDetails(value,subjectTeacher){if(!String(value||'').startsWith('TEAM::'))return null;const members=String(value).slice(6).split('|').map(token=>token==='Self'?subjectTeacher:teachers.find(teacher=>String(teacher.id)===String(token))).filter(Boolean);return members.length?{name:members.map(member=>member.name).join(' / '),desig:'QP SETTER TEAM',teacherId:members.map(member=>member.id).join('|')}:null;}
         function facultyQpSetterDisplay(teacher,allotment){const additional=teachers.find(item=>String(item.id)===String(allotment.additionalQpSetter));let text=allotment.qpSetter==='Self'?teacher.name:(qpSetterTeamDetails(allotment.qpSetter,teacher)?.name||allotment.qpSetter||teacher.name);if(additional&&!text.includes(additional.name))text+=` / ${additional.name}`;return text;}
-        function facultyEvaluatorDisplay(teacher,allotment){return !allotment.evaluator||allotment.evaluator==='Self'?teacher.name:allotment.evaluator;}
+        function facultyEvaluatorDisplay(teacher,allotment){const additional=teachers.find(item=>String(item.id)===String(allotment.additionalEvaluator));let text=!allotment.evaluator||allotment.evaluator==='Self'?teacher.name:allotment.evaluator;if(additional&&!text.includes(additional.name))text+=` / ${additional.name}`;return text;}
         function facultyPublishedRows(){return teachers.map(teacher=>{const allotments=(teacher.allotments||[]).map(allotment=>{const booklets=students.filter(student=>isStudentActive(student)&&String(student.class)===String(allotment.cls)&&String(student.section)===String(allotment.sec)&&studentTakesSubject(student,allotment.subject)).length;return{cls:String(allotment.cls),sec:String(allotment.sec),subject:allotment.subject,qpSetter:facultyQpSetterDisplay(teacher,allotment),evaluator:facultyEvaluatorDisplay(teacher,allotment),booklets};});return{id:String(teacher.id),name:teacher.name,desig:teacher.desig,allotments,booklets:allotments.reduce((sum,item)=>sum+item.booklets,0),bundles:allotments.length};});}
 
-        function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self', additionalQpVal = '') {
+        function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self', additionalQpVal = '', additionalEvaluatorVal = '') {
             const container = document.getElementById('teaching-allotments-container');
             if(!container) return;
             const div = document.createElement('div'); div.className = "grid grid-cols-1 md:grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded border teaching-row items-center";
@@ -1582,13 +1583,15 @@
                 <div class="md:col-span-2">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase">Evaluator</label>
                     <select class="text-xs p-1.5 border rounded eval-sel bg-white font-medium w-full">${getDutyOptionsHtml(evalVal)}</select>
+                    <label class="block text-[9px] font-bold text-emerald-700 uppercase mt-1">＋ Additional Evaluator (Optional)</label>
+                    <select class="text-[10px] p-1.5 border border-emerald-200 rounded eval-additional-sel bg-emerald-50 font-medium w-full">${getAdditionalEvaluatorOptionsHtml(additionalEvaluatorVal,selSub)}</select>
                 </div>
                 <div class="md:col-span-1 text-right">
                     <button type="button" onclick="this.closest('.teaching-row').remove()" class="text-red-600 font-bold px-2.5 py-1 bg-red-50 rounded border hover:bg-red-100">✕</button>
                 </div>`;
             container.appendChild(div);
             updateRowSectionsAndSubjects(div.querySelector('.cls-sel'), selSec, selSub);
-            refreshRowQpSetterOptions(div,qpVal,additionalQpVal);
+            refreshRowQpSetterOptions(div,qpVal,additionalQpVal,additionalEvaluatorVal);
         }
 
         function updateRowSectionsAndSubjects(clsElem, preSec = null, preSub = null) {
@@ -1647,7 +1650,8 @@
                     subject: row.querySelector('.sub-sel').value,
                     qpSetter: row.querySelector('.qp-sel').value || 'Self',
                     additionalQpSetter: row.querySelector('.qp-additional-sel').value || '',
-                    evaluator: row.querySelector('.eval-sel').value || 'Self'
+                    evaluator: row.querySelector('.eval-sel').value || 'Self',
+                    additionalEvaluator: row.querySelector('.eval-additional-sel').value || ''
                 });
             });
             const editingTeacher=editIndex!==''?teachers.find(t=>String(t.id)===editIndex):null;
@@ -1689,7 +1693,7 @@
             const container = document.getElementById('teaching-allotments-container');
             container.innerHTML = '';
             if(t.allotments && t.allotments.length > 0) {
-                t.allotments.forEach(al => addTeachingRow(al.cls, al.sec, al.subject, al.qpSetter || 'Self', al.evaluator || 'Self', al.additionalQpSetter || ''));
+                t.allotments.forEach(al => addTeachingRow(al.cls, al.sec, al.subject, al.qpSetter || 'Self', al.evaluator || 'Self', al.additionalQpSetter || '', al.additionalEvaluator || ''));
             } else {
                 addTeachingRow();
             }
