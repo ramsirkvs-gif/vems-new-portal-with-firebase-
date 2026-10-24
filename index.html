@@ -374,7 +374,8 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-700 mb-1">Designation & Subject</label>
-                                    <input type="text" id="tch-desig-input" oninput="applyDesignationSubjectDefaults()" placeholder="e.g. PGT PHYSICS, TGT SCIENCE" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required>
+                                    <input type="text" id="tch-desig-input" list="faculty-designation-suggestions" oninput="applyDesignationSubjectDefaults()" placeholder="Type or select a designation" autocomplete="off" class="w-full text-xs p-2.5 border rounded bg-white font-semibold" required>
+                                    <datalist id="faculty-designation-suggestions"></datalist>
                                 </div>
                             </div>
                             
@@ -1530,9 +1531,17 @@
         // MODULE 3: STREAMLINED FACULTY MANAGER
         // =========================================================================
         function initTeacherFormSelectors() {
+            refreshFacultyDesignationSuggestions();
             if(document.getElementById('teaching-allotments-container')?.children.length === 0) {
                 addTeachingRow();
             }
+        }
+
+        function refreshFacultyDesignationSuggestions(){
+            const list=document.getElementById('faculty-designation-suggestions');if(!list)return;
+            const defaults=['PGT-English','PGT-Hindi','PGT-Maths','PGT-Physics','PGT-Chemistry','PGT-Biology','PGT-History','PGT-Geography','PGT-Political Science','PGT-Economics','PGT-Accountancy','PGT-Business Studies','PGT-CS','PGT-IP','TGT-English','TGT-Hindi','TGT-Sanskrit','TGT-Maths','TGT-Science','TGT-Social Science','PRT'];
+            const values=[],seen=new Set();[...(teachers||[]).map(teacher=>teacher.desig),...defaults].forEach(value=>{const clean=String(value||'').trim(),key=clean.toLocaleLowerCase();if(clean&&!seen.has(key)){seen.add(key);values.push(clean);}});
+            list.innerHTML=values.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'})).map(value=>`<option value="${escapeHtml(value)}"></option>`).join('');
         }
 
         function getDutyOptionsHtml(selectedVal = 'Self') {
@@ -1731,6 +1740,7 @@
         function renderTeachers() {
             const tbody = document.getElementById('teacher-table-body'); 
             if(!tbody) return;
+            refreshFacultyDesignationSuggestions();
             tbody.innerHTML = '';
             
             const searchTerm = (document.getElementById('faculty-search-input')?.value || '').trim().toLowerCase();

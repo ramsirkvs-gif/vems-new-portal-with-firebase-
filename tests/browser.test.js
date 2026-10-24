@@ -164,6 +164,9 @@ async function main() {
         assert.match(await a.locator('#faculty-completeness-popup').textContent(),/Faculty record saved successfully.*assignment\(s\) remain incomplete/s);
         await a.locator('#faculty-completeness-popup button',{hasText:'Close'}).click();
         assert.equal(Object.values(data.teachers).length, 1);
+        assert.equal(await a.locator('#tch-desig-input').getAttribute('list'),'faculty-designation-suggestions');
+        assert.equal(await a.locator('#faculty-designation-suggestions option[value="PGT SCIENCE"]').count(),1,'previously entered designations must be available for quick selection');
+        assert.equal(await a.locator('#faculty-designation-suggestions option[value="TGT-Maths"]').count(),1,'standard designation suggestions must remain available');
         await a.evaluate(async () => {
             teachers[0].allotments = [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }];
             await saveData(['teachers']);
