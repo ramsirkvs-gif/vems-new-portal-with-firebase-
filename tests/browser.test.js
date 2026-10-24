@@ -152,6 +152,12 @@ async function main() {
         await a.selectOption('.teaching-row .sub-sel','SCIENCE');
         await a.fill('#tch-desig-input','PGT SCIENCE');
         assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('PGT-History',['ENGLISH','HISTORY'])),'HISTORY');
+        assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('TGT-Maths',['MATHEMATICS STANDARD + MATHEMATICS BASIC','ENGLISH','MATHEMATICS STANDARD','MATHEMATICS BASIC','SCIENCE'])),'MATHEMATICS STANDARD + MATHEMATICS BASIC');
+        await a.fill('#tch-desig-input','TGT-Maths');
+        await a.evaluate(() => {const prior=sectionConfigs['10-A'];sectionConfigs['10-A']=['ENGLISH','MATHEMATICS STANDARD','MATHEMATICS BASIC','SCIENCE'];addTeachingRow('10','A');sectionConfigs['10-A']=prior;});
+        assert.equal(await a.locator('.teaching-row .sub-sel').last().inputValue(),'MATHEMATICS STANDARD + MATHEMATICS BASIC','a newly added class must default from the designation subject');
+        await a.locator('.teaching-row').last().locator('button',{hasText:'✕'}).click();
+        await a.fill('#tch-desig-input','PGT SCIENCE');
         await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
         await a.locator('#faculty-completeness-popup').waitFor();

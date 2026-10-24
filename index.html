@@ -1544,10 +1544,10 @@
         }
         function getQpSetterOptionsHtml(selectedVal='Self',subject=''){
             let options=getDutyOptionsHtml(selectedVal),currentName=document.getElementById('tch-name-input')?.value.trim()||'Self';
-            teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>String(allotment.subject).trim().toUpperCase()===String(subject).trim().toUpperCase())).forEach(teacher=>{const value=`TEAM::Self|${teacher.id}`,label=`Team: ${currentName} / ${teacher.name}`;options+=`<option value="${escapeHtml(value)}" ${selectedVal===value?'selected':''}>${escapeHtml(label)}</option>`;});
+            teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>allotmentSubjectMatches(allotment.subject,subject))).forEach(teacher=>{const value=`TEAM::Self|${teacher.id}`,label=`Team: ${currentName} / ${teacher.name}`;options+=`<option value="${escapeHtml(value)}" ${selectedVal===value?'selected':''}>${escapeHtml(label)}</option>`;});
             return options;
         }
-        function getAdditionalQpSetterOptionsHtml(selectedVal='',subject=''){let options=`<option value="">None / Single Setter</option>`,currentName=document.getElementById('tch-name-input')?.value.trim()||'';teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>String(allotment.subject).trim().toUpperCase()===String(subject).trim().toUpperCase())).forEach(teacher=>{options+=`<option value="${escapeHtml(String(teacher.id))}" ${String(selectedVal)===String(teacher.id)?'selected':''}>${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`;});return options;}
+        function getAdditionalQpSetterOptionsHtml(selectedVal='',subject=''){let options=`<option value="">None / Single Setter</option>`,currentName=document.getElementById('tch-name-input')?.value.trim()||'';teachers.filter(teacher=>teacher.name!==currentName&&(teacher.allotments||[]).some(allotment=>allotmentSubjectMatches(allotment.subject,subject))).forEach(teacher=>{options+=`<option value="${escapeHtml(String(teacher.id))}" ${String(selectedVal)===String(teacher.id)?'selected':''}>${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`;});return options;}
         function getAdditionalEvaluatorOptionsHtml(selectedVal='',subject=''){let options=`<option value="">None / Single Evaluator</option>`,currentName=document.getElementById('tch-name-input')?.value.trim()||'';teachers.filter(teacher=>teacher.name!==currentName).forEach(teacher=>{options+=`<option value="${escapeHtml(String(teacher.id))}" ${String(selectedVal)===String(teacher.id)?'selected':''}>${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`;});return options;}
         function refreshRowQpSetterOptions(row,selectedVal=null,additionalVal=null,additionalEvaluatorVal=null){const select=row?.querySelector('.qp-sel'),additional=row?.querySelector('.qp-additional-sel'),additionalEvaluator=row?.querySelector('.eval-additional-sel');if(!select)return;const selected=(selectedVal??select.value)||'Self',selectedAdditional=additionalVal??additional?.value??'',selectedAdditionalEvaluator=additionalEvaluatorVal??additionalEvaluator?.value??'',subject=row.querySelector('.sub-sel')?.value||'';select.innerHTML=getDutyOptionsHtml(selected);if([...select.options].some(option=>option.value===selected))select.value=selected;if(additional){additional.innerHTML=getAdditionalQpSetterOptionsHtml(selectedAdditional,subject);if([...additional.options].some(option=>option.value===String(selectedAdditional)))additional.value=String(selectedAdditional);}if(additionalEvaluator){additionalEvaluator.innerHTML=getAdditionalEvaluatorOptionsHtml(selectedAdditionalEvaluator,subject);if([...additionalEvaluator.options].some(option=>option.value===String(selectedAdditionalEvaluator)))additionalEvaluator.value=String(selectedAdditionalEvaluator);}}
         function refreshAllQpSetterOptions(){document.querySelectorAll('.teaching-row').forEach(row=>refreshRowQpSetterOptions(row));}
@@ -1556,7 +1556,7 @@
         function facultyEvaluatorDisplay(teacher,allotment){const additional=teachers.find(item=>String(item.id)===String(allotment.additionalEvaluator));let text=!allotment.evaluator||allotment.evaluator==='Self'?teacher.name:allotment.evaluator;if(additional&&!text.includes(additional.name))text+=` / ${additional.name}`;return text;}
         function compareFacultyAllotments(a,b){return Number(a.cls)-Number(b.cls)||String(a.sec||'').localeCompare(String(b.sec||''),undefined,{numeric:true,sensitivity:'base'})||String(a.subject||'').localeCompare(String(b.subject||''),undefined,{sensitivity:'base'});}
         function sortedFacultyAllotments(allotments){return [...(allotments||[])].sort(compareFacultyAllotments);}
-        function facultyPublishedRows(){return teachers.map(teacher=>{const allotments=sortedFacultyAllotments(teacher.allotments).map(allotment=>{const booklets=students.filter(student=>isStudentActive(student)&&String(student.class)===String(allotment.cls)&&String(student.section)===String(allotment.sec)&&studentTakesSubject(student,allotment.subject)).length;return{cls:String(allotment.cls),sec:String(allotment.sec),subject:allotment.subject,qpSetter:facultyQpSetterDisplay(teacher,allotment),evaluator:facultyEvaluatorDisplay(teacher,allotment),booklets};});return{id:String(teacher.id),name:teacher.name,desig:teacher.desig,allotments,booklets:allotments.reduce((sum,item)=>sum+item.booklets,0),bundles:allotments.length};});}
+        function facultyPublishedRows(){return teachers.map(teacher=>{const allotments=sortedFacultyAllotments(teacher.allotments).map(allotment=>{const booklets=students.filter(student=>isStudentActive(student)&&String(student.class)===String(allotment.cls)&&String(student.section)===String(allotment.sec)&&allotmentSubjectParts(allotment.subject).some(subject=>studentTakesSubject(student,subject))).length;return{cls:String(allotment.cls),sec:String(allotment.sec),subject:allotment.subject,qpSetter:facultyQpSetterDisplay(teacher,allotment),evaluator:facultyEvaluatorDisplay(teacher,allotment),booklets};});return{id:String(teacher.id),name:teacher.name,desig:teacher.desig,allotments,booklets:allotments.reduce((sum,item)=>sum+item.booklets,0),bundles:allotments.reduce((sum,item)=>sum+allotmentSubjectParts(item.subject).length,0)};});}
 
         function addTeachingRow(selCls = '11', selSec = 'A', selSub = '', qpVal = 'Self', evalVal = 'Self', additionalQpVal = '', additionalEvaluatorVal = '') {
             const container = document.getElementById('teaching-allotments-container');
@@ -1608,21 +1608,35 @@
         function updateRowSubjects(secElem, preSub = null) {
             const row = secElem.closest('.teaching-row'); const cls = row.querySelector('.cls-sel').value; const sec = secElem.value; const subSel = row.querySelector('.sub-sel'); subSel.innerHTML = '';
             const available=sectionConfigs[`${cls}-${sec}`] || ['ENGLISH', 'HINDI', 'MATHS', 'SCIENCE'];
-            available.forEach(sub => {
+            const mathsStandard=available.find(subject=>/MATH(?:EMATICS|S).*STANDARD/.test(normalizedSubjectMatch(subject))),mathsBasic=available.find(subject=>/MATH(?:EMATICS|S).*BASIC/.test(normalizedSubjectMatch(subject))),selectable=mathsStandard&&mathsBasic?[`${mathsStandard} + ${mathsBasic}`,...available]:available;
+            selectable.forEach(sub => {
                 subSel.innerHTML += `<option value="${escapeHtml(sub)}" ${preSub==sub?'selected':''}>${escapeHtml(sub)}</option>`;
             });
             if(preSub){row.dataset.subjectManual='true';subSel.value=preSub;}
-            else{row.dataset.subjectManual='';const suggested=subjectSuggestedByDesignation(document.getElementById('tch-desig-input')?.value,available);if(suggested)subSel.value=suggested;}
+            else{row.dataset.subjectManual='';const suggested=subjectSuggestedByDesignation(document.getElementById('tch-desig-input')?.value,selectable);if(suggested)subSel.value=suggested;}
             refreshRowQpSetterOptions(row,preSub?row.querySelector('.qp-sel').value:null);
         }
 
         function normalizedSubjectMatch(value){return String(value||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
-        function subjectSuggestedByDesignation(designation,availableSubjects){const designationKey=normalizedSubjectMatch(designation);return [...(availableSubjects||[])].sort((a,b)=>normalizedSubjectMatch(b).length-normalizedSubjectMatch(a).length).find(subject=>{const key=normalizedSubjectMatch(subject);return key.length>1&&designationKey.includes(key);})||'';}
+        function allotmentSubjectParts(subject){return String(subject||'').split(/\s*\+\s*/).map(value=>value.trim()).filter(Boolean);}
+        function allotmentSubjectMatches(allotmentSubject,subject){const target=normalizedSubjectMatch(subject);return allotmentSubjectParts(allotmentSubject).some(value=>normalizedSubjectMatch(value)===target);}
+        function subjectSuggestedByDesignation(designation,availableSubjects){
+            const designationKey=normalizedSubjectMatch(designation),subjects=[...(availableSubjects||[])];
+            const families=[
+                {designation:['MATHEMATICS','MATHS','MATH'],subject:['MATHEMATICS','MATHS']},
+                {designation:['POLITICALSCIENCE','POLSCI'],subject:['POLITICALSCIENCE','POLSCI']},
+                {designation:['BUSINESSSTUDIES','BSTD'],subject:['BUSINESSSTUDIES','BSTD']},
+                {designation:['SOCIALSCIENCE','SOCIALSTUDIES'],subject:['SOCIALSCIENCE','SOCIALSTUDIES']}
+            ];
+            for(const family of families){if(family.designation.some(alias=>designationKey.includes(alias))){const match=subjects.find(subject=>family.subject.some(alias=>normalizedSubjectMatch(subject).startsWith(alias)));if(match)return match;}}
+            if(/(^|[^A-Z])C\.?\s*S\.?([^A-Z]|$)/i.test(String(designation||''))||designationKey.includes('COMPUTERSCIENCE')){const match=subjects.find(subject=>['CS','COMPUTERSCIENCE'].includes(normalizedSubjectMatch(subject)));if(match)return match;}
+            return subjects.sort((a,b)=>normalizedSubjectMatch(b).length-normalizedSubjectMatch(a).length).find(subject=>{const key=normalizedSubjectMatch(subject);return key.length>1&&designationKey.includes(key);})||'';
+        }
         function applyDesignationSubjectDefaults(){const designation=document.getElementById('tch-desig-input')?.value||'';document.querySelectorAll('.teaching-row').forEach(row=>{if(row.dataset.subjectManual==='true')return;const select=row.querySelector('.sub-sel'),suggested=subjectSuggestedByDesignation(designation,[...select.options].map(option=>option.value));if(suggested){select.value=suggested;refreshRowQpSetterOptions(row);}});}
 
         function findFacultyAllotmentConflict(allotments,excludeTeacherId='') {
             const seen=new Set();
-            for(const allotment of allotments){const key=`${allotment.cls}|${allotment.sec}|${String(allotment.subject).trim().toUpperCase()}`;if(seen.has(key))return {type:'same-form',allotment};seen.add(key);const teacher=teachers.find(item=>String(item.id)!==String(excludeTeacherId)&&(item.allotments||[]).some(existing=>`${existing.cls}|${existing.sec}|${String(existing.subject).trim().toUpperCase()}`===key));if(teacher)return {type:'another-teacher',allotment,teacher};}
+            for(const allotment of allotments){for(const subject of allotmentSubjectParts(allotment.subject)){const key=`${allotment.cls}|${allotment.sec}|${normalizedSubjectMatch(subject)}`;if(seen.has(key))return {type:'same-form',allotment};seen.add(key);const teacher=teachers.find(item=>String(item.id)!==String(excludeTeacherId)&&(item.allotments||[]).some(existing=>String(existing.cls)===String(allotment.cls)&&String(existing.sec)===String(allotment.sec)&&allotmentSubjectMatches(existing.subject,subject)));if(teacher)return {type:'another-teacher',allotment,teacher};}}
             return null;
         }
 
@@ -1630,7 +1644,7 @@
             const gaps=[];
             Object.entries(sectionConfigs||{}).sort(([a],[b])=>a.localeCompare(b,undefined,{numeric:true})).forEach(([key,value])=>{
                 const [cls,sec]=key.split('-'),subjects=(Array.isArray(value)?value:value?.subjects||[]).filter(Boolean);
-                subjects.forEach(subject=>{const match=teachers.flatMap(teacher=>(teacher.allotments||[]).map(allotment=>({teacher,allotment}))).find(item=>String(item.allotment.cls)===String(cls)&&String(item.allotment.sec)===String(sec)&&normalizedSubjectMatch(item.allotment.subject)===normalizedSubjectMatch(subject)),missing=[];if(!match)missing.push('Teaching','QP Setter','Evaluator');else{if(!String(match.allotment.qpSetter||'').trim())missing.push('QP Setter');if(!String(match.allotment.evaluator||'').trim())missing.push('Evaluator');}if(missing.length)gaps.push({cls,sec,subject,missing});});
+                subjects.forEach(subject=>{const match=teachers.flatMap(teacher=>(teacher.allotments||[]).map(allotment=>({teacher,allotment}))).find(item=>String(item.allotment.cls)===String(cls)&&String(item.allotment.sec)===String(sec)&&allotmentSubjectMatches(item.allotment.subject,subject)),missing=[];if(!match)missing.push('Teaching','QP Setter','Evaluator');else{if(!String(match.allotment.qpSetter||'').trim())missing.push('QP Setter');if(!String(match.allotment.evaluator||'').trim())missing.push('Evaluator');}if(missing.length)gaps.push({cls,sec,subject,missing});});
             });
             return gaps;
         }
@@ -1733,13 +1747,13 @@
             }
             filteredTeachers.forEach((t) => {
                 let totalStudentsAllotted=0,dutiesHtml='';
-                sortedFacultyAllotments(t.allotments).forEach(al=>{const count=students.filter(s=>isStudentActive(s)&&String(s.class)===String(al.cls)&&String(s.section)===String(al.sec)&&studentTakesSubject(s,al.subject)).length,totalLabel=`Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}`;totalStudentsAllotted+=count;dutiesHtml+=`<div class="faculty-duty-line grid grid-cols-[32.2%_40.7%_27.1%] border-b border-slate-200 last:border-b-0 items-stretch"><div class="px-4 py-1.5 leading-4"><span class="font-semibold text-slate-700">${totalLabel}:</span> <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> <span class="text-[10px] text-slate-500">(${count})</span></div><div class="faculty-qp-setter px-3 py-1.5 leading-4 border-l border-slate-100 whitespace-nowrap text-[10px] tracking-tight" title="${totalLabel}"><strong class="text-indigo-900">${escapeHtml(facultyQpSetterDisplay(t,al))}</strong></div><div class="faculty-evaluator px-3 py-1.5 leading-4 border-l border-slate-100 whitespace-nowrap text-[10px] tracking-tight" title="${totalLabel}"><strong class="text-slate-800">${escapeHtml(facultyEvaluatorDisplay(t,al))}</strong></div></div>`;});
+                sortedFacultyAllotments(t.allotments).forEach(al=>{const count=students.filter(s=>isStudentActive(s)&&String(s.class)===String(al.cls)&&String(s.section)===String(al.sec)&&allotmentSubjectParts(al.subject).some(subject=>studentTakesSubject(s,subject))).length,totalLabel=`Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}`;totalStudentsAllotted+=count;dutiesHtml+=`<div class="faculty-duty-line grid grid-cols-[32.2%_40.7%_27.1%] border-b border-slate-200 last:border-b-0 items-stretch"><div class="px-4 py-1.5 leading-4"><span class="font-semibold text-slate-700">${totalLabel}:</span> <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> <span class="text-[10px] text-slate-500">(${count})</span></div><div class="faculty-qp-setter px-3 py-1.5 leading-4 border-l border-slate-100 whitespace-nowrap text-[10px] tracking-tight" title="${totalLabel}"><strong class="text-indigo-900">${escapeHtml(facultyQpSetterDisplay(t,al))}</strong></div><div class="faculty-evaluator px-3 py-1.5 leading-4 border-l border-slate-100 whitespace-nowrap text-[10px] tracking-tight" title="${totalLabel}"><strong class="text-slate-800">${escapeHtml(facultyEvaluatorDisplay(t,al))}</strong></div></div>`;});
                 if(!dutiesHtml)dutiesHtml='<div class="faculty-duty-line grid grid-cols-[32.2%_40.7%_27.1%]"><div class="px-4 py-2 italic text-slate-400">No allotments</div><div class="px-4 py-2">—</div><div class="px-4 py-2">—</div></div>';
                 tbody.innerHTML+=`<tr class="hover:bg-slate-50 border-b align-middle">
                     <td class="px-4 py-3 font-semibold"><div class="faculty-teacher-name whitespace-nowrap text-[11px] tracking-tight text-slate-900">${escapeHtml(t.name)}</div><span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${escapeHtml(t.desig)}</span></td>
                     <td colspan="3" class="faculty-duty-grid p-0 align-top">${dutiesHtml}</td>
                     <td class="px-3 py-3 text-center bg-indigo-50/60 font-bold text-indigo-900"><div class="text-base">${totalStudentsAllotted}</div><div class="text-[10px]">Booklets</div></td>
-                    <td class="px-3 py-3 text-center bg-emerald-50/60 font-bold text-emerald-900"><div class="text-base">${t.allotments?.length||0}</div><div class="text-[10px]">Bundle(s)</div></td>
+                    <td class="px-3 py-3 text-center bg-emerald-50/60 font-bold text-emerald-900"><div class="text-base">${(t.allotments||[]).reduce((sum,item)=>sum+allotmentSubjectParts(item.subject).length,0)}</div><div class="text-[10px]">Bundle(s)</div></td>
                     <td class="px-3 py-3 text-right"><div class="flex flex-col items-end gap-2"><button type="button" onclick="editTeacher(${Number(t.id)})" class="text-indigo-600 hover:underline font-bold">Edit</button><button type="button" onclick="deleteTeacher(${Number(t.id)})" class="text-red-600 hover:underline font-bold">Delete</button></div></td>
                 </tr>`;
             });
@@ -2673,7 +2687,7 @@
                             let subjectTeacher = null;
                             let allotment = null;
                             teachers.some(t => {
-                                const match = t.allotments?.find(al => String(al.cls) === String(slot.cls) && String(al.subject).toUpperCase() === String(slot.subject).toUpperCase());
+                                const match = t.allotments?.find(al => String(al.cls) === String(slot.cls) && allotmentSubjectMatches(al.subject,slot.subject));
                                 if (!match) return false;
                                 subjectTeacher = t;
                                 allotment = match;
