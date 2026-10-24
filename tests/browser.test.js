@@ -496,7 +496,7 @@ async function main() {
         await a.evaluate(async()=>{holidayCalendar={'2026-10-28':{accountOf:'Test Holiday',remark:'GH'}};await saveData(['holidayCalendar']);});
         await a.evaluate(()=>switchTab('holidays'));
         assert.match(await a.locator('#holiday-manager-mount h2').textContent(),/4\. Holiday Manager/);
-        assert.deepEqual(await a.locator('#holiday-manager-mount thead th').allTextContents(),['S.No.','Date','Day','On Account Of','Remark','Action']);
+        assert.deepEqual(await a.locator('#holiday-manager-mount thead th').allTextContents(),['S.No.','Date','Day','On Account Of','Remark']);
         assert.equal(await a.getByRole('button',{name:/Download CSV/}).count(),1);
         assert.equal(await a.evaluate(()=>parseHolidayCsvDate('26/10/2026')),'2026-10-26');
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await toggleHolidayCalendarLock();}finally{window.confirm=old;}});
