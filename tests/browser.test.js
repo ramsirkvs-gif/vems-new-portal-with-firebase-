@@ -156,8 +156,8 @@ async function main() {
         assert.equal(Object.values(data.examCirculars || {}).length, 1);
         const circularHtml = await a.evaluate(() => circularPdfHtml(Object.values(examCirculars)[0]));
         assert.ok(circularHtml.indexOf('All members shall attend') < circularHtml.indexOf('ADDRESSEES / OFFICIALS CONCERNED'), 'circular text must appear before target groups and employee names');
-        assert.match(circularHtml, /assets\/kvs-logo\.svg/);
-        assert.match(circularHtml, /assets\/pm-shri-logo\.svg/);
+        assert.match(circularHtml, /assets\/kvs-logo\.png/);
+        assert.match(circularHtml, /assets\/pm-shri-logo\.png/);
         assert.ok(circularHtml.indexOf('EXAM IC') < circularHtml.indexOf('PRINCIPAL'), 'Exam IC must be left of the Principal');
         console.log('PASS: session-linked examination circular saves with reusable subject and recipient snapshot');
 
