@@ -138,6 +138,15 @@ async function main() {
         assert.ok(await a.getByText('Published notice body', { exact: true }).count() >= 1, 'a saved notice must remain visible in the publisher list');
         assert.equal(data.publicPortalBoards.notices[0].text, 'Published notice body', 'notice text must be persisted');
         console.log('PASS: public notice publishes and remains visible in the management list');
+        await a.fill('#exam-notice-heading', 'Title Only Notice');
+        await a.fill('#exam-notice-text', '');
+        await a.getByRole('button', { name: 'Publish New Notice' }).click();
+        await a.waitForFunction(() => instantNotices()[0]?.heading === 'Title Only Notice');
+        assert.equal(data.publicPortalBoards.notices[0].heading, 'Title Only Notice', 'a title-only notice must publish without body text');
+        await a.evaluate(() => { activateArea('public'); renderPublicPortalBoards(); });
+        assert.ok(await a.getByText('Title Only Notice', { exact: true }).count() >= 1, 'a title-only notice must be visible publicly');
+        await a.evaluate(() => activateArea('principal'));
+        console.log('PASS: title-only public notices publish and display');
         await a.evaluate(() => openCircularEditor());
         await a.fill('#circular-subject', 'Examination Committee Meeting');
         await a.fill('#circular-body', 'All members shall attend the meeting at the notified time.');
