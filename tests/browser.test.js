@@ -571,6 +571,11 @@ async function main() {
         await a.evaluate(() => {isPreExamFullPageOpen=false;activeLifecycleStage=null;isVaultOverviewOpen=false;return startNewExamSetup();});
         await b.waitForFunction(count => archivedExams.length === count + 1, count);
         const created = Object.values(data.archivedExams).find(exam => exam.id !== 100);
+        await a.fill('#manual-exam-title', 'PB-1 Secondary Wing');
+        await a.getByRole('button', { name: 'Apply' }).click();
+        await a.waitForFunction(id => archivedExams.find(exam => exam.id === id)?.title === 'PB-1 Secondary Wing', created.id);
+        assert.equal(await a.locator('#exam-name-select option', { hasText: 'PB-1 Secondary Wing' }).count(), 1, 'a manually entered vault title must join the reusable dropdown');
+        created.title = 'PB-1 Secondary Wing';
         assert.equal(await a.getByRole('button',{name:'➕ Add Day 2'}).count(),1);
         await a.evaluate(() => addNextDatesheetDay());
         assert.deepEqual(await a.evaluate(()=>{const seed=tentativeHolidaySeed2026(),prior=holidayCalendar;holidayCalendar={__breaks:seed.breaks};const warning=holidayName('2026-10-16');holidayCalendar=prior;return{holidays:Object.keys(seed.rows).length,pending:seed.pending.length,breaks:seed.breaks.length,warning,diwali:seed.rows['2026-11-08']};}),{holidays:22,pending:2,breaks:3,warning:'Autumn Break',diwali:{accountOf:'Diwali (Deepavali)',remark:'GH',source:'Tentative Holiday List 2026'}});

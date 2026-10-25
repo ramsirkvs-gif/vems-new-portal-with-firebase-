@@ -1896,6 +1896,14 @@
             renderExamCreatorModule();
         }
 
+        function vaultExamOptions(){
+            const options=[...examOptionsList],seen=new Set(options.map(item=>String(item.id).trim().toLowerCase()));
+            [...archivedExams.map(exam=>exam.title),mainHeaderConfig.name].filter(Boolean).forEach(title=>{const value=String(title).trim();if(value&&!seen.has(value.toLowerCase())){options.push({id:value,label:value});seen.add(value.toLowerCase());}});
+            return options;
+        }
+        async function selectVaultExamTitle(value){mainHeaderConfig.name=value;mainHeaderConfig.customName='';if(!await syncActiveExamDraftToVault())return;renderExamCreatorModule();}
+        async function applyManualExamTitle(){const input=document.getElementById('manual-exam-title'),title=input?.value.trim();if(!title){alert('Enter the new examination title.');input?.focus();return;}mainHeaderConfig.name=title;mainHeaderConfig.customName='';if(!await syncActiveExamDraftToVault())return;renderExamCreatorModule();setTimeout(()=>document.getElementById('manual-exam-title')?.focus(),0);}
+
         async function saveMainHeaderConfig() {
             mainHeaderConfig.name = document.getElementById('exam-name-select')?.value || 'Half Yearly Examination';
             mainHeaderConfig.customName = document.getElementById('exam-name-custom')?.value || '';
@@ -3433,12 +3441,11 @@
                                 <button type="button" onclick="saveMainHeaderConfig()" class="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded">💾 Save</button>
                             </div>
                             <div class="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label class="block text-[11px] font-bold uppercase mb-1">Exam Name</label>
-                                    <select id="exam-name-select" onchange="saveMainHeaderConfig()" class="w-full text-xs p-2 border rounded bg-white font-semibold">
-                                        ${examOptionsList.map(o => `<option value="${escapeHtml(o.id)}" ${mainHeaderConfig.name === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}
-                                    </select>
+                                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                    <label class="block text-[11px] font-bold uppercase">Select Examination Title<select id="exam-name-select" onchange="selectVaultExamTitle(this.value)" class="mt-1 w-full rounded border bg-white p-2 text-xs font-semibold">${vaultExamOptions().map(o => `<option value="${escapeHtml(o.id)}" ${mainHeaderConfig.name === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</select></label>
+                                    <label class="block text-[11px] font-bold uppercase">Add New / Edit Title<div class="mt-1 flex gap-2"><input id="manual-exam-title" value="${escapeHtml(mainHeaderConfig.name||'')}" placeholder="e.g. PB-1 Secondary / PB-1 Primary" class="min-w-0 flex-1 rounded border bg-white p-2 text-xs font-semibold"><button type="button" onclick="applyManualExamTitle()" class="shrink-0 rounded bg-indigo-700 px-4 py-2 text-xs font-bold text-white">Apply</button></div></label>
                                 </div>
+                                <p class="rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900"><b>Running two examinations together?</b> Enter a distinct title and press Apply. It is saved with the vault and automatically becomes available in this dropdown.</p>
                                 <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><b>📅 Select actual examination dates below.</b> Sundays, holidays and preparation gaps will not be added automatically.</p>
                             </div>
                         </div>
