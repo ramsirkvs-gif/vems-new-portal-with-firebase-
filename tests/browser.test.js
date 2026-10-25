@@ -189,6 +189,7 @@ async function main() {
         await a.selectOption('.teaching-row .sub-sel','SCIENCE');
         await a.fill('#tch-desig-input','PGT SCIENCE');
         assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('PGT-History',['ENGLISH','HISTORY'])),'HISTORY');
+        assert.deepEqual(await a.evaluate(() => {const prior=sectionConfigs;sectionConfigs={'6-A':['SCIENCE'],'11-A':['ENGLISH','POLITICAL SCIENCE'],'12-B':['POLITICAL SCIENCE']};try{return defaultAllotmentFromDesignation('PGT-Political Science');}finally{sectionConfigs=prior;}}),{cls:'11',sec:'A',subject:'POLITICAL SCIENCE'},'designation must choose a configured class where its subject exists');
         assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('TGT-Maths',['MATHEMATICS STANDARD + MATHEMATICS BASIC','ENGLISH','MATHEMATICS STANDARD','MATHEMATICS BASIC','SCIENCE'])),'MATHEMATICS STANDARD + MATHEMATICS BASIC');
         await a.fill('#tch-desig-input','TGT-Maths');
         await a.evaluate(() => {const prior=sectionConfigs['10-A'];sectionConfigs['10-A']=['ENGLISH','MATHEMATICS STANDARD','MATHEMATICS BASIC','SCIENCE'];addTeachingRow('10','A');sectionConfigs['10-A']=prior;});
@@ -336,7 +337,7 @@ async function main() {
             const main = document.querySelector(`.faculty-order-row[data-teacher-id="${teachers.find(item => item.name === 'New Shared Teacher').id}"]`);
             const support = document.querySelector(`.faculty-order-row[data-teacher-id="${supportId}"]`);
             main.querySelector('.faculty-order-category').value = 'PERMANENT'; main.querySelector('.faculty-order-number').value = '1';
-            support.querySelector('.faculty-order-category').value = 'OTHER'; support.querySelector('.faculty-order-number').value = '1';
+            support.querySelector('.faculty-order-category').value = 'OTHER'; support.querySelector('.faculty-order-number').value = '2';
             await saveFacultyDisplayOrder();
         }, { supportId: supportFacultyId });
         await b.waitForFunction(() => teachers.find(item => item.name === 'New Shared Teacher')?.employmentCategory === 'PERMANENT');
@@ -348,10 +349,11 @@ async function main() {
             {name:'Permanent PGT Two',desig:'PGT-Hindi',employmentCategory:'PERMANENT',seniorityOrder:2},
             {name:'Permanent PGT One',desig:'PGT-English',employmentCategory:'PERMANENT',seniorityOrder:1},
             {name:'Instructor',desig:'AI Instructor',employmentCategory:'INSTRUCTOR',seniorityOrder:1}
-        ]).map(item=>item.name)),['Permanent PGT One','Permanent PGT Two','Contract PGT','Permanent TGT','Instructor']);
+        ]).map(item=>item.name)),['Permanent PGT One','Contract PGT','Permanent TGT','Instructor','Permanent PGT Two']);
         console.log('PASS: one saved category and seniority rule controls faculty display order');
         assert.equal(await a.evaluate(() => finalFacultyRoster2026.length),48,'the final source must contain all 48 supplied roster positions');
         assert.deepEqual(await a.evaluate(() => {const prior=teachers;teachers=[{id:'existing-ipi',name:'PGT-Chemistry Vacant',desig:'Already Updated',allotments:[{cls:'12',sec:'A',subject:'CHEMISTRY'}]}];try{const match=matchFinalFacultyRecord(finalFacultyRoster2026.find(item=>item.order===16));return{id:match?.id,desig:match?.desig,allotments:match?.allotments?.length};}finally{teachers=prior;}}),{id:'existing-ipi',desig:'Already Updated',allotments:1},'vacant aliases must match existing records without replacing saved details');
+        assert.deepEqual(await a.evaluate(() => {const prior=teachers,existing={id:'existing-ipi',name:'PGT-Chemistry Vacant',desig:'Custom Designation',employmentCategory:'OTHER',seniorityOrder:77,allotments:[{cls:'12',sec:'A',subject:'CHEMISTRY'}]};teachers=[existing];try{const result=mergeMissingFinalFaculty([finalFacultyRoster2026.find(item=>item.order===16)]);return{result,record:teachers[0],count:teachers.length};}finally{teachers=prior;}}),{result:{added:0,matched:1},record:{id:'existing-ipi',name:'PGT-Chemistry Vacant',desig:'Custom Designation',employmentCategory:'OTHER',seniorityOrder:77,allotments:[{cls:'12',sec:'A',subject:'CHEMISTRY'}]},count:1},'the one-time roster merge must leave every field of an existing record untouched');
         console.log('PASS: final faculty source matches aliases without duplicating or replacing existing records');
 
         await a.evaluate(() => { switchTab('config'); document.getElementById('cfg-class').value = '10'; updateCfgSections(); addNewSubjectField(); });
