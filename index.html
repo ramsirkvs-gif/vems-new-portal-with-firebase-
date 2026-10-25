@@ -388,7 +388,7 @@
                             </div>
                             <div class="flex justify-end gap-2 pt-2 border-t">
                                 <button type="button" onclick="resetTeacherForm()" class="px-4 py-2 text-xs bg-slate-200 rounded font-semibold">Cancel / Reset</button>
-                                <button type="submit" class="px-5 py-2 text-xs bg-indigo-600 text-white rounded font-semibold shadow">💾 Save Faculty</button>
+                                <button id="save-faculty-button" type="submit" class="px-5 py-2 text-xs bg-indigo-600 text-white rounded font-semibold shadow disabled:cursor-wait disabled:opacity-60">💾 Save Faculty</button>
                             </div>
                         </form>
                     </div>
@@ -1670,8 +1670,10 @@
             return gaps;
         }
         function showFacultyCompletenessPopup(saved=false){
-            document.getElementById('faculty-completeness-popup')?.remove();const gaps=facultyAssignmentGaps(),modal=document.createElement('div');modal.id='faculty-completeness-popup';modal.className='fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/70 p-4';modal.innerHTML=`<div class="w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl"><div class="flex items-center justify-between px-5 py-3 ${gaps.length?'bg-amber-500 text-amber-950':'bg-emerald-700 text-white'}"><b>${gaps.length?'⚠️ Faculty Assignment Check':'✅ Faculty Assignment Complete'}</b><button type="button" onclick="document.getElementById('faculty-completeness-popup').remove()" class="rounded bg-white/25 px-3 py-1 font-bold">✕</button></div><div class="p-5">${saved?'<p class="mb-3 text-sm font-bold text-emerald-700">Faculty record saved successfully.</p>':''}${gaps.length?`<p class="mb-3 text-sm text-slate-700"><b>${gaps.length} class-subject assignment(s) remain incomplete.</b> Complete these before publishing final exam duties.</p><div class="max-h-80 overflow-auto rounded border"><table class="w-full text-xs"><thead class="sticky top-0 bg-indigo-950 text-white"><tr><th class="p-2 text-left">Class / Section</th><th class="p-2 text-left">Subject</th><th class="p-2 text-left">Unassigned Work</th></tr></thead><tbody class="divide-y">${gaps.map(item=>`<tr><td class="p-2 font-bold">Class ${escapeHtml(formatClass(item.cls))}-${escapeHtml(item.sec)}</td><td class="p-2">${escapeHtml(item.subject)}</td><td class="p-2 font-bold text-red-700">${escapeHtml(item.missing.join(', '))}</td></tr>`).join('')}</tbody></table></div>`:'<p class="text-sm text-slate-700">Every configured class, section and subject has teaching, QP setter and evaluator responsibility assigned.</p>'}<div class="mt-4 text-right"><button type="button" onclick="document.getElementById('faculty-completeness-popup').remove()" class="rounded bg-indigo-700 px-5 py-2 text-xs font-bold text-white">Close</button></div></div></div>`;document.body.appendChild(modal);
+            document.getElementById('faculty-completeness-popup')?.remove();const gaps=facultyAssignmentGaps(),modal=document.createElement('div');modal.id='faculty-completeness-popup';modal.className='fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/70 p-4';modal.innerHTML=`<div class="w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl"><div class="flex items-center justify-between px-5 py-3 ${gaps.length?'bg-amber-500 text-amber-950':'bg-emerald-700 text-white'}"><b>${gaps.length?'⚠️ ASSIGNMENTS STILL INCOMPLETE':'✅ FINAL CONFIRMATION — ALL ASSIGNMENTS COMPLETE'}</b><button type="button" onclick="document.getElementById('faculty-completeness-popup').remove()" class="rounded bg-white/25 px-3 py-1 font-bold">✕</button></div><div class="p-5">${saved?'<p class="mb-3 text-sm font-bold text-emerald-700">Faculty record verified and saved successfully.</p>':''}${gaps.length?`<p class="mb-3 text-sm text-slate-700"><b>${gaps.length} mapped class-subject assignment(s) remain incomplete.</b> This warning will continue after every save until Teaching, QP Setter and Evaluator duties are complete.</p><div class="max-h-80 overflow-auto rounded border"><table class="w-full text-xs"><thead class="sticky top-0 bg-indigo-950 text-white"><tr><th class="p-2 text-left">Class / Section</th><th class="p-2 text-left">Subject</th><th class="p-2 text-left">Unassigned Work</th></tr></thead><tbody class="divide-y">${gaps.map(item=>`<tr><td class="p-2 font-bold">Class ${escapeHtml(formatClass(item.cls))}-${escapeHtml(item.sec)}</td><td class="p-2">${escapeHtml(item.subject)}</td><td class="p-2 font-bold text-red-700">${escapeHtml(item.missing.join(', '))}</td></tr>`).join('')}</tbody></table></div>`:'<div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">All mapped classes and subjects now have Teaching, QP Setter and Evaluator assignments.</div>'}<div class="mt-4 text-right"><button type="button" onclick="document.getElementById('faculty-completeness-popup').remove()" class="rounded bg-indigo-700 px-5 py-2 text-xs font-bold text-white">Close</button></div></div></div>`;document.body.appendChild(modal);
         }
+
+        function facultyAllotmentFingerprint(allotments){return JSON.stringify(sortedFacultyAllotments(allotments).map(item=>({cls:String(item.cls),sec:String(item.sec),subject:String(item.subject),qpSetter:String(item.qpSetter||'Self'),additionalQpSetter:String(item.additionalQpSetter||''),evaluator:String(item.evaluator||'Self'),additionalEvaluator:String(item.additionalEvaluator||'')})));}
 
         async function saveTeacherDirect(e) {
             e.preventDefault();
@@ -1696,13 +1698,16 @@
             const editingTeacher=editIndex!==''?teachers.find(t=>String(t.id)===editIndex):null;
             const conflict=findFacultyAllotmentConflict(allotments,editingTeacher?.id||'');
             if(conflict){const item=conflict.allotment,location=`Class ${formatClass(item.cls)}-${item.sec} · ${item.subject}`;alert(conflict.type==='another-teacher'?`❌ Faculty Allotment Conflict\n\n${location} is already assigned to ${conflict.teacher.name} (${conflict.teacher.desig}).\n\nRemove or update the existing allotment before assigning another teacher.`:`❌ Duplicate Faculty Allotment\n\n${location} appears more than once in this teacher's allotments.`);return;}
+            const saveButton=document.getElementById('save-faculty-button');if(saveButton){saveButton.disabled=true;saveButton.textContent='⏳ Saving & Verifying…';}
             const teacherData = { id: editIndex !== '' ? teachers.find(t => String(t.id) === editIndex).id : newRecordId(), name, desig, allotments };
             if(editIndex !== '') {
                 teachers[teachers.findIndex(t => String(t.id) === editIndex)] = teacherData;
             } else {
                 teachers.push(teacherData);
             }
-            if (!await saveData(['teachers'], { teachers: editorBaselines.teacher ? [editorBaselines.teacher] : [] })) return;
+            if (!await saveData(['teachers'], { teachers: editorBaselines.teacher ? [editorBaselines.teacher] : [] })) {if(saveButton){saveButton.disabled=false;saveButton.textContent='💾 Save Faculty';}return;}
+            const confirmed=Object.values(sharedStore?.view('teachers')||{}).find(item=>String(item.id)===String(teacherData.id));
+            if(!confirmed||String(confirmed.name)!==name||String(confirmed.desig)!==desig||facultyAllotmentFingerprint(confirmed.allotments)!==facultyAllotmentFingerprint(allotments)){showSyncError('Not cleared: server verification did not return every faculty allotment. The form remains open; please save again.');if(saveButton){saveButton.disabled=false;saveButton.textContent='💾 Save Faculty';}return;}
             editorBaselines.teacher = null;
             resetTeacherForm();
             renderTeachers();
@@ -1721,7 +1726,7 @@
         }
 
         function editTeacher(id) {
-            const idx = teachers.findIndex(t => t.id === id);
+            const idx = teachers.findIndex(t => String(t.id) === String(id));
             if(idx === -1) return;
             const t = teachers[idx];
             editorBaselines.teacher = { path: [String(t.id)], value: cloneData(t) };
@@ -1741,7 +1746,7 @@
 
         async function deleteTeacher(id) {
             if(confirm("Remove this teacher's assignment?")) {
-                teachers = teachers.filter(t => t.id !== id);
+                teachers = teachers.filter(t => String(t.id) !== String(id));
                 if (!await saveData(['teachers'])) return;
                 renderTeachers();
                 renderClassTeacherCoordinationTable();
@@ -1776,7 +1781,7 @@
                     <td colspan="3" class="faculty-duty-grid p-0 align-top">${dutiesHtml}</td>
                     <td class="px-3 py-3 text-center bg-indigo-50/60 font-bold text-indigo-900"><div class="text-base">${totalStudentsAllotted}</div><div class="text-[10px]">Booklets</div></td>
                     <td class="px-3 py-3 text-center bg-emerald-50/60 font-bold text-emerald-900"><div class="text-base">${(t.allotments||[]).reduce((sum,item)=>sum+allotmentSubjectParts(item.subject).length,0)}</div><div class="text-[10px]">Bundle(s)</div></td>
-                    <td class="px-3 py-3 text-right"><div class="flex flex-col items-end gap-2"><button type="button" onclick="editTeacher(${Number(t.id)})" class="text-indigo-600 hover:underline font-bold">Edit</button><button type="button" onclick="deleteTeacher(${Number(t.id)})" class="text-red-600 hover:underline font-bold">Delete</button></div></td>
+                    <td class="px-3 py-3 text-right"><div class="flex flex-col items-end gap-2"><button type="button" onclick="editTeacher(${jsArg(String(t.id))})" class="text-indigo-600 hover:underline font-bold">Edit</button><button type="button" onclick="deleteTeacher(${jsArg(String(t.id))})" class="text-red-600 hover:underline font-bold">Delete</button></div></td>
                 </tr>`;
             });
         }

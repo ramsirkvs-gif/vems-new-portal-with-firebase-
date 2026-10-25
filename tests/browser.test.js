@@ -168,9 +168,14 @@ async function main() {
         await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
         await a.locator('#faculty-completeness-popup').waitFor();
-        assert.match(await a.locator('#faculty-completeness-popup').textContent(),/Faculty record saved successfully.*assignment\(s\) remain incomplete/s);
+        assert.match(await a.locator('#faculty-completeness-popup').textContent(),/verified and saved successfully.*mapped class-subject assignment\(s\) remain incomplete/s);
         await a.locator('#faculty-completeness-popup button',{hasText:'Close'}).click();
         assert.equal(Object.values(data.teachers).length, 1);
+        const savedFacultyId=await a.evaluate(()=>String(teachers[0].id));
+        await a.evaluate(id=>editTeacher(id),savedFacultyId);
+        assert.equal(await a.locator('.teaching-row').count(),1,'reopening a saved faculty record must restore every saved class row');
+        assert.equal(await a.evaluate(()=>facultyAllotmentFingerprint([{cls:document.querySelector('.teaching-row .cls-sel').value,sec:document.querySelector('.teaching-row .sec-sel').value,subject:document.querySelector('.teaching-row .sub-sel').value,qpSetter:document.querySelector('.teaching-row .qp-sel').value,additionalQpSetter:document.querySelector('.teaching-row .qp-additional-sel').value,evaluator:document.querySelector('.teaching-row .eval-sel').value,additionalEvaluator:document.querySelector('.teaching-row .eval-additional-sel').value}])===facultyAllotmentFingerprint(teachers[0].allotments)),true,'reopened class rows must exactly match the confirmed faculty record');
+        await a.evaluate(()=>resetTeacherForm());
         assert.equal(await a.locator('#tch-desig-input').getAttribute('list'),'faculty-designation-suggestions');
         assert.equal(await a.locator('#faculty-designation-suggestions option[value="PGT SCIENCE"]').count(),1,'previously entered designations must be available for quick selection');
         assert.equal(await a.locator('#faculty-designation-suggestions option[value="TGT-Maths"]').count(),1,'standard designation suggestions must remain available');
@@ -178,7 +183,10 @@ async function main() {
             teachers[0].allotments = [{ cls: '10', sec: 'A', subject: 'SCIENCE', qpSetter: 'Self', evaluator: 'Self' }];
             await saveData(['teachers']);
             renderTeachers();
+            showFacultyCompletenessPopup();
         });
+        assert.match(await a.locator('#faculty-completeness-popup').textContent(),/FINAL CONFIRMATION.*ALL ASSIGNMENTS COMPLETE.*All mapped classes and subjects/s);
+        await a.locator('#faculty-completeness-popup button',{hasText:'Close'}).click();
         assert.deepEqual(await a.evaluate(() => sortedFacultyAllotments([
             {cls:'11',sec:'D',subject:'ENGLISH'}, {cls:'8',sec:'B',subject:'SCIENCE'},
             {cls:'11',sec:'A',subject:'ENGLISH'}, {cls:'6',sec:'A',subject:'SCIENCE'},
