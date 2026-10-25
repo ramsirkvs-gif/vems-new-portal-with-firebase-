@@ -375,6 +375,8 @@ async function main() {
         assert.equal(await a.evaluate(() => finalFacultyRoster2026.length),50,'the final source must contain all 50 supplied Secondary roster positions');
         assert.equal(await a.evaluate(()=>isSecondSaturday('2026-11-14')),true,'the second Saturday must be detected automatically as a holiday warning');
         assert.equal(await a.evaluate(()=>examDurationLabel('08:30','11:00')),'2 Hours 30 Minutes','duration must be calculated from exam start and end times');
+        assert.equal(await a.evaluate(()=>slotDurationMismatch({duration:'3 Hours',startTime:'09:30',overTime:'12:30'})),false);
+        assert.equal(await a.evaluate(()=>slotDurationMismatch({duration:'3 Hours',startTime:'09:30',overTime:'11:30'})),true,'assigned duration must be checked against exam From-To');
         assert.equal(await a.evaluate(()=>qpReadingRange({readFrom:'08:15',readTo:'08:30'})),'08:15–08:30','QP reading time must display a from-to range');
         assert.equal(await a.evaluate(()=>qpReadingRange({readTime:'08:15',startTime:'08:30'})),'08:15–08:30','older saved reading times must remain compatible');
         assert.match(await a.evaluate(()=>groupedDateSheetRowsHtml([{dateStr:'2026-11-12',cls:'10',selectedSections:['A'],subject:'ENGLISH',startTime:'08:30',overTime:'11:30'},{dateStr:'2026-11-12',cls:'12',selectedSections:['A'],subject:'PHYSICS',startTime:'08:30',overTime:'11:30'}])),/rowspan="2"/,'one date cell must group every paper scheduled on that day');

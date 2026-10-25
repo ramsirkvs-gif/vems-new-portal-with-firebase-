@@ -2062,6 +2062,7 @@
         async function saveOrUpdateDayConfig(dayId) {
             let dayObj = datesheetDays.find(d => d.id === dayId);
             if (dayObj) {
+                const timingErrors=(dayObj.paperSlots||[]).map((slot,index)=>slotDurationMismatch(slot)?`Slot ${index+1}: selected duration ${slot.duration}, but Exam From–To is ${examDurationLabel(slot.startTime,slot.overTime)}.`:'').filter(Boolean);if(timingErrors.length){alert(`DURATION AND TIMING DO NOT MATCH\n\n${timingErrors.join('\n')}\n\nCorrect the duration or exam time before saving.`);dayObj.isCollapsed=false;renderDatesheetDaysContainer();return;}
                 const clashes=examDayClashes(dayObj);if(clashes.length){alert(`SCHEDULE CLASH\n\n${clashes.join('\n')}\n\nCorrect the highlighted day before saving.`);dayObj.isCollapsed=false;renderDatesheetDaysContainer();return;}
                 dayObj.saved = true;
                 dayObj.isCollapsed = false;
@@ -2291,19 +2292,20 @@
             let defaultSub = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
             let slotId = Date.now() + Math.floor(Math.random() * 1000);
             
+            const template=dayObj.paperSlots[0]||{};
             dayObj.paperSlots.push({
                 slotId: slotId,
                 cls: defaultCls,
                 subject: defaultSub,
                 selectedSections: getAllSectionsWithSubject(defaultCls, defaultSub),
-                duration: '3 Hours',
+                duration: template.duration||'3 Hours',
                 maxMarks: 80,
-                repTime: '08:00',
-                readTime: '08:15',
-                readFrom: '08:15',
-                readTo: '08:30',
-                startTime: '08:30',
-                overTime: '11:30'
+                repTime: template.repTime||'08:00',
+                readTime: template.readFrom||template.readTime||'08:15',
+                readFrom: template.readFrom||template.readTime||'08:15',
+                readTo: template.readTo||template.startTime||'08:30',
+                startTime: template.startTime||'08:30',
+                overTime: template.overTime||'11:30'
             });
             if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
@@ -2372,12 +2374,16 @@
             if (!dayObj) return;
             let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
             if (!slot) return;
-            slot[fieldName] = val;
-            if(fieldName==='startTime'||fieldName==='overTime')slot.duration=examDurationLabel(slot.startTime,slot.overTime);
+            const previous=slot[fieldName];slot[fieldName] = val;
+            const timingFields=['duration','repTime','readFrom','readTo','startTime','overTime'];if(dayObj.paperSlots[0]===slot&&timingFields.includes(fieldName))dayObj.paperSlots.slice(1).forEach(other=>{if(!other[fieldName]||other[fieldName]===previous)other[fieldName]=val;});
             if (!await syncActiveExamDraftToVault()) return;
-            if(fieldName==='startTime'||fieldName==='overTime')renderDatesheetDaysContainer();
+            if(fieldName==='overTime'&&slotDurationMismatch(slot))alert(`Duration does not match.\n\nSelected: ${slot.duration}\nExam time: ${examDurationLabel(slot.startTime,slot.overTime)}\n\nPlease correct Duration or Exam To.`);
+            if(timingFields.includes(fieldName))renderDatesheetDaysContainer();
         }
         function examDurationLabel(start,end){if(!start||!end)return'—';const minutes=value=>{const[h,m]=String(value).split(':').map(Number);return h*60+m;};let total=minutes(end)-minutes(start);if(total<0)total+=1440;if(!Number.isFinite(total)||total<=0)return'—';const hours=Math.floor(total/60),mins=total%60;return`${hours?`${hours} Hour${hours===1?'':'s'}`:''}${hours&&mins?' ':''}${mins?`${mins} Minutes`:''}`;}
+        function durationMinutes(value){const text=String(value||''),hours=Number(text.match(/[\d.]+/)?.[0]||0);return Math.round(hours*60);}
+        function examTimeMinutes(start,end){if(!start||!end)return 0;const parts=value=>{const[h,m]=String(value).split(':').map(Number);return h*60+m;};let total=parts(end)-parts(start);if(total<0)total+=1440;return total;}
+        function slotDurationMismatch(slot){const selected=durationMinutes(slot?.duration),actual=examTimeMinutes(slot?.startTime,slot?.overTime);return!!(selected&&actual&&selected!==actual);}
         function examDayClashes(day){const slots=day?.paperSlots||[],clashes=[];students.filter(isStudentActive).forEach(student=>{const papers=slots.filter(slot=>String(slot.cls)===String(student.class)&&(!(slot.selectedSections||[]).length||(slot.selectedSections||[]).includes(String(student.section)))&&studentTakesSubject(student,slot.subject));if(papers.length>1)clashes.push(`${student.name} (${formatClass(student.class)}-${student.section}) is scheduled for ${[...new Set(papers.map(item=>item.subject))].join(' and ')}.`);});['6','7','8'].forEach(cls=>getAllSectionsForClass(cls).forEach(sec=>{const papers=slots.filter(slot=>String(slot.cls)===cls&&(!(slot.selectedSections||[]).length||slot.selectedSections.includes(sec)));if(papers.length>1)clashes.push(`Class ${formatClass(cls)}-${sec} has ${[...new Set(papers.map(item=>item.subject))].join(' and ')} on the same day.`);}));return[...new Set(clashes)].slice(0,12);}
 
         // FULL-PAGE PRE-EXAM LOGISTICS HUB WORKSTATION
@@ -3679,7 +3685,7 @@
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Subject</label>
                                     <select onchange="handleSlotSubjectChange(${Number(dayObj.id)}, ${Number(slot.slotId)}, this.value)" class="w-full text-xs p-2 border rounded font-bold bg-white text-indigo-900">${subOptions}</select>
                                 </div>
-                                <div><label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Duration (Automatic)</label><input readonly value="${escapeHtml(examDurationLabel(slot.startTime,slot.overTime))}" class="w-full rounded border bg-slate-100 p-2 text-xs font-bold text-slate-700"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Assigned Duration</label><select onchange="updateSlotField(${Number(dayObj.id)},${Number(slot.slotId)},'duration',this.value)" class="w-full rounded border bg-white p-2 text-xs font-bold">${['1 Hour','1.5 Hours','2 Hours','2.5 Hours','3 Hours'].map(value=>`<option value="${value}" ${String(slot.duration||'3 Hours')===value?'selected':''}>${value}</option>`).join('')}</select></div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-700 uppercase mb-1">Max Marks</label>
                                     <input type="number" value="${escapeHtml(slot.maxMarks)}" onchange="updateSlotField(${Number(dayObj.id)}, ${Number(slot.slotId)}, 'maxMarks', this.value)" class="w-full text-xs p-2 border rounded bg-white">
