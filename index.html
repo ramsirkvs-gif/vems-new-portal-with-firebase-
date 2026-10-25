@@ -1705,7 +1705,8 @@
             ];
             for(const family of families){if(family.designation.some(alias=>designationKey.includes(alias))){const match=subjects.find(subject=>family.subject.some(alias=>normalizedSubjectMatch(subject).startsWith(alias)));if(match)return match;}}
             if(/(^|[^A-Z])C\.?\s*S\.?([^A-Z]|$)/i.test(String(designation||''))||designationKey.includes('COMPUTERSCIENCE')){const match=subjects.find(subject=>['CS','COMPUTERSCIENCE'].includes(normalizedSubjectMatch(subject)));if(match)return match;}
-            return subjects.sort((a,b)=>normalizedSubjectMatch(b).length-normalizedSubjectMatch(a).length).find(subject=>{const key=normalizedSubjectMatch(subject);return key.length>1&&designationKey.includes(key);})||'';
+            if(designationKey.includes('ARTIFICIALINTELLIGENCE')){const match=subjects.find(subject=>['AI','ARTIFICIALINTELLIGENCE'].includes(normalizedSubjectMatch(subject)));if(match)return match;}
+            return subjects.sort((a,b)=>normalizedSubjectMatch(b).length-normalizedSubjectMatch(a).length).find(subject=>{const key=normalizedSubjectMatch(subject);return key.length>2&&designationKey.includes(key);})||'';
         }
         function defaultAllotmentFromDesignation(designation){
             const post=facultyPostGroup({desig:designation}),preferredClasses=post==='PGT'?['11','12']:post==='TGT'?['6','7','8','9','10']:['6','7','8','9','10','11','12'];

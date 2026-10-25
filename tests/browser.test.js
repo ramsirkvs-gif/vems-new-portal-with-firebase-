@@ -189,6 +189,9 @@ async function main() {
         await a.selectOption('.teaching-row .sub-sel','SCIENCE');
         await a.fill('#tch-desig-input','PGT SCIENCE');
         assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('PGT-History',['ENGLISH','HISTORY'])),'HISTORY');
+        assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('PGT-Pol Scie',['ENGLISH','Pol Scie'])),'Pol Scie','the exact saved Subject Mapping label must be retained');
+        assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('AI Instructor',['AI','COMPUTER LITERACY'])),'','AI Instructor must not be interpreted as the Artificial Intelligence subject');
+        assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('Artificial Intelligence Teacher',['AI','COMPUTER LITERACY'])),'AI','an explicit Artificial Intelligence designation may select the exact mapped AI label');
         assert.deepEqual(await a.evaluate(() => {const prior=sectionConfigs;sectionConfigs={'6-A':['SCIENCE'],'11-A':['ENGLISH','POLITICAL SCIENCE'],'12-B':['POLITICAL SCIENCE']};try{return defaultAllotmentFromDesignation('PGT-Political Science');}finally{sectionConfigs=prior;}}),{cls:'11',sec:'A',subject:'POLITICAL SCIENCE'},'designation must choose a configured class where its subject exists');
         assert.equal(await a.evaluate(() => subjectSuggestedByDesignation('TGT-Maths',['MATHEMATICS STANDARD + MATHEMATICS BASIC','ENGLISH','MATHEMATICS STANDARD','MATHEMATICS BASIC','SCIENCE'])),'MATHEMATICS STANDARD + MATHEMATICS BASIC');
         await a.fill('#tch-desig-input','TGT-Maths');
