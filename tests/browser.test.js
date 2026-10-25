@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'publicPortalBoards'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -131,6 +131,13 @@ async function main() {
         console.log('PASS: passcode-only role entry, same-account reauthentication, independent PC and mobile sessions');
 
         await a.evaluate(() => switchTab('exam-creator-prin'));
+        await a.fill('#exam-notice-heading', 'Test Notice');
+        await a.fill('#exam-notice-text', 'Published notice body');
+        await a.getByRole('button', { name: 'Publish New Notice' }).click();
+        await a.waitForFunction(() => instantNotices().some(notice => notice.text === 'Published notice body'));
+        assert.ok(await a.getByText('Published notice body', { exact: true }).count() >= 1, 'a saved notice must remain visible in the publisher list');
+        assert.equal(data.publicPortalBoards.notices[0].text, 'Published notice body', 'notice text must be persisted');
+        console.log('PASS: public notice publishes and remains visible in the management list');
         await a.evaluate(() => openCircularEditor());
         await a.fill('#circular-subject', 'Examination Committee Meeting');
         await a.fill('#circular-body', 'All members shall attend the meeting at the notified time.');
