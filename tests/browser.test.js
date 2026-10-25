@@ -154,6 +154,11 @@ async function main() {
         await a.getByRole('button', { name: 'Save Draft' }).click();
         await a.waitForFunction(() => Object.values(examCirculars).some(item => item.subject === 'Examination Committee Meeting' && item.status === 'DRAFT'));
         assert.equal(Object.values(data.examCirculars || {}).length, 1);
+        const circularHtml = await a.evaluate(() => circularPdfHtml(Object.values(examCirculars)[0]));
+        assert.ok(circularHtml.indexOf('All members shall attend') < circularHtml.indexOf('ADDRESSEES / OFFICIALS CONCERNED'), 'circular text must appear before target groups and employee names');
+        assert.match(circularHtml, /aria-label="KVS logo"/);
+        assert.match(circularHtml, /aria-label="PM SHRI logo"/);
+        assert.ok(circularHtml.indexOf('EXAM IC') < circularHtml.indexOf('PRINCIPAL'), 'Exam IC must be left of the Principal');
         console.log('PASS: session-linked examination circular saves with reusable subject and recipient snapshot');
 
         await a.evaluate(() => switchTab('settings'));
@@ -577,7 +582,7 @@ async function main() {
         const created = Object.values(data.archivedExams).find(exam => exam.id !== 100);
         await a.fill('#manual-exam-title', 'PB-1 Secondary Wing');
         await a.getByRole('button', { name: 'Apply' }).click();
-        await a.waitForFunction(id => archivedExams.find(exam => exam.id === id)?.title === 'PB-1 Secondary Wing', created.id);
+        await a.waitForFunction(() => [...document.querySelectorAll('#exam-name-select option')].some(option => option.textContent === 'PB-1 Secondary Wing'));
         assert.equal(await a.locator('#exam-name-select option', { hasText: 'PB-1 Secondary Wing' }).count(), 1, 'a manually entered vault title must join the reusable dropdown');
         created.title = 'PB-1 Secondary Wing';
         assert.equal(await a.getByRole('button',{name:'➕ Add Day 2'}).count(),1);
