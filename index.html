@@ -402,17 +402,6 @@
                                 </div>
                             </div>
                             
-                            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2">
-                                <label class="block text-xs font-bold text-emerald-950 uppercase">Examination Team & Duty Eligibility</label>
-                                <p class="text-[11px] text-slate-600">Use these for employees who may have no subject allotment. They remain available for circulars, invigilation and support duties.</p>
-                                <div class="flex flex-wrap gap-2">
-                                    <label class="rounded border bg-white px-3 py-2 text-xs"><input type="checkbox" name="faculty-exam-role" value="CORE"> Core Examination Team</label>
-                                    <label class="rounded border bg-white px-3 py-2 text-xs"><input type="checkbox" name="faculty-exam-role" value="INVIGILATION"> Invigilation</label>
-                                    <label class="rounded border bg-white px-3 py-2 text-xs"><input type="checkbox" name="faculty-exam-role" value="RELIEF"> Relief / Reserve</label>
-                                    <label class="rounded border bg-white px-3 py-2 text-xs"><input type="checkbox" name="faculty-exam-role" value="OFFICE"> Office / Support</label>
-                                    <label class="rounded border bg-white px-3 py-2 text-xs"><input type="checkbox" name="faculty-exam-role" value="OTHER"> Other Examination Duty</label>
-                                </div>
-                            </div>
                             <div class="bg-white p-4 rounded-lg border space-y-3">
                                 <label class="block text-xs font-bold text-slate-800 uppercase">Teaching Allotments & Exam Duties (Class-Wise) — Optional</label>
                                 <div id="teaching-allotments-container" class="space-y-2"></div>
@@ -454,6 +443,16 @@
                             </table>
                         </div>
                     </div>
+                </div>
+                <!-- CORE EXAMINATION TEAM -->
+                <div class="border-t pt-6 space-y-4">
+                    <div><h3 class="text-base font-bold text-slate-900">🧭 Core Examination Team</h3><p class="text-xs text-slate-500">Select members from the complete Faculty Register. Teaching allotment is not required.</p></div>
+                    <div class="grid grid-cols-1 items-end gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 md:grid-cols-[1fr_1fr_auto]">
+                        <label class="text-xs font-bold">FACULTY MEMBER<select id="core-team-faculty" class="mt-1 w-full rounded border bg-white p-2"></select></label>
+                        <label class="text-xs font-bold">CORE TEAM ROLE<select id="core-team-role" class="mt-1 w-full rounded border bg-white p-2"><option>Exam In-charge</option><option>Assistant Exam In-charge</option><option>Core Team Member</option><option>Confidential Work</option><option>Control Room / Office Support</option></select></label>
+                        <button type="button" onclick="addExamCoreTeamMember()" class="rounded bg-emerald-700 px-4 py-2 text-xs font-bold text-white">＋ Add Member</button>
+                    </div>
+                    <div id="exam-core-team-list" class="overflow-hidden rounded-lg border bg-white"></div>
                 </div>
                 <!-- CLASS TEACHER COORDINATION ROSTER -->
                 <div class="border-t pt-6 space-y-4">
@@ -664,6 +663,7 @@
         let studentDeactivationTarget = null;
         let teachers = [];
         let classTeacherAssignments = {};
+        let examCoreTeam = {};
         let isExamConfigOpen = false;
         let activeExamId = null;
         let isPreExamFullPageOpen = sessionStorage.getItem('vems_pre_exam_open') === '1';
@@ -818,7 +818,7 @@
             
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
-            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderClassTeacherCoordinationTable(); }
+            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderExamCoreTeam(); renderClassTeacherCoordinationTable(); }
             if(tab === 'holidays') renderHolidayManager();
             if(tab === 'settings') { populateLegacyExamOptions(); renderSignatureProfiles(); updateSessionChrome(); }
             if (shouldRestore) setTimeout(() => window.scrollTo(0, Number(localStorage.getItem(`vems_scroll_${currentActiveRole}_${tab}`)) || 0), 80);
@@ -1571,9 +1571,7 @@
         // =========================================================================
         function initTeacherFormSelectors() {
             refreshFacultyDesignationSuggestions();
-            if(document.getElementById('teaching-allotments-container')?.children.length === 0) {
-                addTeachingRow();
-            }
+            // Class/subject allotments are optional; add a row only when required.
         }
 
         function refreshFacultyDesignationSuggestions(){
@@ -1736,8 +1734,7 @@
             const conflict=findFacultyAllotmentConflict(allotments,editingTeacher?.id||'');
             if(conflict){const item=conflict.allotment,location=`Class ${formatClass(item.cls)}-${item.sec} · ${item.subject}`;alert(conflict.type==='another-teacher'?`❌ Faculty Allotment Conflict\n\n${location} is already assigned to ${conflict.teacher.name} (${conflict.teacher.desig}).\n\nRemove or update the existing allotment before assigning another teacher.`:`❌ Duplicate Faculty Allotment\n\n${location} appears more than once in this teacher's allotments.`);return;}
             const saveButton=document.getElementById('save-faculty-button');if(saveButton){saveButton.disabled=true;saveButton.textContent='⏳ Saving & Verifying…';}
-            const examRoles=[...document.querySelectorAll('[name="faculty-exam-role"]:checked')].map(input=>input.value);
-            const teacherData = { id: editIndex !== '' ? teachers.find(t => String(t.id) === editIndex).id : newRecordId(), name, desig, allotments, examRoles };
+            const teacherData = { id: editIndex !== '' ? teachers.find(t => String(t.id) === editIndex).id : newRecordId(), name, desig, allotments };
             if(editIndex !== '') {
                 teachers[teachers.findIndex(t => String(t.id) === editIndex)] = teacherData;
             } else {
@@ -1749,6 +1746,7 @@
             editorBaselines.teacher = null;
             resetTeacherForm();
             renderTeachers();
+            renderExamCoreTeam();
             renderClassTeacherCoordinationTable();
             showFacultyCompletenessPopup(true);
             switchTab('teachers');
@@ -1760,8 +1758,7 @@
             document.getElementById('tch-name-input').value = '';
             document.getElementById('tch-desig-input').value = '';
             document.getElementById('teaching-allotments-container').innerHTML = '';
-            document.querySelectorAll('[name="faculty-exam-role"]').forEach(input=>input.checked=false);
-            addTeachingRow();
+
         }
 
         function editTeacher(id) {
@@ -1772,7 +1769,6 @@
             document.getElementById('tch-edit-index').value = t.id;
             document.getElementById('tch-name-input').value = t.name;
             document.getElementById('tch-desig-input').value = t.desig;
-            document.querySelectorAll('[name="faculty-exam-role"]').forEach(input=>input.checked=(t.examRoles||[]).includes(input.value));
             
             const container = document.getElementById('teaching-allotments-container');
             container.innerHTML = '';
@@ -1787,6 +1783,7 @@
                 teachers = teachers.filter(t => String(t.id) !== String(id));
                 if (!await saveData(['teachers'])) return;
                 renderTeachers();
+                renderExamCoreTeam();
                 renderClassTeacherCoordinationTable();
                 switchTab('teachers');
             }
@@ -1815,7 +1812,7 @@
                 sortedFacultyAllotments(t.allotments).forEach(al=>{const count=students.filter(s=>isStudentActive(s)&&String(s.class)===String(al.cls)&&String(s.section)===String(al.sec)&&allotmentSubjectParts(al.subject).some(subject=>studentTakesSubject(s,subject))).length,totalLabel=`Class ${escapeHtml(formatClass(al.cls))}-${escapeHtml(al.sec)}`;totalStudentsAllotted+=count;dutiesHtml+=`<div class="faculty-duty-line grid grid-cols-[32.2%_40.7%_27.1%] border-b border-slate-200 last:border-b-0 items-stretch"><div class="px-4 py-1.5 leading-4"><span class="font-semibold text-slate-700">${totalLabel}:</span> <strong class="text-indigo-900">${escapeHtml(al.subject)}</strong> <span class="text-[10px] text-slate-500">(${count})</span></div><div class="faculty-qp-setter px-3 py-1.5 leading-4 border-l border-slate-100 whitespace-nowrap text-[10px] tracking-tight" title="${totalLabel}"><strong class="text-indigo-900">${escapeHtml(facultyQpSetterDisplay(t,al))}</strong></div><div class="faculty-evaluator px-3 py-1.5 leading-4 border-l border-slate-100 whitespace-nowrap text-[10px] tracking-tight" title="${totalLabel}"><strong class="text-slate-800">${escapeHtml(facultyEvaluatorDisplay(t,al))}</strong></div></div>`;});
                 if(!dutiesHtml)dutiesHtml='<div class="faculty-duty-line grid grid-cols-[32.2%_40.7%_27.1%]"><div class="px-4 py-2 italic text-slate-400">No allotments</div><div class="px-4 py-2">—</div><div class="px-4 py-2">—</div></div>';
                 tbody.innerHTML+=`<tr class="hover:bg-slate-50 border-b align-middle">
-                    <td class="px-4 py-3 font-semibold"><div class="faculty-teacher-name whitespace-nowrap text-[11px] tracking-tight text-slate-900">${escapeHtml(t.name)}</div><span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${escapeHtml(t.desig)}</span>${(t.examRoles||[]).length?`<div class="mt-1 flex flex-wrap gap-1">${t.examRoles.map(role=>`<span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">${escapeHtml(role)}</span>`).join('')}</div>`:''}</td>
+                    <td class="px-4 py-3 font-semibold"><div class="faculty-teacher-name whitespace-nowrap text-[11px] tracking-tight text-slate-900">${escapeHtml(t.name)}</div><span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] bg-indigo-50 text-indigo-700 font-bold">${escapeHtml(t.desig)}</span></td>
                     <td colspan="3" class="faculty-duty-grid p-0 align-top">${dutiesHtml}</td>
                     <td class="px-3 py-3 text-center bg-indigo-50/60 font-bold text-indigo-900"><div class="text-base">${totalStudentsAllotted}</div><div class="text-[10px]">Booklets</div></td>
                     <td class="px-3 py-3 text-center bg-emerald-50/60 font-bold text-emerald-900"><div class="text-base">${(t.allotments||[]).reduce((sum,item)=>sum+allotmentSubjectParts(item.subject).length,0)}</div><div class="text-[10px]">Bundle(s)</div></td>
@@ -1823,6 +1820,10 @@
                 </tr>`;
             });
         }
+
+        function renderExamCoreTeam(){const select=document.getElementById('core-team-faculty'),list=document.getElementById('exam-core-team-list');if(select){const selected=select.value;select.innerHTML='<option value="">-- Select Faculty --</option>'+teachers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(teacher=>`<option value="${escapeHtml(String(teacher.id))}">${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`).join('');if(teachers.some(t=>String(t.id)===selected))select.value=selected;}if(list){const rows=Object.values(examCoreTeam||{});list.innerHTML=rows.length?rows.sort((a,b)=>a.name.localeCompare(b.name)).map(item=>`<div class="flex flex-wrap items-center justify-between gap-3 border-b p-3 last:border-0"><div><b>${escapeHtml(item.name)}</b><div class="text-[10px] text-slate-500">${escapeHtml(item.designation||'')}</div></div><div class="flex items-center gap-2"><span class="rounded bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900">${escapeHtml(item.role)}</span><button type="button" onclick="removeExamCoreTeamMember(${jsArg(String(item.teacherId))})" class="rounded bg-red-50 px-3 py-1 text-xs font-bold text-red-700">Remove</button></div></div>`).join(''):'<div class="p-4 text-center text-xs italic text-slate-400">No core examination team member added.</div>';}}
+        async function addExamCoreTeamMember(){const teacherId=document.getElementById('core-team-faculty')?.value,teacher=teachers.find(item=>String(item.id)===String(teacherId)),role=document.getElementById('core-team-role')?.value;if(!teacher){alert('Select a faculty member.');return;}examCoreTeam={...examCoreTeam,[String(teacher.id)]:{teacherId:String(teacher.id),name:teacher.name,designation:teacher.desig,role}};if(await saveData(['examCoreTeam']))renderExamCoreTeam();}
+        async function removeExamCoreTeamMember(teacherId){const next={...examCoreTeam};delete next[String(teacherId)];examCoreTeam=next;if(await saveData(['examCoreTeam']))renderExamCoreTeam();}
 
         function renderClassTeacherCoordinationTable() {
             assignmentRenderBaseline = cloneData(sharedStore?.view('classTeacherAssignments') || {});
@@ -3361,7 +3362,7 @@
         function closeCircularEditor(){circularEditorOpen=false;document.getElementById('circular-editor')?.classList.add('hidden');}
         function editCircular(id){const c=examCirculars[id];if(!c)return;openCircularEditor();document.getElementById('circular-edit-id').value=id;document.getElementById('circular-heading').value=c.heading;document.getElementById('circular-number').value=c.circularNo;document.getElementById('circular-date').value=c.date;document.getElementById('circular-exam').value=c.examId||'';document.getElementById('circular-subject').value=c.subject;document.getElementById('circular-body').value=c.body;document.getElementById('circular-custom-target').value=c.customTarget||'';document.getElementById('circular-own-sign').checked=!!c.addOwnSignature;document.querySelectorAll('[name="circular-target"]').forEach(x=>x.checked=(c.targets||[]).includes(x.value));renderCircularRecipientPreview();}
         function circularExamSubjects(examId){const exam=archivedExams.find(item=>String(item.id)===String(examId));return new Set((exam?.datesheetSnapshot||[]).flatMap(day=>day.paperSlots||[]).map(slot=>normalizedSubjectMatch(slot.subject)));}
-        function resolvedCircularRecipients(targets,examId=''){const names=new Set(),subjects=circularExamSubjects(examId),relevant=teacher=>!examId||(teacher.allotments||[]).some(item=>subjects.has(normalizedSubjectMatch(item.subject))),addTeacherValue=(value,owner)=>{if(!value)return;if(value==='Self')names.add(owner.name);else{const byId=teachers.find(item=>String(item.id)===String(value));names.add(byId?.name||value);}};if(targets.includes('Examination Team Members'))teachers.filter(t=>(t.examRoles||[]).includes('CORE')).forEach(t=>names.add(t.name));if(targets.some(x=>x.includes('Class Teachers')))Object.values(classTeacherAssignments).forEach(x=>{if(x.ct)names.add(x.ct);if(x.coCt)names.add(x.coCt);});if(targets.includes('Subject Teachers'))teachers.filter(t=>(t.allotments||[]).length&&relevant(t)).forEach(t=>names.add(t.name));if(targets.includes('Question Paper Setters'))teachers.filter(relevant).forEach(t=>(t.allotments||[]).forEach(a=>{if(!examId||subjects.has(normalizedSubjectMatch(a.subject))){addTeacherValue(a.qpSetter,t);addTeacherValue(a.additionalQpSetter,t);}}));if(targets.includes('Evaluators'))teachers.filter(relevant).forEach(t=>(t.allotments||[]).forEach(a=>{if(!examId||subjects.has(normalizedSubjectMatch(a.subject))){addTeacherValue(a.evaluator,t);addTeacherValue(a.additionalEvaluator,t);}}));if(targets.includes('Invigilators')){teachers.filter(t=>(t.examRoles||[]).includes('INVIGILATION')).forEach(t=>names.add(t.name));Object.values(classTeacherAssignments).forEach(x=>{if(x.assignedOnDuty)names.add(x.assignedOnDuty);});}if(targets.includes('All Teaching Staff'))teachers.filter(t=>(t.allotments||[]).length).forEach(t=>names.add(t.name));return [...names].filter(Boolean).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));}
+        function resolvedCircularRecipients(targets,examId=''){const names=new Set(),subjects=circularExamSubjects(examId),relevant=teacher=>!examId||(teacher.allotments||[]).some(item=>subjects.has(normalizedSubjectMatch(item.subject))),addTeacherValue=(value,owner)=>{if(!value)return;if(value==='Self')names.add(owner.name);else{const byId=teachers.find(item=>String(item.id)===String(value));names.add(byId?.name||value);}};if(targets.includes('Examination Team Members'))Object.values(examCoreTeam||{}).forEach(item=>names.add(item.name));if(targets.some(x=>x.includes('Class Teachers')))Object.values(classTeacherAssignments).forEach(x=>{if(x.ct)names.add(x.ct);if(x.coCt)names.add(x.coCt);});if(targets.includes('Subject Teachers'))teachers.filter(t=>(t.allotments||[]).length&&relevant(t)).forEach(t=>names.add(t.name));if(targets.includes('Question Paper Setters'))teachers.filter(relevant).forEach(t=>(t.allotments||[]).forEach(a=>{if(!examId||subjects.has(normalizedSubjectMatch(a.subject))){addTeacherValue(a.qpSetter,t);addTeacherValue(a.additionalQpSetter,t);}}));if(targets.includes('Evaluators'))teachers.filter(relevant).forEach(t=>(t.allotments||[]).forEach(a=>{if(!examId||subjects.has(normalizedSubjectMatch(a.subject))){addTeacherValue(a.evaluator,t);addTeacherValue(a.additionalEvaluator,t);}}));if(targets.includes('Invigilators')){teachers.filter(t=>(t.examRoles||[]).includes('INVIGILATION')).forEach(t=>names.add(t.name));Object.values(classTeacherAssignments).forEach(x=>{if(x.assignedOnDuty)names.add(x.assignedOnDuty);});}if(targets.includes('All Teaching Staff'))teachers.filter(t=>(t.allotments||[]).length).forEach(t=>names.add(t.name));return [...names].filter(Boolean).sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}));}
         function renderCircularRecipientPreview(){const box=document.getElementById('circular-recipient-preview');if(!box)return;const targets=[...document.querySelectorAll('[name="circular-target"]:checked')].map(input=>input.value),examId=document.getElementById('circular-exam')?.value||'',names=resolvedCircularRecipients(targets,examId);box.innerHTML=names.length?`<b>${names.length} employee${names.length===1?'':'s'} selected from saved data:</b><div class="mt-2 flex flex-wrap gap-1">${names.map(name=>`<span class="rounded bg-white px-2 py-1 font-semibold">${escapeHtml(name)}</span>`).join('')}</div>`:'Select a target group to display employees from saved data.';}
 
         async function saveCircular(submit){const id=document.getElementById('circular-edit-id').value||String(newRecordId()),subject=document.getElementById('circular-subject').value.trim(),body=document.getElementById('circular-body').value.trim();if(!subject||!body){alert('Enter the subject and circular text.');return;}const targets=[...document.querySelectorAll('[name="circular-target"]:checked')].map(x=>x.value),customTarget=document.getElementById('circular-custom-target').value.trim();if(customTarget)targets.push(customTarget);if(!targets.length){alert('Select at least one target group.');return;}const old=examCirculars[id]||{},version=(old.version||0)+1,status=submit?(authorizedRole==='principal'?'APPROVED':'PENDING'):'DRAFT';const record={...old,id,sessionId:selectedAcademicSession,heading:document.getElementById('circular-heading').value,circularNo:document.getElementById('circular-number').value.trim(),date:document.getElementById('circular-date').value,examId:document.getElementById('circular-exam').value,subject,body,targets,customTarget,recipientSnapshot:resolvedCircularRecipients(targets,document.getElementById('circular-exam').value),addOwnSignature:document.getElementById('circular-own-sign').checked,creatorRole:old.creatorRole||authorizedRole,status,version,createdAt:old.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),returnMessage:''};examCirculars={...examCirculars,[id]:record};circularSettings={...circularSettings,subjects:[...new Set([...(circularSettings.subjects||[]),subject])],customTargets:[...new Set([...(circularSettings.customTargets||[]),customTarget].filter(Boolean))]};if(submit&&authorizedRole!=='principal'){const reqId=`circular-${id}`;documentApprovals={...documentApprovals,[reqId]:{id:reqId,documentType:'EXAM_CIRCULAR',documentId:id,version,status:'PENDING',requestedBy:authorizedRole,requestedAt:new Date().toISOString()}};}if(await saveData(['examCirculars','circularSettings',...(submit&&authorizedRole!=='principal'?['documentApprovals']:[])])){closeCircularEditor();renderExamCreatorModule();}}

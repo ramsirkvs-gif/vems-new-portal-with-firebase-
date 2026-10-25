@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'publicPortalBoards'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'publicPortalBoards', 'examCoreTeam'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -181,6 +181,7 @@ async function main() {
         await a.evaluate(() => switchTab('teachers'));
         await a.fill('#tch-name-input', 'New Shared Teacher');
         await a.fill('#tch-desig-input', 'PGT SCIENCE');
+        await a.locator('#add-teaching-class-button').click();
         assert.equal(await a.locator('.teaching-row .sub-sel').first().inputValue(),'SCIENCE','designation subject must become the default allotment subject');
         await a.selectOption('.teaching-row .sub-sel','ENGLISH');
         await a.fill('#tch-desig-input','PGT HINDI');
@@ -194,8 +195,6 @@ async function main() {
         assert.equal(await a.locator('.teaching-row .sub-sel').last().inputValue(),'MATHEMATICS STANDARD + MATHEMATICS BASIC','a newly added class must default from the designation subject');
         await a.locator('.teaching-row').last().locator('button',{hasText:'✕'}).click();
         await a.fill('#tch-desig-input','PGT SCIENCE');
-        await a.check('[name="faculty-exam-role"][value="CORE"]');
-        await a.check('[name="faculty-exam-role"][value="INVIGILATION"]');
         const teachingRowCount=await a.locator('.teaching-row').count();
         await a.locator('#add-teaching-class-button').click();
         assert.equal(await a.locator('.teaching-row').count(),teachingRowCount+1,'Add Class must immediately create a complete default row');
@@ -205,8 +204,6 @@ async function main() {
         await a.locator('.teaching-row').last().locator('button',{hasText:'✕'}).click();
         await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
-        assert.deepEqual(await b.evaluate(() => teachers.find(t => t.name === 'New Shared Teacher').examRoles), ['CORE','INVIGILATION']);
-        assert.deepEqual(await b.evaluate(() => resolvedCircularRecipients(['Examination Team Members','Invigilators'])), ['New Shared Teacher']);
         await a.locator('#faculty-completeness-popup').waitFor();
         assert.match(await a.locator('#faculty-completeness-popup').textContent(),/verified and saved successfully.*mapped class-subject assignment\(s\) remain incomplete/s);
         await a.locator('#faculty-completeness-popup button',{hasText:'Close'}).click();
@@ -315,6 +312,21 @@ async function main() {
         assert.equal(data.classTeacherAssignments['10-A'].coCt, 'New Shared Teacher');
         await b.evaluate(() => document.activeElement.blur());
         console.log('PASS: a stale assignment table merges edits against the snapshot actually displayed');
+
+        await a.evaluate(() => { document.getElementById('faculty-completeness-popup')?.remove(); switchTab('teachers'); resetTeacherForm(); });
+        assert.equal(await a.locator('.teaching-row').count(), 0, 'a new faculty record must not force a class or subject allotment');
+        await a.fill('#tch-name-input', 'Support Faculty');
+        await a.fill('#tch-desig-input', 'Office Assistant');
+        await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
+        await b.waitForFunction(() => teachers.some(item => item.name === 'Support Faculty' && item.allotments.length === 0));
+        await a.evaluate(() => { document.getElementById('faculty-completeness-popup')?.remove(); renderExamCoreTeam(); });
+        const supportFacultyId = await a.evaluate(() => String(teachers.find(item => item.name === 'Support Faculty').id));
+        await a.selectOption('#core-team-faculty', supportFacultyId);
+        await a.selectOption('#core-team-role', 'Control Room / Office Support');
+        await a.getByRole('button', { name: '＋ Add Member' }).click();
+        await b.waitForFunction(id => examCoreTeam[id]?.role === 'Control Room / Office Support', supportFacultyId);
+        assert.deepEqual(await b.evaluate(() => resolvedCircularRecipients(['Examination Team Members'])), ['Support Faculty']);
+        console.log('PASS: faculty without teaching allotments can join the separately managed core examination team');
 
         await a.evaluate(() => { switchTab('config'); document.getElementById('cfg-class').value = '10'; updateCfgSections(); addNewSubjectField(); });
         await a.evaluate(() => toggleAddClassSectionPanel(true));
@@ -452,7 +464,7 @@ async function main() {
         assert.deepEqual(await a.locator('#selected-exam-vault-workspace span').filter({hasText:/^STAGE /}).allTextContents(), ['STAGE 1','STAGE 2','STAGE 3']);
         await a.evaluate(() => openLifecycleStage('during'));
         const emergencyEvaluatorSelect=a.locator('#lifecycle-stage-workspace table select').first();
-        assert.deepEqual(await emergencyEvaluatorSelect.evaluate(select=>({groups:[...select.querySelectorAll('optgroup')].map(group=>group.label),matched:select.querySelectorAll('optgroup[label^="Priority 1"] option').length})),{groups:['Priority 1 — same standard & subject'],matched:1},'same standard and subject teachers from any section must be listed first');
+        assert.deepEqual(await emergencyEvaluatorSelect.evaluate(select=>({groups:[...select.querySelectorAll('optgroup')].map(group=>group.label),matched:select.querySelectorAll('optgroup[label^="Priority 1"] option').length})),{groups:['Priority 1 — same standard & subject','Priority 3 — other employees / emergency'],matched:1},'same standard and subject teachers from any section must be listed first');
         const onSpotEvaluatorId=await emergencyEvaluatorSelect.locator('optgroup[label^="Priority 1"] option').first().getAttribute('value');
         await emergencyEvaluatorSelect.selectOption(onSpotEvaluatorId);
         await a.waitForFunction(()=>document.querySelector('#lifecycle-stage-workspace table tbody')?.textContent.includes('Assigned'));

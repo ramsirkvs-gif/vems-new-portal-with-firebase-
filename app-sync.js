@@ -1,6 +1,6 @@
 /* Firebase Authentication, live UI updates, and migration from the older local-only app. */
 'use strict';
-const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'archivedExams',
+const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examCoreTeam', 'archivedExams',
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings',
     'dateSheetInstructions', 'dateSheetSettings', 'holidayCalendar', 'publishedSubjectDirectories', 'publicPortalBoards', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
 sharedNames.push('seatingRooms', 'seatingPlans');
@@ -131,7 +131,7 @@ function canEditSharedData(required = 'exam') {
     catch (error) { showSyncError(error.message); return false; }
 }
 function sharedValue(name) {
-    return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, archivedExams,
+    return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, examCoreTeam, archivedExams,
         examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings,
         dateSheetInstructions, dateSheetSettings, holidayCalendar, seatingRooms, seatingPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
 }
@@ -177,6 +177,7 @@ function acceptSharedValue(name, value) {
         case 'sectionConfigs': sectionConfigs = value; break;
         case 'teachers': teachers = Object.values(value); break;
         case 'classTeacherAssignments': classTeacherAssignments = value; break;
+        case 'examCoreTeam': examCoreTeam = value; break;
         case 'archivedExams':
             archivedExams = Object.values(value);
             if (activeExamId !== null) {
@@ -257,6 +258,7 @@ function refreshSharedViews() {
     updateStudentTableHeaders();
     filterStudents();
     renderTeachers();
+    renderExamCoreTeam();
     if (!editorBaselines.assignments) renderClassTeacherCoordinationTable();
     if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) renderExamCreatorModule();
     populateLegacyExamOptions();
