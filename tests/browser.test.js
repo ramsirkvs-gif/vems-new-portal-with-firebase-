@@ -103,6 +103,7 @@ async function main() {
         assert.equal(await a.evaluate(()=>{const oldConfirm=window.confirm;let step=0;window.confirm=()=>{step++;return true;};const result=confirmMajorDeletion('complete examination vault','PT-1');window.confirm=oldConfirm;return result&&step===2;}),true);
         assert.equal(await a.locator('#login-modal').isVisible(), false, 'login modal must stay closed until a role is selected');
         assert.equal(await b.getByRole('banner').getByText('PM SHRI Kendriya Vidyalaya No. 1, Itanagar', {exact:true}).count(),1,'school identity must remain present in the header');
+        assert.equal(await b.getByRole('banner').getByText('VEMS · PM SHRI KV No. 1 Itanagar',{exact:true}).isVisible(),true,'the compact mobile brand must retain the KV name');
         assert.equal(await b.getByRole('banner').getByText('VEMS — Vidyalaya Examination Management System', {exact:true}).isVisible(),true,'the full VEMS title must remain visible in the compact mobile header');
         assert.equal(await b.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'mobile layout must not overflow the viewport');
         assert.equal(await b.locator('.role-switcher').evaluate(element => getComputedStyle(element).display),'none','desktop role buttons must be hidden on mobile');
@@ -119,7 +120,7 @@ async function main() {
         await a.waitForFunction(() => document.getElementById('login-modal').classList.contains('hidden'));
         assert.equal(await a.locator('#login-password').inputValue(), '');
         await a.evaluate(()=>{window._noticeTestBoards=publicPortalBoards;publicPortalBoards={...publicPortalBoards,notice:{heading:'Examination Update',text:'Test public message',priority:'Urgent',publishedAt:new Date().toISOString()}};renderPublicPortalBoards();});
-        assert.equal(await a.locator('#public-urgent-notice').getByText('1. Examination Update',{exact:true}).count(),1,'the published notice heading must appear only once');
+        assert.equal(await a.locator('#public-urgent-notice').getByText('Examination Update',{exact:true}).count(),1,'the published notice heading must appear only once');
         assert.doesNotMatch(await a.locator('#public-exam-notice-board').innerText(),/EXAMINATION NOTICE BOARD/);
         await a.evaluate(()=>{publicPortalBoards=window._noticeTestBoards;delete window._noticeTestBoards;renderPublicPortalBoards();});
         console.log('PASS: passcode-only role entry, same-account reauthentication, independent PC and mobile sessions');
