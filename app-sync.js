@@ -594,7 +594,9 @@ const principalActions = ['saveSectionConfig', 'saveTeacherDirect', 'deleteTeach
 const examActions = ['startNewExamSetup', 'saveMainHeaderConfig', 'saveOrUpdateDayConfig', 'editDayConfig',
     'loadArchivedExamToEdit', 'deleteArchivedExam', 'bindupAndSaveExamRecord', 'updateExamDates', 'handleExamNameSelect',
     'addNextDatesheetDay', 'addPaperSlotToDay', 'removePaperSlotFromDay', 'handleSlotClassChange', 'handleSlotSubjectChange',
-    'toggleSlotSection', 'updateSlotField', 'toggleQpSubmissionTick', 'updateQpPrintingStatus', 'saveSubmissionDeadline'];
+    'toggleSlotSection', 'updateSlotField', 'toggleQpSubmissionTick', 'updateQpPrintingStatus', 'saveSubmissionDeadline',
+    'addSeatingRoom', 'addRemainingClassroom', 'generateAutomaticSeating', 'removeSeatingStudent', 'manuallyPlaceSeatingStudent',
+    'toggleSeatingPublishing', 'publishSeatingBoard', 'togglePublicStudentAttendance'];
 [...principalActions, ...examActions].forEach(name => {
     const handler = window[name];
     window[name] = function (...args) {

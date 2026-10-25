@@ -604,12 +604,13 @@ async function main() {
         await a.locator('.seating-room-check[value="classroom-10-A"]').check();
         await a.locator('button', { hasText: 'Generate & Save Seating' }).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
-        assert.deepEqual(data.seatingPlans['100']['2026-11-01'].assignments.map(item => `${item.desk}${item.seat}`), ['1A', '1B']);
+        assert.deepEqual(data.seatingPlans['100']['2026-11-01'].assignments.map(item => `${item.desk}${item.seat}`), ['1A', '2A'], 'students of the same class must never share one desk');
+        assert.match(data.seatingPlans['100']['2026-11-01'].rooms[0].attendancePin,/^\d{3}$/);
         await a.locator('button', { hasText: 'PDF: Room-wise' }).click();
         const seatingPdfText = await a.locator('#seating-pdf-preview iframe').contentFrame().locator('body').textContent();
         assert.match(seatingPdfText, /Seat Student One/);
         await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
-        console.log('PASS: seating auto-allots two students per desk and generates room-wise PDF');
+        console.log('PASS: seating separates same-class students, creates room PINs and generates room-wise PDF');
 
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
