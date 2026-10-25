@@ -128,6 +128,9 @@ async function main() {
         await a.locator('.notice-vertical-window').focus();
         assert.equal(await a.locator('.notice-vertical-content').evaluate(element=>getComputedStyle(element).animationPlayState),'paused','focusing the notice must pause its movement');
         await a.evaluate(()=>{publicPortalBoards=window._noticeTestBoards;delete window._noticeTestBoards;renderPublicPortalBoards();activateArea('principal');});
+        assert.equal(await a.locator('header img[alt="KVS logo"]').count(),1);
+        assert.equal(await a.locator('header img[alt="PM SHRI logo"]').count(),1);
+        assert.equal(await a.locator('#area-public-display > section img').count(),0,'public view must use the single shared portal header');
         console.log('PASS: passcode-only role entry, same-account reauthentication, independent PC and mobile sessions');
 
         await a.evaluate(() => { switchTab('exam-creator-prin'); toggleNoticePanel(); });
