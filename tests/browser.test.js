@@ -664,6 +664,8 @@ async function main() {
         await a.evaluate(()=>switchTab('holidays'));
         assert.match(await a.locator('#holiday-manager-mount h2').textContent(),/4\. Holiday Manager/);
         assert.deepEqual(await a.locator('#holiday-manager-mount thead').first().locator('th').allTextContents(),['S.No.','Date','Day','On Account Of','Remark','Edit']);
+        assert.equal(await a.locator('#holiday-manager-mount h3',{hasText:'Monthly Holiday Calendar'}).count(),1,'Holiday Manager must show its own monthly holiday calendar');
+        assert.equal(await a.locator('#holiday-manager-mount').evaluate(mount=>mount.lastElementChild?.lastElementChild?.querySelector('#holiday-publish-button')!==null),true,'holiday publishing control must be at the end of Holiday Manager');
         assert.equal(await a.locator('#holiday-manager-mount button',{hasText:'Edit'}).count(),1);
         assert.equal(await a.getByRole('button',{name:/Download CSV/}).count(),1);
         assert.equal(await a.evaluate(()=>parseHolidayCsvDate('26/10/2026')),'2026-10-26');
