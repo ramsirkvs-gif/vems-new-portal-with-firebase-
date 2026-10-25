@@ -2121,6 +2121,7 @@
                 alert("⚠️ Cannot save an empty exam record! Add days to datesheet first.");
                 return;
             }
+            const conflictedDay=datesheetDays.find(day=>examDayClashes(day).length);if(conflictedDay){showExamDayClashPopup(conflictedDay);conflictedDay.isCollapsed=false;renderDatesheetDaysContainer();return;}
             if (!activeExamId) activeExamId = newRecordId();
             syncExamDateBounds();
             const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
@@ -2342,6 +2343,7 @@
             let availableSubs = getUniqueSubjectsForClass(clsVal);
             slot.subject = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
             slot.selectedSections = getAllSectionsWithSubject(clsVal, slot.subject);
+            showExamDayClashPopup(dayObj);
             if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
         }
@@ -2353,6 +2355,7 @@
             if (!slot) return;
             slot.subject = subVal;
             slot.selectedSections = getAllSectionsWithSubject(slot.cls, subVal);
+            showExamDayClashPopup(dayObj);
             if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
         }
@@ -2367,7 +2370,9 @@
             } else {
                 slot.selectedSections = slot.selectedSections.filter(s => s !== secVal);
             }
+            showExamDayClashPopup(dayObj);
             if (!await syncActiveExamDraftToVault()) return;
+            renderDatesheetDaysContainer();
         }
 
         async function updateSlotField(dayId, slotId, fieldName, val) {
@@ -2388,6 +2393,7 @@
         function examTimeMinutes(start,end){if(!start||!end)return 0;const parts=value=>{const[h,m]=String(value).split(':').map(Number);return h*60+m;};let total=parts(end)-parts(start);if(total<0)total+=1440;return total;}
         function slotDurationMismatch(slot){const selected=durationMinutes(slot?.duration),actual=examTimeMinutes(slot?.startTime,slot?.overTime);return!!(selected&&actual&&selected!==actual);}
         function examDayClashes(day){const slots=day?.paperSlots||[],clashes=[];students.filter(isStudentActive).forEach(student=>{const papers=slots.filter(slot=>String(slot.cls)===String(student.class)&&(!(slot.selectedSections||[]).length||(slot.selectedSections||[]).includes(String(student.section)))&&studentTakesSubject(student,slot.subject));if(papers.length>1)clashes.push(`${student.name} (${formatClass(student.class)}-${student.section}) is scheduled for ${[...new Set(papers.map(item=>item.subject))].join(' and ')}.`);});['6','7','8'].forEach(cls=>getAllSectionsForClass(cls).forEach(sec=>{const papers=slots.filter(slot=>String(slot.cls)===cls&&(!(slot.selectedSections||[]).length||slot.selectedSections.includes(sec)));if(papers.length>1)clashes.push(`Class ${formatClass(cls)}-${sec} has ${[...new Set(papers.map(item=>item.subject))].join(' and ')} on the same day.`);}));return[...new Set(clashes)].slice(0,12);}
+        function showExamDayClashPopup(day){const clashes=examDayClashes(day);if(!clashes.length)return false;alert(`SAME-DAY SCHEDULE CLASH\n\n${clashes.join('\n')}\n\nThese students/classes cannot take both papers on the same date. Change the class, subject, section, or examination date.`);return true;}
 
         // FULL-PAGE PRE-EXAM LOGISTICS HUB WORKSTATION
         function openPreExamFullPageWorkspace(examId = null) {
