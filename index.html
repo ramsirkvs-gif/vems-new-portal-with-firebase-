@@ -830,7 +830,7 @@
             
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
-            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderFacultyDisplayOrder(); renderExamCoreTeam(); renderClassTeacherCoordinationTable(); seedFinalFacultyRosterOnce(); }
+            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderFacultyDisplayOrder(); renderExamCoreTeam(); renderClassTeacherCoordinationTable(); seedFinalFacultyRosterOnce(); seedClassTeacherAssignments2026Once(); }
             if(tab === 'holidays') renderHolidayManager();
             if(tab === 'settings') { populateLegacyExamOptions(); renderSignatureProfiles(); updateSessionChrome(); }
             if (shouldRestore) setTimeout(() => window.scrollTo(0, Number(localStorage.getItem(`vems_scroll_${currentActiveRole}_${tab}`)) || 0), 80);
@@ -1922,6 +1922,28 @@
         async function addManualCoreTeamRole(){const input=document.getElementById('core-team-new-role'),role=input?.value.trim();if(!role){alert('Enter the new core-team role.');input?.focus();return;}const roles=coreTeamRoleOptions();if(!roles.some(item=>item.toLowerCase()===role.toLowerCase()))roles.push(role);examCoreTeam={...examCoreTeam,__roles:roles};if(await saveData(['examCoreTeam'])){renderExamCoreTeam();const select=document.getElementById('core-team-role');if(select)select.value=roles.find(item=>item.toLowerCase()===role.toLowerCase())||role;if(input)input.value='';}}
         async function addExamCoreTeamMember(){const teacherId=document.getElementById('core-team-faculty')?.value,teacher=teachers.find(item=>String(item.id)===String(teacherId)),role=document.getElementById('core-team-role')?.value;if(!teacher){alert('Select a faculty member.');return;}examCoreTeam={...examCoreTeam,[String(teacher.id)]:{teacherId:String(teacher.id),name:teacher.name,designation:teacher.desig,role}};if(await saveData(['examCoreTeam']))renderExamCoreTeam();}
         async function removeExamCoreTeamMember(teacherId){const next={...examCoreTeam};delete next[String(teacherId)];examCoreTeam=next;if(await saveData(['examCoreTeam']))renderExamCoreTeam();}
+
+        const classTeacherRoster2026=[
+            ['6-A',['MTMUNYA'],['SURAJDAHAL']],['6-B',['TGTENGLISHVACANT','JENLANMONYAK'],['SURAJDAHAL']],
+            ['6-C',['JITENDRAPAUL','JITENDERPAUL'],['DEVARAM']],['6-D',['AJAYKUMARCHAUBEY','AJAYKRCHAUBEY'],['BIKASHJYOTIDAS','BIKASHDAS']],
+            ['7-A',['SANTOSHKUMARYADAV'],['DEVENDRAKUMARMEENA','DKMEENA']],['7-B',['DEVENDRAKUMARMEENA','DKMEENA'],['BIKASHJYOTIDAS','BIKASHDAS']],
+            ['7-C',['NITISHRAJSHARMA'],['MTMUNYA']],['7-D',['VANDANAUMANG'],['BHARATLALMEENA']],
+            ['8-A',['VANSHITASHARMA'],['RAJENKUMAR','REJENKUMAR']],['8-B',['AJAYPRATAPSINGHC','AJAYPRATAPSINGHCHAUHAN','APSCHAUHAN'],['SANTOSHKUMARYADAV']],
+            ['8-C',['RANJANCHETRY'],['AJAYPRATAPSINGHC','AJAYPRATAPSINGHCHAUHAN','APSCHAUHAN']],['8-D',['DEVARAM'],['RAJENKUMAR','REJENKUMAR']],
+            ['9-A',['ABHISHEKSINGH'],['SWETAKESTWAL','SWETAKESHTWAL']],['9-B',['JYOTIVERMA'],['GAURAVSINGH']],
+            ['9-C',['DIPTISINGH'],['NITISHRAJSHARMA']],['9-D',['SWETAKESTWAL','SWETAKESHTWAL'],['ABHISHEKSINGH']],
+            ['10-A',['GAURAVSINGH'],['JYOTIVERMA']],['10-B',['BHARATLALMEENA'],['MONIKAYADAV']],
+            ['10-C',['PRIYANKAMEHTA'],['VANDANAUMANG']],['10-D',['MONIKAYADAV'],['AVINASHSINGH']],
+            ['11-A',['SKVERMA','SANTOSHKUMARVERMA'],['LGANGADEVI','LAISHRAMGANGADEVI','GANGADEVI']],['11-B',['LGANGADEVI','LAISHRAMGANGADEVI','GANGADEVI'],['SUSHILKUMAR','SUSHILYADAV']],
+            ['11-C',['SUNILKUMAR'],['TECHIYAZAR']],['11-D',['SATISHKUMARMEENA'],['PARTHAPBORAH','PARTHAPROTIMBORAH','PARTHBORA']],
+            ['11-E',['LENJINGGETE'],['PARTHAPBORAH','PARTHAPROTIMBORAH','PARTHBORA']],['12-A',['SUSHILKUMAR','SUSHILYADAV'],['PRAGNYAPRIYAMBADA','PRAGNYAPRIYAMVADA']],
+            ['12-B',['PRAGNYAPRIYAMBADA','PRAGNYAPRIYAMVADA'],['IPIRIBA','PGTCHEMISTRYVACANT']],['12-C',['ETZIRDO','EJUMTAIPODIAZIRDO'],['TECHIYAZAR']],
+            ['12-D',['RAMESHYADAV'],['PARAMVEERMEENA']],['12-E',['MOHANSINGHRAJPUT','MOHANSINGH'],['PARAMVEERMEENA']]
+        ];
+        function classTeacherFacultyMatch(aliases){const keys=aliases.map(finalFacultyNameKey);return teachers.find(teacher=>keys.includes(finalFacultyNameKey(teacher.name)));}
+        function mergeClassTeacherRoster2026(){const unresolved=[],updated=[];classTeacherRoster2026.forEach(([key,ctAliases,coCtAliases])=>{const ct=classTeacherFacultyMatch(ctAliases),coCt=classTeacherFacultyMatch(coCtAliases);if(!ct||!coCt){unresolved.push({key,ct:!!ct,coCt:!!coCt});return;}const current=classTeacherAssignments[key]||{};classTeacherAssignments[key]={...current,ct:current.ct||ct.name,coCt:current.coCt||coCt.name,assignedOnDuty:current.assignedOnDuty||''};updated.push(key);});return{unresolved,updated};}
+        let classTeacherSeedInProgress=false;
+        async function seedClassTeacherAssignments2026Once(){if(authorizedRole!=='principal'||classTeacherSeedInProgress||Number(classTeacherAssignments.__ctCoCt2026Seeded?.version||0)>=1||!sharedStore?.ready)return;classTeacherSeedInProgress=true;try{const{unresolved,updated}=mergeClassTeacherRoster2026();if(unresolved.length){console.warn('CT/Co-CT roster waiting for faculty matches',unresolved);return;}classTeacherAssignments.__ctCoCt2026Seeded={version:1,seededAt:new Date().toISOString(),classes:updated.length};if(!await saveData(['classTeacherAssignments']))return;const confirmed=sharedStore?.view('classTeacherAssignments')||{},missing=classTeacherRoster2026.filter(([key])=>!confirmed[key]?.ct||!confirmed[key]?.coCt);if(missing.length){showSyncError('Some CT/Co-CT assignments were not confirmed by the server. Reopen Faculty Manager to retry.');return;}renderClassTeacherCoordinationTable();alert('CT and Co-Class Teacher list updated for 30 classes. Existing manual assignments were kept.');}finally{classTeacherSeedInProgress=false;}}
 
         function renderClassTeacherCoordinationTable() {
             assignmentRenderBaseline = cloneData(sharedStore?.view('classTeacherAssignments') || {});
