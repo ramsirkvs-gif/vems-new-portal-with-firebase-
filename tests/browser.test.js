@@ -542,10 +542,12 @@ async function main() {
         const created = Object.values(data.archivedExams).find(exam => exam.id !== 100);
         assert.equal(await a.getByRole('button',{name:'➕ Add Day 2'}).count(),1);
         await a.evaluate(() => addNextDatesheetDay());
-        await a.evaluate(async()=>{holidayCalendar={'2026-10-28':{accountOf:'Test Holiday',remark:'GH'}};await saveData(['holidayCalendar']);});
+        assert.deepEqual(await a.evaluate(()=>{const seed=tentativeHolidaySeed2026(),prior=holidayCalendar;holidayCalendar={__breaks:seed.breaks};const warning=holidayName('2026-10-16');holidayCalendar=prior;return{holidays:Object.keys(seed.rows).length,pending:seed.pending.length,breaks:seed.breaks.length,warning,diwali:seed.rows['2026-11-08']};}),{holidays:22,pending:2,breaks:3,warning:'Autumn Break',diwali:{accountOf:'Diwali (Deepavali)',remark:'GH',source:'Tentative Holiday List 2026'}});
+        await a.evaluate(async()=>{holidayCalendar={'2026-10-28':{accountOf:'Test Holiday',remark:'GH'},__tentative2026Seeded:true};await saveData(['holidayCalendar']);});
         await a.evaluate(()=>switchTab('holidays'));
         assert.match(await a.locator('#holiday-manager-mount h2').textContent(),/4\. Holiday Manager/);
-        assert.deepEqual(await a.locator('#holiday-manager-mount thead th').allTextContents(),['S.No.','Date','Day','On Account Of','Remark']);
+        assert.deepEqual(await a.locator('#holiday-manager-mount thead').first().locator('th').allTextContents(),['S.No.','Date','Day','On Account Of','Remark','Edit']);
+        assert.equal(await a.locator('#holiday-manager-mount button',{hasText:'Edit'}).count(),1);
         assert.equal(await a.getByRole('button',{name:/Download CSV/}).count(),1);
         assert.equal(await a.evaluate(()=>parseHolidayCsvDate('26/10/2026')),'2026-10-26');
         await a.evaluate(()=>toggleHolidayPublishing());
