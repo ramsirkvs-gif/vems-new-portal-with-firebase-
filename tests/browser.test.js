@@ -151,7 +151,7 @@ async function main() {
         await a.fill('#circular-subject', 'Examination Committee Meeting');
         await a.fill('#circular-body', 'All members shall attend the meeting at the notified time.');
         await a.locator('[name="circular-target"]').first().check();
-        await a.evaluate(() => saveCircular(false));
+        await a.getByRole('button', { name: 'Save Draft' }).click();
         await a.waitForFunction(() => Object.values(examCirculars).some(item => item.subject === 'Examination Committee Meeting' && item.status === 'DRAFT'));
         assert.equal(Object.values(data.examCirculars || {}).length, 1);
         console.log('PASS: session-linked examination circular saves with reusable subject and recipient snapshot');
@@ -189,6 +189,8 @@ async function main() {
         assert.equal(await a.locator('.teaching-row .sub-sel').last().inputValue(),'MATHEMATICS STANDARD + MATHEMATICS BASIC','a newly added class must default from the designation subject');
         await a.locator('.teaching-row').last().locator('button',{hasText:'✕'}).click();
         await a.fill('#tch-desig-input','PGT SCIENCE');
+        await a.check('[name="faculty-exam-role"][value="CORE"]');
+        await a.check('[name="faculty-exam-role"][value="INVIGILATION"]');
         const teachingRowCount=await a.locator('.teaching-row').count();
         await a.locator('#add-teaching-class-button').click();
         assert.equal(await a.locator('.teaching-row').count(),teachingRowCount+1,'Add Class must immediately create a complete default row');
@@ -198,6 +200,8 @@ async function main() {
         await a.locator('.teaching-row').last().locator('button',{hasText:'✕'}).click();
         await a.evaluate(() => saveTeacherDirect({ preventDefault() {} }));
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
+        assert.deepEqual(await b.evaluate(() => teachers.find(t => t.name === 'New Shared Teacher').examRoles), ['CORE','INVIGILATION']);
+        assert.deepEqual(await b.evaluate(() => resolvedCircularRecipients(['Examination Team Members','Invigilators'])), ['New Shared Teacher']);
         await a.locator('#faculty-completeness-popup').waitFor();
         assert.match(await a.locator('#faculty-completeness-popup').textContent(),/verified and saved successfully.*mapped class-subject assignment\(s\) remain incomplete/s);
         await a.locator('#faculty-completeness-popup button',{hasText:'Close'}).click();

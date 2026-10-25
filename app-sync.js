@@ -265,7 +265,7 @@ function refreshSharedViews() {
     updateSessionChrome();
 }
 document.addEventListener('focusout', event => {
-    if (event.target.closest('#settings-signature-profiles, #public-notice-manager') || event.target.id?.startsWith('circular-signature-')) return;
+    if (event.target.closest('#settings-signature-profiles, #public-notice-manager, #circular-editor') || event.target.id?.startsWith('circular-signature-')) return;
     scheduleSharedRender();
 });
 document.addEventListener('input', event => {
