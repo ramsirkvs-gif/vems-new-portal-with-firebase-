@@ -237,6 +237,7 @@ async function main() {
         assert.deepEqual(await a.locator('#teacher-table-body').locator('xpath=..').locator('thead th').allTextContents(),['S.No.','Teacher Name & Desig','Teaching Allotments','QP Setter(s)','Evaluator','Booklets','Bundles','Actions']);
         assert.equal((await a.locator('#teacher-table-body .faculty-evaluator').first().innerText()).trim(),'New Shared Teacher');
         assert.equal((await a.locator('#teacher-table-body tr').first().locator('td').first().innerText()).trim(),'1');
+        assert.doesNotMatch(await a.locator('#teacher-table-body tr').first().innerText(),/Seniority|Permanent ·|Contractual ·/,'category and seniority metadata must stay hidden in the roster');
         assert.equal((await a.locator('#faculty-roster-count').innerText()).trim(),'1 Faculty');
         assert.doesNotMatch(await a.locator('#teacher-table-body .faculty-qp-setter').first().innerText(),/Class X-A/);
         assert.match(await a.locator('#teacher-table-body .faculty-qp-setter').first().getAttribute('class'),/whitespace-nowrap/);
