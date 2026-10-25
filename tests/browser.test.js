@@ -16,7 +16,7 @@ const initialExam = { id: 100, title: 'Existing Exam', fromDate: '2026-11-01', t
             repTime: '08:00', readTime: '08:15', startTime: '08:30', overTime: '11:30' }
     ] }] };
 let data = { roles: { principal1: 'principal', principal2: 'principal', secondary: 'sec-ic', primary: 'pri-ic' },
-    sectionConfigs: { '10-A': ['SCIENCE'] }, teachers: {}, classTeacherAssignments: { __ctCoCt2026Seeded: { version: 2, seededAt: 'test' } }, circularSettings: { finalFacultyRoster2026Seeded: { version: 3, seededAt: 'test' } }, archivedExams: [initialExam] };
+    sectionConfigs: { '10-A': ['SCIENCE'] }, teachers: {}, classTeacherAssignments: { __ctCoCt2026Seeded: { version: 3, seededAt: 'test' } }, circularSettings: { finalFacultyRoster2026Seeded: { version: 3, seededAt: 'test' } }, archivedExams: [initialExam] };
 const accounts = {
     'principal1@example.test': 'principal1', 'principal2@example.test': 'principal2',
     'secondary@example.test': 'secondary', 'primary@example.test': 'primary', 'unassigned@example.test': 'unassigned'
@@ -336,6 +336,20 @@ async function main() {
         await a.getByRole('button', { name: '＋ Add Member' }).click();
         await b.waitForFunction(id => examCoreTeam[id]?.role === 'Examination Store Custodian' && examCoreTeam.__roles?.includes('Examination Store Custodian'), supportFacultyId);
         assert.deepEqual(await b.evaluate(() => resolvedCircularRecipients(['Examination Team Members'])), ['Support Faculty']);
+        const sharedTeacherId=await a.evaluate(()=>String(teachers.find(item=>item.name==='New Shared Teacher').id));
+        await a.selectOption('#core-team-faculty',sharedTeacherId);
+        await a.selectOption('#core-team-role','Core Team Member');
+        await a.getByRole('button',{name:'＋ Add Member'}).click();
+        await a.evaluate(id=>moveExamCoreTeamMember(id,-1),sharedTeacherId);
+        await a.waitForFunction(()=>coreTeamRows()[0]?.name==='New Shared Teacher');
+        await a.getByRole('button',{name:'📢 Publish Team'}).click();
+        await b.waitForFunction(()=>publicPortalBoards.coreTeam?.rows?.[0]?.name==='New Shared Teacher');
+        await a.evaluate(()=>{publicVisiblePortalBoards=cloneData(publicPortalBoards);activateArea('public');renderPublicPortalBoards();});
+        assert.deepEqual(await a.locator('#public-core-team-belt article b').allTextContents(),['New Shared Teacher','Support Faculty']);
+        await a.evaluate(()=>activateArea('principal'));
+        await a.getByRole('button',{name:'⛔ Stop Publishing Team'}).click();
+        await b.waitForFunction(()=>!publicPortalBoards.coreTeam);
+        console.log('PASS: core team order publishes as a public belt and can be stopped');
         await a.evaluate(async ({ supportId }) => {
             renderFacultyDisplayOrder();
             const main = document.querySelector(`.faculty-order-row[data-teacher-id="${teachers.find(item => item.name === 'New Shared Teacher').id}"]`);
