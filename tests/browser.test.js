@@ -16,7 +16,7 @@ const initialExam = { id: 100, title: 'Existing Exam', fromDate: '2026-11-01', t
             repTime: '08:00', readTime: '08:15', startTime: '08:30', overTime: '11:30' }
     ] }] };
 let data = { roles: { principal1: 'principal', principal2: 'principal', secondary: 'sec-ic', primary: 'pri-ic' },
-    sectionConfigs: { '10-A': ['SCIENCE'] }, teachers: {}, classTeacherAssignments: { __ctCoCt2026Seeded: { version: 1, seededAt: 'test' } }, circularSettings: { finalFacultyRoster2026Seeded: { version: 3, seededAt: 'test' } }, archivedExams: [initialExam] };
+    sectionConfigs: { '10-A': ['SCIENCE'] }, teachers: {}, classTeacherAssignments: { __ctCoCt2026Seeded: { version: 2, seededAt: 'test' } }, circularSettings: { finalFacultyRoster2026Seeded: { version: 3, seededAt: 'test' } }, archivedExams: [initialExam] };
 const accounts = {
     'principal1@example.test': 'principal1', 'principal2@example.test': 'principal2',
     'secondary@example.test': 'secondary', 'primary@example.test': 'primary', 'unassigned@example.test': 'unassigned'
