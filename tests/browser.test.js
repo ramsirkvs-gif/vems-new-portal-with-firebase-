@@ -443,6 +443,14 @@ async function main() {
         assert.match(updatedDateSheetText, /Report 20 minutes before/);
         await a.evaluate(() => { document.getElementById('date-sheet-preview').remove(); switchPreExamSubTab('qp-setters'); });
         const trackerKey = await a.evaluate(() => qpRecordKey(100, '10', 'SCIENCE'));
+        const qpSourceSelect=a.locator('select[onchange^="saveExamQpSource"]').first();
+        assert.deepEqual(await qpSourceSelect.locator('option').allTextContents(),['School / Internal — QP setter required','Regional Office (RO)','Headquarters (HQ)','CBSE','Other External Source']);
+        await qpSourceSelect.selectOption('CBSE');
+        await b.waitForFunction(key=>Object.values(archivedExams).find(exam=>String(exam.id)==='100')?.qpSources?.[key]==='CBSE',trackerKey);
+        assert.match(await a.locator('select[onchange^="saveExamQpSource"]').first().locator('xpath=ancestor::tr').innerText(),/Not Required — External Paper.*CBSE/s);
+        assert.deepEqual(await a.evaluate(()=>{const item=getExamSubjectsListForVault(100)[0];return{source:item.sourceCode,external:item.isExternal,setter:item.setterName};}),{source:'CBSE',external:true,setter:'Not Required — CBSE'});
+        await a.locator('select[onchange^="saveExamQpSource"]').first().selectOption('INTERNAL');
+        await b.waitForFunction(key=>Object.values(archivedExams).find(exam=>String(exam.id)==='100')?.qpSources?.[key]==='INTERNAL',trackerKey);
         await a.evaluate(key => toggleQpSubmissionTick(key, 'qpReceived'), trackerKey);
         await b.waitForFunction(key => qpSubmissionsTracker[key]?.qpReceived === true, trackerKey);
         await a.evaluate(() => switchPreExamSubTab('qp-receiving'));

@@ -2321,7 +2321,7 @@
             order.instructions = [...document.querySelectorAll('.qp-instruction-input')]
                 .map(input => input.value.trim()).filter(Boolean);
             order.setters = {};
-            getExamSubjectsListForVault(selectedPreExamVaultId, { setters: {} }).forEach(item => {
+            getExamSubjectsListForVault(selectedPreExamVaultId, { setters: {} }).filter(item=>!item.isExternal).forEach(item => {
                 if (item.teacherId) order.setters[item.key] = { teacherId: item.teacherId, name: item.setterName, desig: item.desig };
             });
             return order;
@@ -2348,7 +2348,7 @@
                 alert('Please enter the Exam Cell receiving email address.');
                 return false;
             }
-            const unmapped = getExamSubjectsListForVault(selectedPreExamVaultId, order).filter(item => !item.teacherId);
+            const unmapped = getExamSubjectsListForVault(selectedPreExamVaultId, order).filter(item => !item.isExternal&&!item.teacherId);
             if (status === 'ISSUED' && unmapped.length) {
                 alert(`Assign a QP setter for every row before issuing the order. ${unmapped.length} row(s) are still unassigned.`);
                 return false;
@@ -2443,7 +2443,7 @@
 
         function buildQpSetterOfficeOrderHtml(order = currentQpOfficeOrder()) {
             const currentExam = archivedExams.find(ex => ex.id === selectedPreExamVaultId) || { title: 'Examination' };
-            const subjects = getExamSubjectsListForVault(selectedPreExamVaultId, order);
+            const subjects = getExamSubjectsListForVault(selectedPreExamVaultId, order).filter(item=>!item.isExternal);
             const submissionText = order.submissionMethod.startsWith('Email')
                 ? `by email from the QP setter's personal secure email to ${order.submissionEmail || '[Exam Cell receiving email]'}, attaching both editable Word and PDF files`
                 : 'in a sealed confidential envelope to the Examination Cell';
@@ -2702,6 +2702,10 @@
             printWin.document.close();
         }
 
+        function qpSourceInfo(code='INTERNAL'){return {INTERNAL:{label:'School / Internal',external:false},RO:{label:'Regional Office (RO)',external:true},HQ:{label:'Headquarters (HQ)',external:true},CBSE:{label:'CBSE',external:true},OTHER_EXTERNAL:{label:'Other External Source',external:true}}[code]||{label:'School / Internal',external:false};}
+        function qpSourceOptions(selected='INTERNAL'){return Object.entries({INTERNAL:'School / Internal — QP setter required',RO:'Regional Office (RO)',HQ:'Headquarters (HQ)',CBSE:'CBSE',OTHER_EXTERNAL:'Other External Source'}).map(([value,label])=>`<option value="${value}" ${selected===value?'selected':''}>${label}</option>`).join('');}
+        async function saveExamQpSource(examId,key,sourceCode){const exam=archivedExams.find(item=>String(item.id)===String(examId));if(!exam)return;const previous=cloneData(exam.qpSources||{}),orderKey=String(exam.id),previousOrder=cloneData(qpOfficeOrders[orderKey]||null);exam.qpSources={...previous,[key]:sourceCode};if(qpOfficeOrders[orderKey]){qpOfficeOrders[orderKey]={...qpOfficeOrders[orderKey],status:'DRAFT',issuedAt:'',setters:{...(qpOfficeOrders[orderKey].setters||{})}};delete qpOfficeOrders[orderKey].setters[key];}if(await saveData(['archivedExams',...(previousOrder?['qpOfficeOrders']:[])]))renderExamCreatorModule();else{exam.qpSources=previous;if(previousOrder)qpOfficeOrders[orderKey]=previousOrder;}}
+
         function getExamSubjectsListForVault(vaultId, suppliedOrder = null) {
             let targetExam = archivedExams.find(ex => ex.id === vaultId);
             if (!targetExam || !targetExam.datesheetSnapshot) {
@@ -2731,14 +2735,18 @@
                             const order = suppliedOrder || currentQpOfficeOrder(vaultId);
                             const override = order.status === 'ISSUED' ? order.setters?.[key] : null;
                             if (override) assignedTeacher = teachers.find(t => String(t.id) === String(override.teacherId)) || override;
+                            const sourceCode=targetExam.qpSources?.[key]||'INTERNAL',source=qpSourceInfo(sourceCode);
                             result.push({
                                 key: key,
                                 cls: slot.cls,
                                 subject: slot.subject,
                                 sections: [...(slot.selectedSections || [])],
-                                setterName: assignedTeacher ? assignedTeacher.name : 'Subject Faculty',
-                                desig: assignedTeacher ? assignedTeacher.desig : 'TGT/PGT',
-                                teacherId: assignedTeacher?.id ?? assignedTeacher?.teacherId ?? ''
+                                teacherId: source.external?'EXTERNAL':(assignedTeacher?.id ?? assignedTeacher?.teacherId ?? ''),
+                                setterName: source.external?`Not Required — ${source.label}`:(assignedTeacher ? assignedTeacher.name : 'Subject Faculty'),
+                                desig: source.external?'External Question Paper':(assignedTeacher ? assignedTeacher.desig : 'TGT/PGT'),
+                                sourceCode,
+                                sourceLabel:source.label,
+                                isExternal:source.external
                             });
                         } else {
                             const existing = result.find(r => r.key === key);
@@ -3009,6 +3017,7 @@
             selectedPreExamVaultId = selectedExam.id;
             qpSubmissionDeadline = qpSubmissionDeadlines[String(selectedExam.id)] || '';
             const subjectsList = getExamSubjectsListForVault(selectedExam.id);
+            const internalSetterSubjects = subjectsList.filter(item=>!item.isExternal);
             const officeOrder = currentQpOfficeOrder(selectedExam.id);
             let totalSubjects = subjectsList.length;
             let totalSubmittedCount = 0;
@@ -3081,14 +3090,16 @@
                                 </div>
                                 <div class="overflow-x-auto border rounded-xl">
                                     <table class="w-full text-xs text-left text-slate-700">
-                                        <thead class="bg-indigo-950 text-white uppercase"><tr><th class="p-3">Class</th><th class="p-3">Subject</th><th class="p-3">Assigned QP Setter</th><th class="p-3">Designation</th></tr></thead>
+                                        <thead class="bg-indigo-950 text-white uppercase"><tr><th class="p-3">Class</th><th class="p-3">Subject</th><th class="p-3">Question Paper Source</th><th class="p-3">Assigned QP Setter</th><th class="p-3">Designation</th></tr></thead>
                                         <tbody class="divide-y bg-white">${subjectsList.map(item => `
                                             <tr><td class="p-3 font-bold">Class ${escapeHtml(formatClass(item.cls))}</td><td class="p-3 font-bold">${escapeHtml(item.subject)}</td>
-                                            <td class="p-3">${item.teacherId ? `<b class="text-emerald-800">${escapeHtml(item.setterName)}</b><div class="text-[10px] text-slate-400 mt-0.5">Auto-linked from Faculty Manager</div>` : '<b class="text-red-700">Not mapped in Faculty Manager</b>'}</td><td class="p-3">${item.teacherId ? escapeHtml(item.desig) : '—'}</td></tr>`).join('')}</tbody>
+                                            <td class="p-3"><select onchange="saveExamQpSource(${Number(selectedExam.id)},${jsArg(item.key)},this.value)" class="w-full min-w-48 rounded border p-2 text-xs font-bold ${item.isExternal?'border-amber-300 bg-amber-50 text-amber-900':'bg-white'}">${qpSourceOptions(item.sourceCode)}</select></td>
+                                            <td class="p-3">${item.isExternal?`<b class="text-amber-800">Not Required — External Paper</b><div class="mt-0.5 text-[10px] text-slate-500">Source: ${escapeHtml(item.sourceLabel)}</div>`:item.teacherId ? `<b class="text-emerald-800">${escapeHtml(item.setterName)}</b><div class="text-[10px] text-slate-400 mt-0.5">Auto-linked from Faculty Manager</div>` : '<b class="text-red-700">Not mapped in Faculty Manager</b>'}</td><td class="p-3">${item.isExternal?'—':item.teacherId ? escapeHtml(item.desig) : '—'}</td></tr>`).join('')}</tbody>
                                     </table>
                                 </div>
                                 ${subjectsList.length ? '' : '<p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">No papers are mapped in this exam yet. Add class and subject papers to the exam datesheet first.</p>'}
-                                ${subjectsList.some(item => !item.teacherId) ? `<p class="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg p-3"><b>Setter mapping incomplete.</b> Add the faculty and their class-subject QP Setter assignments once in <b>3. Faculty Manager</b>. This order will then fill automatically; no entry is required here.${currentActiveRole === 'principal' ? ' <button type="button" onclick="closePreExamFullPageWorkspace(); switchTab(\'teachers\')" class="ml-2 underline font-bold">Open Faculty Manager</button>' : ' Ask the Principal to complete Faculty Manager.'}</p>` : ''}
+                                ${internalSetterSubjects.some(item => !item.teacherId) ? `<p class="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg p-3"><b>Setter mapping incomplete.</b> Add the faculty and their class-subject QP Setter assignments once in <b>3. Faculty Manager</b>. External-source papers do not require a setter.${currentActiveRole === 'principal' ? ' <button type="button" onclick="closePreExamFullPageWorkspace(); switchTab(\'teachers\')" class="ml-2 underline font-bold">Open Faculty Manager</button>' : ' Ask the Principal to complete Faculty Manager.'}</p>` : ''}
+                                ${subjectsList.length&&!internalSetterSubjects.length?'<p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-900">All scheduled question papers are marked as externally supplied. No QP-setter office order is required.</p>':''}
                                 <div>
                                     <div class="flex items-center justify-between gap-2 mb-2"><label class="text-xs font-bold text-slate-600">Numbered instructions</label><button type="button" onclick="addQpInstructionRow()" class="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg px-3 py-1.5 text-xs font-bold">＋ Add Instruction</button></div>
                                     <div id="qp-instructions-list" class="space-y-2">${officeOrder.instructions.map((instruction, index) => `<div class="qp-instruction-row flex items-start gap-2"><span class="qp-instruction-number w-7 pt-2.5 text-right text-xs font-black text-indigo-900">${index + 1}.</span><textarea rows="1" class="qp-instruction-input flex-1 min-h-[42px] border rounded-lg p-2.5 text-xs leading-5 bg-white">${escapeHtml(instruction)}</textarea><button type="button" onclick="this.closest('.qp-instruction-row').remove(); renumberQpInstructionRows(); captureQpOfficeOrderDraft()" title="Remove instruction" class="mt-1 bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-2 text-xs font-bold">✕</button></div>`).join('')}</div>
@@ -3100,7 +3111,7 @@
                                 <div class="flex flex-wrap justify-end gap-2">
                                     <button type="button" onclick="saveQpOfficeOrder('DRAFT')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save Draft</button>
                                     <button type="button" onclick="previewQpOfficeOrderDraft()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview & PDF</button>
-                                    <button type="button" onclick="issueAndGenerateQpOfficeOrderPdf()" ${subjectsList.length && !subjectsList.some(item => !item.teacherId) ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">✅ Issue & Preview PDF</button>
+                                    <button type="button" onclick="issueAndGenerateQpOfficeOrderPdf()" ${internalSetterSubjects.length && !internalSetterSubjects.some(item => !item.teacherId) ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">✅ Issue & Preview PDF</button>
                                 </div>
                                 <p class="text-[11px] text-slate-500 text-right">The PDF preview opens inside the portal. Use <b>Print / Save PDF</b> after reviewing it.</p>
                             </div>
