@@ -258,6 +258,7 @@ function refreshSharedViews() {
     updateStudentTableHeaders();
     filterStudents();
     renderTeachers();
+    renderFacultyDisplayOrder();
     renderExamCoreTeam();
     if (!editorBaselines.assignments) renderClassTeacherCoordinationTable();
     if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) renderExamCreatorModule();
@@ -267,7 +268,7 @@ function refreshSharedViews() {
     updateSessionChrome();
 }
 document.addEventListener('focusout', event => {
-    if (event.target.closest('#settings-signature-profiles, #public-notice-manager, #circular-editor, #exam-vault-editor') || event.target.id?.startsWith('circular-signature-')) return;
+    if (event.target.closest('#settings-signature-profiles, #public-notice-manager, #circular-editor, #exam-vault-editor, #faculty-order-manager') || event.target.id?.startsWith('circular-signature-')) return;
     scheduleSharedRender();
 });
 document.addEventListener('input', event => {

@@ -447,6 +447,14 @@
                         </div>
                     </div>
                 </div>
+                <!-- CENTRAL FACULTY DISPLAY ORDER -->
+                <details id="faculty-order-manager" class="border-t pt-6">
+                    <summary class="cursor-pointer rounded-xl border border-violet-200 bg-violet-50 p-4 font-bold text-violet-950">↕️ Arrange Faculty Display Order Everywhere</summary>
+                    <div class="mt-3 space-y-3 rounded-xl border border-violet-200 bg-white p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3"><p class="text-xs text-slate-600">Set the employment category and seniority number once. This order is used in every faculty table and dropdown.</p><button type="button" onclick="saveFacultyDisplayOrder()" class="rounded bg-violet-700 px-4 py-2 text-xs font-bold text-white">💾 Save Display Order</button></div>
+                        <div class="max-h-96 overflow-auto rounded-lg border"><table class="w-full min-w-[760px] text-xs"><thead class="sticky top-0 bg-violet-950 text-white"><tr><th class="p-2 text-center">Display</th><th class="p-2 text-left">Faculty</th><th class="p-2 text-left">Post / Designation</th><th class="p-2 text-left">Employment Category</th><th class="p-2 text-center">Seniority Order</th></tr></thead><tbody id="faculty-order-body" class="divide-y"></tbody></table></div>
+                    </div>
+                </details>
                 <!-- CORE EXAMINATION TEAM -->
                 <div class="border-t pt-6 space-y-4">
                     <div><h3 class="text-base font-bold text-slate-900">🧭 Core Examination Team</h3><p class="text-xs text-slate-500">Select members from the complete Faculty Register. Teaching allotment is not required.</p></div>
@@ -822,7 +830,7 @@
             
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
-            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderExamCoreTeam(); renderClassTeacherCoordinationTable(); }
+            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderFacultyDisplayOrder(); renderExamCoreTeam(); renderClassTeacherCoordinationTable(); }
             if(tab === 'holidays') renderHolidayManager();
             if(tab === 'settings') { populateLegacyExamOptions(); renderSignatureProfiles(); updateSessionChrome(); }
             if (shouldRestore) setTimeout(() => window.scrollTo(0, Number(localStorage.getItem(`vems_scroll_${currentActiveRole}_${tab}`)) || 0), 80);
@@ -1758,6 +1766,7 @@
             editorBaselines.teacher = null;
             resetTeacherForm();
             renderTeachers();
+            renderFacultyDisplayOrder();
             renderExamCoreTeam();
             renderClassTeacherCoordinationTable();
             showFacultyCompletenessPopup(true);
@@ -1799,6 +1808,7 @@
                 teachers = teachers.filter(t => String(t.id) !== String(id));
                 if (!await saveData(['teachers'])) return;
                 renderTeachers();
+                renderFacultyDisplayOrder();
                 renderExamCoreTeam();
                 renderClassTeacherCoordinationTable();
                 switchTab('teachers');
@@ -1838,6 +1848,10 @@
                 </tr>`;
             });
         }
+
+        function facultyCategoryOptions(selected){return [['UNSET','Not Set'],['PERMANENT','Permanent'],['CONTRACTUAL','Contractual'],['INSTRUCTOR','Instructor'],['OTHER','Other']].map(([value,label])=>`<option value="${value}" ${value===String(selected||'UNSET').toUpperCase()?'selected':''}>${label}</option>`).join('');}
+        function renderFacultyDisplayOrder(){const body=document.getElementById('faculty-order-body');if(!body)return;const rows=sortFacultyForDisplay();body.innerHTML=rows.length?rows.map((teacher,index)=>`<tr class="faculty-order-row" data-teacher-id="${escapeHtml(String(teacher.id))}"><td class="p-2 text-center font-extrabold text-violet-800">${index+1}</td><td class="p-2 font-bold">${escapeHtml(teacher.name)}</td><td class="p-2">${escapeHtml(teacher.desig)}</td><td class="p-2"><select class="faculty-order-category w-full rounded border bg-white p-2">${facultyCategoryOptions(teacher.employmentCategory)}</select></td><td class="p-2"><input type="number" min="1" step="1" value="${escapeHtml(teacher.seniorityOrder||'')}" placeholder="Not set" class="faculty-order-number w-full rounded border p-2 text-center"></td></tr>`).join(''):'<tr><td colspan="5" class="p-5 text-center italic text-slate-400">Add faculty records first.</td></tr>';}
+        async function saveFacultyDisplayOrder(){const updates=[],seen=new Map();document.querySelectorAll('.faculty-order-row').forEach(row=>{const teacher=teachers.find(item=>String(item.id)===String(row.dataset.teacherId));if(!teacher)return;const employmentCategory=row.querySelector('.faculty-order-category').value,seniorityOrder=parseInt(row.querySelector('.faculty-order-number').value)||null,preview={...teacher,employmentCategory,seniorityOrder},group=facultyDisplayGroup(preview);if(seniorityOrder){const key=`${group}|${seniorityOrder}`;if(seen.has(key))updates.push({error:`Display order ${seniorityOrder} is repeated for ${teacher.name} and ${seen.get(key)} in the same group.`});else seen.set(key,teacher.name);}updates.push({teacher,employmentCategory,seniorityOrder});});const error=updates.find(item=>item.error);if(error){alert(error.error);return;}updates.forEach(item=>{item.teacher.employmentCategory=item.employmentCategory;item.teacher.seniorityOrder=item.seniorityOrder;});if(await saveData(['teachers'])){renderTeachers();renderFacultyDisplayOrder();renderExamCoreTeam();renderClassTeacherCoordinationTable();alert('Faculty display order saved and applied everywhere.');}}
 
         function coreTeamRoleOptions(){const defaults=['Exam In-charge','Assistant Exam In-charge','Core Team Member','Confidential Work','Control Room / Office Support'],custom=Array.isArray(examCoreTeam.__roles)?examCoreTeam.__roles:[];return [...new Set([...defaults,...custom].map(value=>String(value).trim()).filter(Boolean))];}
         function renderExamCoreTeam(){const select=document.getElementById('core-team-faculty'),roleSelect=document.getElementById('core-team-role'),list=document.getElementById('exam-core-team-list');if(roleSelect){const selected=roleSelect.value;roleSelect.innerHTML=coreTeamRoleOptions().map(role=>`<option value="${escapeHtml(role)}">${escapeHtml(role)}</option>`).join('');if(coreTeamRoleOptions().includes(selected))roleSelect.value=selected;}if(select){const selected=select.value;select.innerHTML='<option value="">-- Select Faculty --</option>'+sortFacultyForDisplay().map(teacher=>`<option value="${escapeHtml(String(teacher.id))}">${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig)})</option>`).join('');if(teachers.some(t=>String(t.id)===selected))select.value=selected;}if(list){const rows=Object.values(examCoreTeam||{}).filter(item=>item?.teacherId);list.innerHTML=rows.length?rows.sort((a,b)=>compareFacultyDisplay(teachers.find(t=>String(t.id)===String(a.teacherId))||a,teachers.find(t=>String(t.id)===String(b.teacherId))||b)).map(item=>`<div class="flex flex-wrap items-center justify-between gap-3 border-b p-3 last:border-0"><div><b>${escapeHtml(item.name)}</b><div class="text-[10px] text-slate-500">${escapeHtml(item.designation||'')}</div></div><div class="flex items-center gap-2"><span class="rounded bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900">${escapeHtml(item.role)}</span><button type="button" onclick="removeExamCoreTeamMember(${jsArg(String(item.teacherId))})" class="rounded bg-red-50 px-3 py-1 text-xs font-bold text-red-700">Remove</button></div></div>`).join(''):'<div class="p-4 text-center text-xs italic text-slate-400">No core examination team member added.</div>';}}

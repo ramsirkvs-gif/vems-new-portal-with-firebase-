@@ -331,6 +331,16 @@ async function main() {
         await a.getByRole('button', { name: '＋ Add Member' }).click();
         await b.waitForFunction(id => examCoreTeam[id]?.role === 'Examination Store Custodian' && examCoreTeam.__roles?.includes('Examination Store Custodian'), supportFacultyId);
         assert.deepEqual(await b.evaluate(() => resolvedCircularRecipients(['Examination Team Members'])), ['Support Faculty']);
+        await a.evaluate(async ({ supportId }) => {
+            renderFacultyDisplayOrder();
+            const main = document.querySelector(`.faculty-order-row[data-teacher-id="${teachers.find(item => item.name === 'New Shared Teacher').id}"]`);
+            const support = document.querySelector(`.faculty-order-row[data-teacher-id="${supportId}"]`);
+            main.querySelector('.faculty-order-category').value = 'PERMANENT'; main.querySelector('.faculty-order-number').value = '1';
+            support.querySelector('.faculty-order-category').value = 'OTHER'; support.querySelector('.faculty-order-number').value = '1';
+            await saveFacultyDisplayOrder();
+        }, { supportId: supportFacultyId });
+        await b.waitForFunction(() => teachers.find(item => item.name === 'New Shared Teacher')?.employmentCategory === 'PERMANENT');
+        assert.deepEqual(await a.locator('#core-team-faculty option').allTextContents(), ['-- Select Faculty --','New Shared Teacher (PGT SCIENCE)','Support Faculty (Office Assistant)']);
         console.log('PASS: faculty without teaching allotments can join the separately managed core examination team');
         assert.deepEqual(await a.evaluate(() => sortFacultyForDisplay([
             {name:'Contract PGT',desig:'PGT-English',employmentCategory:'CONTRACTUAL',seniorityOrder:1},
