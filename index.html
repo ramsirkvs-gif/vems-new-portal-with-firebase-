@@ -2292,7 +2292,7 @@
             let defaultSub = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
             let slotId = Date.now() + Math.floor(Math.random() * 1000);
             
-            const template=dayObj.paperSlots[0]||{};
+            const template=examMasterTimingSlot()||{};
             dayObj.paperSlots.push({
                 slotId: slotId,
                 cls: defaultCls,
@@ -2375,11 +2375,12 @@
             let slot = dayObj.paperSlots.find(s => s.slotId === slotId);
             if (!slot) return;
             const previous=slot[fieldName];slot[fieldName] = val;
-            const timingFields=['duration','repTime','readFrom','readTo','startTime','overTime'];if(dayObj.paperSlots[0]===slot&&timingFields.includes(fieldName))dayObj.paperSlots.slice(1).forEach(other=>{if(!other[fieldName]||other[fieldName]===previous)other[fieldName]=val;});
+            const timingFields=['duration','repTime','readFrom','readTo','startTime','overTime'];if(examMasterTimingSlot()===slot&&timingFields.includes(fieldName))datesheetDays.flatMap(day=>day.paperSlots||[]).filter(other=>other!==slot).forEach(other=>{if(!other[fieldName]||other[fieldName]===previous)other[fieldName]=val;});
             if (!await syncActiveExamDraftToVault()) return;
             if(fieldName==='overTime'&&slotDurationMismatch(slot))alert(`Duration does not match.\n\nSelected: ${slot.duration}\nExam time: ${examDurationLabel(slot.startTime,slot.overTime)}\n\nPlease correct Duration or Exam To.`);
             if(timingFields.includes(fieldName))renderDatesheetDaysContainer();
         }
+        function examMasterTimingSlot(){return datesheetDays[0]?.paperSlots?.[0]||null;}
         function examDurationLabel(start,end){if(!start||!end)return'—';const minutes=value=>{const[h,m]=String(value).split(':').map(Number);return h*60+m;};let total=minutes(end)-minutes(start);if(total<0)total+=1440;if(!Number.isFinite(total)||total<=0)return'—';const hours=Math.floor(total/60),mins=total%60;return`${hours?`${hours} Hour${hours===1?'':'s'}`:''}${hours&&mins?' ':''}${mins?`${mins} Minutes`:''}`;}
         function durationMinutes(value){const text=String(value||''),hours=Number(text.match(/[\d.]+/)?.[0]||0);return Math.round(hours*60);}
         function examTimeMinutes(start,end){if(!start||!end)return 0;const parts=value=>{const[h,m]=String(value).split(':').map(Number);return h*60+m;};let total=parts(end)-parts(start);if(total<0)total+=1440;return total;}
