@@ -2305,7 +2305,8 @@
                 readFrom: template.readFrom||template.readTime||'08:15',
                 readTo: template.readTo||template.startTime||'08:30',
                 startTime: template.startTime||'08:30',
-                overTime: template.overTime||'11:30'
+                overTime: template.overTime||'11:30',
+                timingTemplateInitialized:true
             });
             if (!await syncActiveExamDraftToVault()) return;
             renderDatesheetDaysContainer();
@@ -2381,6 +2382,7 @@
             if(timingFields.includes(fieldName))renderDatesheetDaysContainer();
         }
         function examMasterTimingSlot(){return datesheetDays[0]?.paperSlots?.[0]||null;}
+        function initializeMasterTimingDefaults(){const master=examMasterTimingSlot();if(!master)return false;const fields=['duration','repTime','readFrom','readTo','startTime','overTime'];let changed=false;if(!master.timingTemplateInitialized){master.timingTemplateInitialized=true;changed=true;}datesheetDays.flatMap(day=>day.paperSlots||[]).filter(slot=>slot!==master&&!slot.timingTemplateInitialized).forEach(slot=>{fields.forEach(field=>slot[field]=master[field]||slot[field]);slot.readTime=slot.readFrom||slot.readTime;slot.timingTemplateInitialized=true;changed=true;});return changed;}
         function examDurationLabel(start,end){if(!start||!end)return'—';const minutes=value=>{const[h,m]=String(value).split(':').map(Number);return h*60+m;};let total=minutes(end)-minutes(start);if(total<0)total+=1440;if(!Number.isFinite(total)||total<=0)return'—';const hours=Math.floor(total/60),mins=total%60;return`${hours?`${hours} Hour${hours===1?'':'s'}`:''}${hours&&mins?' ':''}${mins?`${mins} Minutes`:''}`;}
         function durationMinutes(value){const text=String(value||''),hours=Number(text.match(/[\d.]+/)?.[0]||0);return Math.round(hours*60);}
         function examTimeMinutes(start,end){if(!start||!end)return 0;const parts=value=>{const[h,m]=String(value).split(':').map(Number);return h*60+m;};let total=parts(end)-parts(start);if(total<0)total+=1440;return total;}
@@ -3641,6 +3643,7 @@
         function renderDatesheetDaysContainer() {
             const container = document.getElementById('datesheet-days-container');
             if (!container) return;
+            if(initializeMasterTimingDefaults())setTimeout(()=>syncActiveExamDraftToVault(),0);
             container.innerHTML = '';
             const classesList = getAllUniqueClasses();
             datesheetDays.forEach((dayObj) => {
