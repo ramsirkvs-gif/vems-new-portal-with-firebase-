@@ -248,7 +248,7 @@ async function main() {
         assert.equal(await a.locator('#public-faculty-roster-section button', {hasText:'Share PDF to WhatsApp'}).count(),1);
         assert.equal(await a.evaluate(async()=>new TextDecoder().decode((await publishedFacultyRosterPdfBlob().arrayBuffer()).slice(0,8))),'%PDF-1.4');
         const facultyPdfText=await a.evaluate(async()=>new TextDecoder().decode(await publishedFacultyRosterPdfBlob().arrayBuffer()));
-        assert.match(facultyPdfText,/EXAMINATION CELL - FACULTY ROSTER & EXAM DUTIES/);
+        assert.match(facultyPdfText,/EXAMINATION CELL - FUNDAMENTAL EXAMINATION DUTIES & FACULTY ROSTER/);
         assert.match(facultyPdfText,/MediaBox \[0 0 842 595\]/);
         assert.match(facultyPdfText,/QP Setter.*Evaluator.*Booklets.*Bundles/s);
         await a.evaluate(()=>{window.__vemsPublicUpdateDecision='';teachers[0].desig='PGT SCIENCE UPDATED';});
