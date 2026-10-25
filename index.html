@@ -59,15 +59,18 @@
         button, select, input, textarea { transition: border-color .18s ease, box-shadow .18s ease, transform .12s ease; }
         button:active { transform: translateY(1px); }
         button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid rgba(59,130,246,.28); outline-offset: 1px; }
+        .mobile-role-menu { display: none; }
         @media (max-width: 767px) {
-            .app-header-row { padding: .65rem .75rem; gap: .65rem; }
-            .app-brand-zone { width: 100%; display: block; }
-            .portal-identity { text-align: center; margin-bottom: .6rem; }
-            .portal-identity h1 { justify-content: center; font-size: 1.1rem; }
-            .role-switcher { width: 100%; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .35rem; }
-            .role-switcher button { justify-content: center; min-height: 40px; padding: .45rem .35rem; font-size: 11.5px; line-height: 1.2; white-space: normal; }
-            .session-zone { width: 100%; justify-content: center; flex-wrap: wrap; }
-            .session-zone > * { min-height: 34px; display: inline-flex; align-items: center; }
+            .app-header-row { padding: .4rem .6rem; gap: .35rem; flex-wrap: nowrap; }
+            .app-brand-zone { width: 100%; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+            .portal-identity { min-width: 0; text-align: left; margin: 0; }
+            .portal-identity h1 { justify-content: flex-start; font-size: .95rem; line-height: 1.1; }
+            .portal-identity p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 145px; font-size: 8px; }
+            .role-switcher { display: none !important; }
+            .mobile-role-menu { display: block; flex: 0 0 auto; width: 140px; border: 1px solid rgba(165,180,252,.65); border-radius: .5rem; background: #312e81; color: white; padding: .45rem .4rem; font-size: 11px; font-weight: 700; }
+            .session-zone { width: auto; flex: 0 0 auto; }
+            .session-zone #header-session-badge, .session-zone #active-role-badge { display: none; }
+            .session-zone #logout-btn:not(.hidden) { min-height: 34px; display: inline-flex; align-items: center; padding: .35rem .55rem; font-size: 11px; }
             #sync-status, #sync-error { padding: .6rem .75rem; font-size: 12.5px; }
             main { padding: .75rem !important; }
             main .p-6 { padding: 1rem !important; }
@@ -86,6 +89,10 @@
             .overflow-x-auto { -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
             .overflow-x-auto table { min-width: 620px; }
             #student-status-panel table, #area-public-display table { min-width: 540px; }
+            #area-public-display { gap: .75rem; }
+            #area-public-display > section { padding: .75rem !important; }
+            #area-public-display input, #area-public-display select, #area-public-display button { width: 100%; }
+            #area-public-display .overflow-x-auto { border-radius: .6rem; }
             [id$="-preview"] > div:first-child { flex-wrap: wrap; gap: .5rem; }
             [id$="-preview"] > div:first-child > div:last-child { width: 100%; }
             [id$="-preview"] > div:first-child button { flex: 1; }
@@ -135,6 +142,12 @@
                         <span>🔒🧸</span> Pri IC (I-V)
                     </button>
                 </div>
+                <select id="mobile-portal-menu" aria-label="Login or switch portal" onchange="handleMobilePortalSelection(this.value)" class="mobile-role-menu">
+                    <option value="public">📢 Public View</option>
+                    <option value="principal">🔒 Principal Login</option>
+                    <option value="sec-ic">🔒 Secondary IC Login</option>
+                    <option value="pri-ic">🔒 Primary IC Login</option>
+                </select>
             </div>
             <div class="session-zone flex items-center gap-2 text-xs">
                 <span id="header-session-badge" class="bg-indigo-800 text-indigo-100 px-3 py-1 rounded-full font-medium">Session: 2026–27</span>
@@ -757,8 +770,11 @@
             document.getElementById('btn-icon-prin').className = area === 'principal' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
             document.getElementById('btn-icon-sec').className = area === 'sec-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
             document.getElementById('btn-icon-pri').className = area === 'pri-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
+            const mobileMenu=document.getElementById('mobile-portal-menu');if(mobileMenu&&[...mobileMenu.options].some(option=>option.value===area))mobileMenu.value=area;
             renderExamCreatorModule();
         }
+
+        function handleMobilePortalSelection(area){const menu=document.getElementById('mobile-portal-menu');if(menu)menu.value=currentActiveRole||'public';switchPortalArea(area);}
 
         function switchTab(tab) {
             const shouldRestore = lastRenderedTab !== tab;

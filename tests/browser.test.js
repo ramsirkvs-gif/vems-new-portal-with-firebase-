@@ -104,7 +104,10 @@ async function main() {
         assert.equal(await a.locator('#login-modal').isVisible(), false, 'login modal must stay closed until a role is selected');
         assert.equal(await b.getByRole('banner').getByText('PM SHRI Kendriya Vidyalaya No. 1, Itanagar', {exact:true}).isVisible(), true, 'school name must remain visible on mobile');
         assert.equal(await b.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'mobile layout must not overflow the viewport');
-        assert.equal(await b.locator('.role-switcher').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length), 2, 'mobile role controls use a readable two-column grid');
+        assert.equal(await b.locator('.role-switcher').evaluate(element => getComputedStyle(element).display),'none','desktop role buttons must be hidden on mobile');
+        assert.equal(await b.locator('#mobile-portal-menu').isVisible(),true,'mobile must use one compact portal dropdown');
+        assert.deepEqual(await b.locator('#mobile-portal-menu option').allTextContents(),['📢 Public View','🔒 Principal Login','🔒 Secondary IC Login','🔒 Primary IC Login']);
+        assert.equal(await b.getByRole('banner').evaluate(element=>element.getBoundingClientRect().height<75),true,'mobile header must stay compact');
         assert.equal(await b.locator('#area-principal').isVisible(), false, 'a local role flag cannot grant access');
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
