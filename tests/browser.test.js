@@ -230,8 +230,10 @@ async function main() {
             {cls:'11',sec:'B',subject:'ENGLISH'}
         ]).map(item=>`${item.cls}-${item.sec}`)),['6-A','8-B','11-A','11-B','11-D']);
         assert.equal(await a.evaluate(() => facultyEvaluatorDisplay(teachers[0],teachers[0].allotments[0])),'New Shared Teacher');
-        assert.deepEqual(await a.locator('#teacher-table-body').locator('xpath=..').locator('thead th').allTextContents(),['Teacher Name & Desig','Teaching Allotments','QP Setter(s)','Evaluator','Booklets','Bundles','Actions']);
+        assert.deepEqual(await a.locator('#teacher-table-body').locator('xpath=..').locator('thead th').allTextContents(),['S.No.','Teacher Name & Desig','Teaching Allotments','QP Setter(s)','Evaluator','Booklets','Bundles','Actions']);
         assert.equal((await a.locator('#teacher-table-body .faculty-evaluator').first().innerText()).trim(),'New Shared Teacher');
+        assert.equal((await a.locator('#teacher-table-body tr').first().locator('td').first().innerText()).trim(),'1');
+        assert.equal((await a.locator('#faculty-roster-count').innerText()).trim(),'1 Faculty');
         assert.doesNotMatch(await a.locator('#teacher-table-body .faculty-qp-setter').first().innerText(),/Class X-A/);
         assert.match(await a.locator('#teacher-table-body .faculty-qp-setter').first().getAttribute('class'),/whitespace-nowrap/);
         assert.match(await a.locator('#teacher-table-body .faculty-duty-line').first().getAttribute('class'),/border-b/);
