@@ -16,7 +16,7 @@ const initialExam = { id: 100, title: 'Existing Exam', fromDate: '2026-11-01', t
             repTime: '08:00', readTime: '08:15', startTime: '08:30', overTime: '11:30' }
     ] }] };
 let data = { roles: { principal1: 'principal', principal2: 'principal', secondary: 'sec-ic', primary: 'pri-ic' },
-    sectionConfigs: { '10-A': ['SCIENCE'] }, teachers: {}, archivedExams: [initialExam] };
+    sectionConfigs: { '10-A': ['SCIENCE'] }, teachers: {}, circularSettings: { finalFacultyRoster2026Seeded: { seededAt: 'test' } }, archivedExams: [initialExam] };
 const accounts = {
     'principal1@example.test': 'principal1', 'principal2@example.test': 'principal2',
     'secondary@example.test': 'secondary', 'primary@example.test': 'primary', 'unassigned@example.test': 'unassigned'
@@ -350,6 +350,9 @@ async function main() {
             {name:'Instructor',desig:'AI Instructor',employmentCategory:'INSTRUCTOR',seniorityOrder:1}
         ]).map(item=>item.name)),['Permanent PGT One','Permanent PGT Two','Contract PGT','Permanent TGT','Instructor']);
         console.log('PASS: one saved category and seniority rule controls faculty display order');
+        assert.equal(await a.evaluate(() => finalFacultyRoster2026.length),48,'the final source must contain all 48 supplied roster positions');
+        assert.deepEqual(await a.evaluate(() => {const prior=teachers;teachers=[{id:'existing-ipi',name:'PGT-Chemistry Vacant',desig:'Already Updated',allotments:[{cls:'12',sec:'A',subject:'CHEMISTRY'}]}];try{const match=matchFinalFacultyRecord(finalFacultyRoster2026.find(item=>item.order===16));return{id:match?.id,desig:match?.desig,allotments:match?.allotments?.length};}finally{teachers=prior;}}),{id:'existing-ipi',desig:'Already Updated',allotments:1},'vacant aliases must match existing records without replacing saved details');
+        console.log('PASS: final faculty source matches aliases without duplicating or replacing existing records');
 
         await a.evaluate(() => { switchTab('config'); document.getElementById('cfg-class').value = '10'; updateCfgSections(); addNewSubjectField(); });
         await a.evaluate(() => toggleAddClassSectionPanel(true));

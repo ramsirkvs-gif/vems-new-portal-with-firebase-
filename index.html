@@ -830,7 +830,7 @@
             
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
-            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderFacultyDisplayOrder(); renderExamCoreTeam(); renderClassTeacherCoordinationTable(); }
+            if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderFacultyDisplayOrder(); renderExamCoreTeam(); renderClassTeacherCoordinationTable(); seedFinalFacultyRosterOnce(); }
             if(tab === 'holidays') renderHolidayManager();
             if(tab === 'settings') { populateLegacyExamOptions(); renderSignatureProfiles(); updateSessionChrome(); }
             if (shouldRestore) setTimeout(() => window.scrollTo(0, Number(localStorage.getItem(`vems_scroll_${currentActiveRole}_${tab}`)) || 0), 80);
@@ -1593,8 +1593,8 @@
             list.innerHTML=values.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'})).map(value=>`<option value="${escapeHtml(value)}"></option>`).join('');
         }
 
-        function facultyPostGroup(teacher){const designation=String(teacher?.desig||'').toUpperCase();if(designation.includes('PRINCIPAL'))return'PRINCIPAL';if(/\bPGT\b/.test(designation))return'PGT';if(/\bTGT\b/.test(designation))return'TGT';if(designation.includes('INSTRUCTOR'))return'INSTRUCTOR';return'OTHER';}
-        function facultyDisplayGroup(teacher){const post=facultyPostGroup(teacher),category=String(teacher?.employmentCategory||'UNSET').toUpperCase();if(post==='PRINCIPAL')return 0;if(post==='PGT'&&category==='PERMANENT')return 1;if(post==='PGT'&&category==='CONTRACTUAL')return 2;if(post==='TGT'&&category==='PERMANENT')return 3;if(post==='TGT'&&category==='CONTRACTUAL')return 4;if(category==='INSTRUCTOR'||post==='INSTRUCTOR')return 5;return 6;}
+        function facultyPostGroup(teacher){const designation=String(teacher?.desig||'').toUpperCase();if(designation.includes('VICE PRINCIPAL'))return'VICE PRINCIPAL';if(designation.includes('PRINCIPAL'))return'PRINCIPAL';if(/\bPGT\b/.test(designation))return'PGT';if(/\bTGT\b/.test(designation))return'TGT';if(designation.includes('INSTRUCTOR'))return'INSTRUCTOR';return'OTHER';}
+        function facultyDisplayGroup(teacher){const post=facultyPostGroup(teacher),category=String(teacher?.employmentCategory||'UNSET').toUpperCase();if(post==='PRINCIPAL')return 0;if(post==='VICE PRINCIPAL')return .5;if(post==='PGT'&&category==='PERMANENT')return 1;if(post==='PGT'&&category==='CONTRACTUAL')return 2;if(post==='TGT'&&category==='PERMANENT')return 3;if(post==='TGT'&&category==='CONTRACTUAL')return 4;if(category==='INSTRUCTOR'||post==='INSTRUCTOR')return 5;return 6;}
         function compareFacultyDisplay(a,b){return facultyDisplayGroup(a)-facultyDisplayGroup(b)||(Number(a.seniorityOrder)||999999)-(Number(b.seniorityOrder)||999999)||String(a.name).localeCompare(String(b.name),undefined,{sensitivity:'base'});}
         function sortFacultyForDisplay(list=teachers){return [...list].sort(compareFacultyDisplay);}
         function sortFacultyNamesForDisplay(names){return [...names].sort((a,b)=>{const left=teachers.find(item=>item.name===a)||{name:a},right=teachers.find(item=>item.name===b)||{name:b};return compareFacultyDisplay(left,right);});}
@@ -1848,6 +1848,61 @@
                 </tr>`;
             });
         }
+
+        const finalFacultyRoster2026=[
+            {order:1,name:'DR. RAMKUMAR SINGH S.',desig:'Principal',category:'PERMANENT',aliases:['RAMKUMARSINGHSIKARWAR','RAMKUMARSINGH']},
+            {order:2,name:'VP VACANT',desig:'Vice Principal',category:'PERMANENT'},
+            {order:3,name:'MRS. E.T. ZIRDO',desig:'PGT-English',category:'PERMANENT',aliases:['EJUMTAIPODIAZIRDO']},
+            {order:4,name:'MR. PARAMVEER MEENA',desig:'PGT-English',category:'PERMANENT'},
+            {order:5,name:'MR. RAMESH YADAV',desig:'PGT-History',category:'PERMANENT'},
+            {order:6,name:'MR. S.K. VERMA',desig:'PGT-Maths',category:'PERMANENT',aliases:['SANTOSHKUMARVERMA']},
+            {order:7,name:'MR. SATISH KUMAR MEENA',desig:'PGT-Geography',category:'PERMANENT'},
+            {order:8,name:'MR. SUNIL KUMAR',desig:'PGT-Commerce',category:'PERMANENT'},
+            {order:9,name:'DR. MOHAN SINGH RAJPUT',desig:'PGT-Hindi',category:'PERMANENT'},
+            {order:10,name:'MR. SUSHIL KUMAR',desig:'PGT-Physics',category:'PERMANENT'},
+            {order:11,name:'MRS. PRAGNYA PRIYAMBADA',desig:'PGT-Biology',category:'PERMANENT'},
+            {order:12,name:'MS. TECHI YAZAR',desig:'PGT-Economics',category:'CONTRACTUAL'},
+            {order:13,name:'MR. PARTHA P. BORAH',desig:'PGT-Computer Science',category:'CONTRACTUAL',aliases:['PARTHAPROTIMBORAH']},
+            {order:14,name:'MS. L. GANGA DEVI',desig:'PGT-Chemistry',category:'CONTRACTUAL',aliases:['LAISHRAMGANGADEVI']},
+            {order:15,name:'MR. MICHI LODER',desig:'PGT-Physics',category:'CONTRACTUAL'},
+            {order:16,name:'MS. IPI RIBA',desig:'PGT-Chemistry',category:'CONTRACTUAL',aliases:['PGTCHEMISTRYVACANT']},
+            {order:17,name:'MR. LENJING GETE',desig:'PGT-Pol.Sc.',category:'CONTRACTUAL'},
+            {order:18,name:'PGT-CS VACANT',desig:'PGT-Computer Science',category:'CONTRACTUAL'},
+            {order:19,name:'MR. BHARAT LAL MEENA',desig:'TGT-Hindi',category:'PERMANENT'},
+            {order:20,name:'MR. AJAY KUMAR CHAUBEY',desig:'TGT-P&HE',category:'PERMANENT',aliases:['AJAYKRCHAUBEY']},
+            {order:21,name:'MR. JITENDRA PAUL',desig:'TGT-WE',category:'PERMANENT',aliases:['JITENDERPAUL']},
+            {order:22,name:'MR. SANTOSH KUMAR YADAV',desig:'TGT-Sanskrit',category:'PERMANENT'},
+            {order:23,name:'MR. ABHISHEK SINGH',desig:'TGT-English',category:'PERMANENT'},
+            {order:24,name:'MRS. SWETA KESTWAL',desig:'TGT-English',category:'PERMANENT'},
+            {order:25,name:'MRS. VANSHITA SHARMA',desig:'TGT-Art Education',category:'PERMANENT'},
+            {order:26,name:'MRS. PRIYANKA MEHTA',desig:'TGT-Maths',category:'PERMANENT'},
+            {order:27,name:'MR. AJAY PRATAP SINGH C.',desig:'TGT-So.Sc.',category:'PERMANENT',aliases:['AJAYPRATAPSINGHCHAUHAN']},
+            {order:28,name:'MR. DEVENDRA KUMAR MEENA',desig:'TGT-Hindi',category:'PERMANENT'},
+            {order:29,name:'MS. DIPTI SINGH',desig:'TGT-Hindi',category:'PERMANENT'},
+            {order:30,name:'MR. GAURAV SINGH',desig:'TGT-So.Sc.',category:'PERMANENT'},
+            {order:31,name:'MR. DEVA RAM',desig:'TGT-So.Sc.',category:'PERMANENT'},
+            {order:32,name:'MRS. JYOTI VERMA',desig:'TGT-Science',category:'PERMANENT'},
+            {order:33,name:'MS. MONIKA YADAV',desig:'TGT-Science',category:'PERMANENT'},
+            {order:34,name:'MR. NITISH RAJ SHARMA',desig:'TGT-So.Sc.',category:'PERMANENT'},
+            {order:35,name:'MS. VANDANA UMANG',desig:'TGT-Science',category:'PERMANENT'},
+            {order:36,name:'MR. JENLAN MONYAK',desig:'TGT-English',category:'CONTRACTUAL',aliases:['TGTENGLISHVACANT']},
+            {order:37,name:'MS. M.T. MUNYA',desig:'TGT-English',category:'CONTRACTUAL'},
+            {order:38,name:'MR. BIKASH JYOTI DAS',desig:'TGT-Maths',category:'CONTRACTUAL'},
+            {order:39,name:'MR. RANJAN CHETRY',desig:'TGT-Maths',category:'CONTRACTUAL'},
+            {order:40,name:'MR. RAJEN KUMAR',desig:'TGT-Maths',category:'CONTRACTUAL'},
+            {order:41,name:'MR. SURAJ DAHAL',desig:'TGT-Sanskrit',category:'CONTRACTUAL'},
+            {order:42,name:'LIBRARIAN VACANT',desig:'Librarian',category:'PERMANENT'},
+            {order:43,name:'MR. AVINASH SINGH',desig:'Computer Instructor-1',category:'CONTRACTUAL'},
+            {order:44,name:'MR. MITI RATAN',desig:'AI Instructor',category:'CONTRACTUAL',aliases:['AIINSTRUCTORVACANT','AIINSTRUCTOR']},
+            {order:45,name:'MR. SAMIRAN BORAGOHAIN',desig:'Sports Coach-1',category:'CONTRACTUAL'},
+            {order:46,name:'MR. TADO KARNIK',desig:'Sports Coach-2',category:'CONTRACTUAL'},
+            {order:47,name:'MS. TAGE YASUNG',desig:'Yoga Instructor',category:'CONTRACTUAL'},
+            {order:48,name:'MS. DAMIANG MEHA',desig:'Counsellor',category:'CONTRACTUAL'}
+        ];
+        let finalFacultySeedInProgress=false;
+        function finalFacultyNameKey(value){return String(value||'').toUpperCase().replace(/\b(DR|MR|MRS|MS|MISS)\b/g,'').replace(/[^A-Z0-9]/g,'');}
+        function matchFinalFacultyRecord(entry){const keys=[entry.name,...(entry.aliases||[])].map(finalFacultyNameKey);return teachers.find(teacher=>keys.includes(finalFacultyNameKey(teacher.name)));}
+        async function seedFinalFacultyRosterOnce(){if(authorizedRole!=='principal'||finalFacultySeedInProgress||circularSettings.finalFacultyRoster2026Seeded||!sharedStore?.ready)return;finalFacultySeedInProgress=true;let added=0,matched=0;try{finalFacultyRoster2026.forEach(entry=>{const existing=matchFinalFacultyRecord(entry);if(existing){existing.employmentCategory=entry.category;existing.seniorityOrder=entry.order;matched++;}else{teachers.push({id:newRecordId(),name:entry.name,desig:entry.desig,employmentCategory:entry.category,seniorityOrder:entry.order,allotments:[]});added++;}});circularSettings={...circularSettings,finalFacultyRoster2026Seeded:{seededAt:new Date().toISOString(),added,matched}};if(await saveData(['teachers','circularSettings'])){renderTeachers();renderFacultyDisplayOrder();renderExamCoreTeam();renderClassTeacherCoordinationTable();alert(`Final faculty roster synchronized. ${added} missing record(s) added; ${matched} existing record(s) retained and ordered.`);}}finally{finalFacultySeedInProgress=false;}}
 
         function facultyCategoryOptions(selected){return [['UNSET','Not Set'],['PERMANENT','Permanent'],['CONTRACTUAL','Contractual'],['INSTRUCTOR','Instructor'],['OTHER','Other']].map(([value,label])=>`<option value="${value}" ${value===String(selected||'UNSET').toUpperCase()?'selected':''}>${label}</option>`).join('');}
         function renderFacultyDisplayOrder(){const body=document.getElementById('faculty-order-body');if(!body)return;const rows=sortFacultyForDisplay();body.innerHTML=rows.length?rows.map((teacher,index)=>`<tr class="faculty-order-row" data-teacher-id="${escapeHtml(String(teacher.id))}"><td class="p-2 text-center font-extrabold text-violet-800">${index+1}</td><td class="p-2 font-bold">${escapeHtml(teacher.name)}</td><td class="p-2">${escapeHtml(teacher.desig)}</td><td class="p-2"><select class="faculty-order-category w-full rounded border bg-white p-2">${facultyCategoryOptions(teacher.employmentCategory)}</select></td><td class="p-2"><input type="number" min="1" step="1" value="${escapeHtml(teacher.seniorityOrder||'')}" placeholder="Not set" class="faculty-order-number w-full rounded border p-2 text-center"></td></tr>`).join(''):'<tr><td colspan="5" class="p-5 text-center italic text-slate-400">Add faculty records first.</td></tr>';}
