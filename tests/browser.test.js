@@ -119,10 +119,15 @@ async function main() {
         await a.locator('#login-modal button[type="submit"]').click();
         await a.waitForFunction(() => document.getElementById('login-modal').classList.contains('hidden'));
         assert.equal(await a.locator('#login-password').inputValue(), '');
-        await a.evaluate(()=>{window._noticeTestBoards=publicPortalBoards;publicPortalBoards={...publicPortalBoards,notice:{heading:'Examination Update',text:'Test public message',priority:'Urgent',publishedAt:new Date().toISOString()}};renderPublicPortalBoards();});
+        await a.evaluate(()=>{activateArea('public');window._noticeTestBoards=publicPortalBoards;publicPortalBoards={...publicPortalBoards,notices:[{heading:'Earlier Notice',text:'Older public message',priority:'Important',publishedAt:'2026-10-24T10:00:00.000Z'},{heading:'Examination Update',text:'Test public message',priority:'Urgent',publishedAt:'2026-10-25T10:00:00.000Z'}]};delete publicPortalBoards.notice;renderPublicPortalBoards();});
         assert.equal(await a.locator('#public-urgent-notice').getByText('Examination Update',{exact:true}).count(),1,'the published notice heading must appear only once');
+        assert.deepEqual(await a.locator('#public-urgent-notice article .font-extrabold').allTextContents(),['Examination Update','Earlier Notice'],'new notices must appear before previous notices');
+        assert.equal(await a.locator('#public-urgent-notice').getByText('LATEST',{exact:true}).count(),1);
         assert.doesNotMatch(await a.locator('#public-exam-notice-board').innerText(),/EXAMINATION NOTICE BOARD/);
-        await a.evaluate(()=>{publicPortalBoards=window._noticeTestBoards;delete window._noticeTestBoards;renderPublicPortalBoards();});
+        assert.equal(await a.locator('.notice-vertical-content').evaluate(element=>getComputedStyle(element).animationName),'notice-rise','published notice content must run from bottom to top');
+        await a.locator('.notice-vertical-window').focus();
+        assert.equal(await a.locator('.notice-vertical-content').evaluate(element=>getComputedStyle(element).animationPlayState),'paused','focusing the notice must pause its movement');
+        await a.evaluate(()=>{publicPortalBoards=window._noticeTestBoards;delete window._noticeTestBoards;renderPublicPortalBoards();activateArea('principal');});
         console.log('PASS: passcode-only role entry, same-account reauthentication, independent PC and mobile sessions');
 
         await a.evaluate(() => switchTab('exam-creator-prin'));
