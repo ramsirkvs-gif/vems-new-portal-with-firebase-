@@ -321,10 +321,13 @@ async function main() {
         await b.waitForFunction(() => teachers.some(item => item.name === 'Support Faculty' && item.allotments.length === 0));
         await a.evaluate(() => { document.getElementById('faculty-completeness-popup')?.remove(); renderExamCoreTeam(); });
         const supportFacultyId = await a.evaluate(() => String(teachers.find(item => item.name === 'Support Faculty').id));
+        await a.fill('#core-team-new-role', 'Examination Store Custodian');
+        await a.getByRole('button', { name: '＋ Add Role' }).click();
+        await a.waitForFunction(() => [...document.querySelectorAll('#core-team-role option')].some(option => option.textContent === 'Examination Store Custodian'));
         await a.selectOption('#core-team-faculty', supportFacultyId);
-        await a.selectOption('#core-team-role', 'Control Room / Office Support');
+        await a.selectOption('#core-team-role', 'Examination Store Custodian');
         await a.getByRole('button', { name: '＋ Add Member' }).click();
-        await b.waitForFunction(id => examCoreTeam[id]?.role === 'Control Room / Office Support', supportFacultyId);
+        await b.waitForFunction(id => examCoreTeam[id]?.role === 'Examination Store Custodian' && examCoreTeam.__roles?.includes('Examination Store Custodian'), supportFacultyId);
         assert.deepEqual(await b.evaluate(() => resolvedCircularRecipients(['Examination Team Members'])), ['Support Faculty']);
         console.log('PASS: faculty without teaching allotments can join the separately managed core examination team');
 
