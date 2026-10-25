@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 210" role="img" aria-label="Kendriya Vidyalaya Sangathan">
+ <g fill="none" stroke="#b98220" stroke-width="8" stroke-linecap="round">
+  <path d="M120 72C116 50 119 28 130 10M98 75C88 52 83 31 88 13M78 83C61 62 51 44 51 25M62 99C41 83 25 69 18 49M54 119C30 109 14 98 4 81M186 119C210 109 226 98 236 81M178 99C199 83 215 69 222 49M162 83C179 62 189 44 189 25M142 75C152 52 157 31 152 13"/>
+ </g>
+ <path d="M20 132c42 12 66 10 100 34 34-24 58-22 100-34-26 31-64 40-100 55-36-15-74-24-100-55z" fill="#fff" stroke="#ef6c00" stroke-width="7"/>
+ <path d="M25 148c38 9 64 10 95 30 31-20 57-21 95-30" fill="none" stroke="#0a8a43" stroke-width="8"/>
+ <text x="120" y="202" text-anchor="middle" font-family="Arial" font-size="14" font-weight="700" fill="#5b1e16">KENDRIYA VIDYALAYA SANGATHAN</text>
+</svg>
