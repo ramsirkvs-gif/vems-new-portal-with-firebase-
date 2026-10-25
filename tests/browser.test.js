@@ -332,6 +332,14 @@ async function main() {
         await b.waitForFunction(id => examCoreTeam[id]?.role === 'Examination Store Custodian' && examCoreTeam.__roles?.includes('Examination Store Custodian'), supportFacultyId);
         assert.deepEqual(await b.evaluate(() => resolvedCircularRecipients(['Examination Team Members'])), ['Support Faculty']);
         console.log('PASS: faculty without teaching allotments can join the separately managed core examination team');
+        assert.deepEqual(await a.evaluate(() => sortFacultyForDisplay([
+            {name:'Contract PGT',desig:'PGT-English',employmentCategory:'CONTRACTUAL',seniorityOrder:1},
+            {name:'Permanent TGT',desig:'TGT-Maths',employmentCategory:'PERMANENT',seniorityOrder:1},
+            {name:'Permanent PGT Two',desig:'PGT-Hindi',employmentCategory:'PERMANENT',seniorityOrder:2},
+            {name:'Permanent PGT One',desig:'PGT-English',employmentCategory:'PERMANENT',seniorityOrder:1},
+            {name:'Instructor',desig:'AI Instructor',employmentCategory:'INSTRUCTOR',seniorityOrder:1}
+        ]).map(item=>item.name)),['Permanent PGT One','Permanent PGT Two','Contract PGT','Permanent TGT','Instructor']);
+        console.log('PASS: one saved category and seniority rule controls faculty display order');
 
         await a.evaluate(() => { switchTab('config'); document.getElementById('cfg-class').value = '10'; updateCfgSections(); addNewSubjectField(); });
         await a.evaluate(() => toggleAddClassSectionPanel(true));
