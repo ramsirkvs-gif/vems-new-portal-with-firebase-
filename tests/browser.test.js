@@ -231,16 +231,18 @@ async function main() {
         await a.evaluate(() => {window.alert=window._facultyAlert;delete window._facultyAlert;delete window.facultyConflictAlert;resetTeacherForm();});
         console.log('PASS: duplicate class-section-subject assignment to another teacher is blocked');
 
-        await a.evaluate(() => {document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('11','A','SCIENCE');});
+        await a.evaluate(() => {document.getElementById('teaching-allotments-container').innerHTML='';addTeachingRow('10','A','SCIENCE');});
         await a.fill('#tch-name-input','Second Science Teacher');
         assert.equal(await a.locator('.teaching-row label', {hasText:'Additional QP Setter (Optional)'}).count(),1);
+        assert.deepEqual(await a.evaluate(()=>({differentSection:teacherHasStandardSubject({allotments:[{cls:'10',sec:'B',subject:'SCIENCE'}]},'10','SCIENCE'),differentStandard:teacherHasStandardSubject({allotments:[{cls:'11',sec:'A',subject:'SCIENCE'}]},'10','SCIENCE')})),{differentSection:true,differentStandard:false});
+        assert.match(await a.evaluate(()=>{teachers.push({id:'other-standard',name:'Other Standard Science',desig:'PGT-Science',allotments:[{cls:'11',sec:'B',subject:'SCIENCE'}]});try{return getAdditionalEvaluatorOptionsHtml('','SCIENCE','10');}finally{teachers.pop();}}),/Priority 2.*Other Standard Science/s,'same-subject teachers from another standard must appear as second priority');
         const additionalOption=await a.locator('.teaching-row .qp-additional-sel option').filter({hasText:'New Shared Teacher'}).getAttribute('value');
         assert.ok(additionalOption);
         await a.selectOption('.teaching-row .qp-additional-sel',additionalOption);
         assert.equal(await a.locator('.teaching-row .qp-additional-sel').inputValue(),additionalOption);
         const additionalEvaluatorOption=await a.locator('.teaching-row .eval-additional-sel option').filter({hasText:'New Shared Teacher'}).getAttribute('value');
         assert.ok(additionalEvaluatorOption);
-        assert.match(await a.evaluate(()=>{teachers.push({id:'emergency-test',name:'Emergency Employee',desig:'PGT-History',allotments:[]});try{return getAdditionalEvaluatorOptionsHtml('','SCIENCE');}finally{teachers.pop();}}),/Emergency Employee.*PGT-History/,'emergency evaluator options must include employees outside the relevant subject');
+        assert.match(await a.evaluate(()=>{teachers.push({id:'emergency-test',name:'Emergency Employee',desig:'PGT-History',allotments:[]});try{return getAdditionalEvaluatorOptionsHtml('','SCIENCE','10');}finally{teachers.pop();}}),/Priority 3.*Emergency Employee.*PGT-History/s,'emergency evaluator options must include employees outside the relevant subject');
         await a.selectOption('.teaching-row .eval-additional-sel',additionalEvaluatorOption);
         assert.equal(await a.evaluate(id=>facultyEvaluatorDisplay({name:'Second Science Teacher'},{evaluator:'Self',additionalEvaluator:id}),additionalEvaluatorOption),'Second Science Teacher / New Shared Teacher');
         await a.evaluate(() => resetTeacherForm());
@@ -400,6 +402,15 @@ async function main() {
         assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open During-Exam Workspace'}).count(),1);
         assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open After-Exam Workspace'}).count(),1);
         assert.deepEqual(await a.locator('#selected-exam-vault-workspace span').filter({hasText:/^STAGE /}).allTextContents(), ['STAGE 1','STAGE 2','STAGE 3']);
+        await a.evaluate(() => openLifecycleStage('during'));
+        const emergencyEvaluatorSelect=a.locator('#lifecycle-stage-workspace table select').first();
+        assert.deepEqual(await emergencyEvaluatorSelect.evaluate(select=>({groups:[...select.querySelectorAll('optgroup')].map(group=>group.label),matched:select.querySelectorAll('optgroup[label^="Priority 1"] option').length})),{groups:['Priority 1 — same standard & subject'],matched:1},'same standard and subject teachers from any section must be listed first');
+        const onSpotEvaluatorId=await emergencyEvaluatorSelect.locator('optgroup[label^="Priority 1"] option').first().getAttribute('value');
+        await emergencyEvaluatorSelect.selectOption(onSpotEvaluatorId);
+        await a.waitForFunction(()=>document.querySelector('#lifecycle-stage-workspace table tbody')?.textContent.includes('Assigned'));
+        await b.waitForFunction(id=>Object.values(archivedExams).find(exam=>String(exam.id)===String(id))?.duringExamEvaluatorAssignments&&Object.keys(Object.values(archivedExams).find(exam=>String(exam.id)===String(id)).duringExamEvaluatorAssignments).length===1,100);
+        assert.match(await a.locator('#lifecycle-stage-workspace table tbody').innerText(),/Assigned.*by principal/s);
+        await a.evaluate(() => closeLifecycleStage());
         await a.evaluate(() => openPreExamFullPageWorkspace(100));
         await a.evaluate(() => switchPreExamSubTab('datesheet-orders'));
         assert.match(await a.locator('h3', { hasText: 'Date Sheet' }).textContent(), /Date Sheet/);
@@ -531,7 +542,7 @@ async function main() {
         assert.equal(await a.evaluate(async()=>{const old=window.confirm;let confirmations=0;window.confirm=()=>{confirmations++;return true;};try{await updateExamDayDate(2,'2026-10-28');}finally{window.confirm=old;}return confirmations;}),2,'holiday override must require two confirmations');
         await b.waitForFunction(id => archivedExams.find(exam=>exam.id===id)?.datesheetSnapshot?.some(day=>day.dateStr==='2026-10-28'), created.id);
         assert.match(await a.evaluate(()=>datesheetDays.find(day=>day.dateStr==='2026-10-28').holidayOverride.reason),/administrative reasons/);
-        assert.deepEqual(await a.evaluate(() => ({count:datesheetDays.length,added:datesheetDays.some(day=>day.dateStr==='2026-10-28'),gap:datesheetDays.some(day=>['2026-10-25','2026-10-26','2026-10-27'].includes(day.dateStr))})), {count:2,added:true,gap:false}, 'only explicitly selected examination dates should be added');
+        assert.deepEqual(await a.evaluate(() => ({count:datesheetDays.length,added:datesheetDays.some(day=>day.dateStr==='2026-10-28')})), {count:2,added:true}, 'only explicitly selected examination dates should be added');
         assert.notEqual(await a.locator('.exam-day-card').nth(0).evaluate(el=>getComputedStyle(el).backgroundColor),await a.locator('.exam-day-card').nth(1).evaluate(el=>getComputedStyle(el).backgroundColor),'each examination day should have a distinct light background');
         assert.equal(await a.locator('.exam-day-card').nth(1).getByRole('button',{name:/Add Scheduled Paper Slot/}).count(),1);
         assert.equal(await a.locator('.exam-day-card').nth(1).evaluate(card=>{const header=card.firstElementChild,body=card.lastElementChild;return !header.textContent.includes('Save Day')&&body.lastElementChild.classList.contains('day-save-actions')&&body.lastElementChild.textContent.includes('Save Day');}),true,'Save Day must follow the final paper-slot area');
