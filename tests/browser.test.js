@@ -601,6 +601,9 @@ async function main() {
         assert.equal(await a.locator('#student-status-filter').inputValue(), 'inactive');
         assert.match(await a.locator('#student-status-results').innerText(), /INACTIVE/);
         await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); switchPreExamSubTab('seating'); });
+        await a.getByRole('button',{name:/Select All Displayed Rooms/}).click();
+        assert.equal(await a.locator('.seating-room-check:not(:checked)').count(),0,'select all must check every displayed room');
+        await a.getByRole('button',{name:'Clear All'}).click();
         await a.locator('.seating-room-check[value="classroom-10-A"]').check();
         await a.locator('button', { hasText: 'Generate & Save Seating' }).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
