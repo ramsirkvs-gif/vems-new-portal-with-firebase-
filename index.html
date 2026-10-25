@@ -657,8 +657,9 @@
         const ROMAN_MAP = { '1': 'I', '2': 'II', '3': 'III', '4': 'IV', '5': 'V', '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || `Class ${cls}`; }
         
+        const savedWorkspaceState=(()=>{try{return JSON.parse(localStorage.getItem('vems_workspace_state')||'{}')}catch{return{}}})();
         let currentActiveRole = 'public';
-        let currentActiveTab = localStorage.getItem('vems_active_tab') || 'config';
+        let currentActiveTab = savedWorkspaceState.mainTab||localStorage.getItem('vems_active_tab') || 'config';
         let defaultSectionConfigs = {};
         ['6', '7', '8'].forEach(cls => { ['A', 'B', 'C', 'D'].forEach(sec => { defaultSectionConfigs[`${cls}-${sec}`] = ['ENGLISH', 'HINDI', 'SANSKRIT', 'MATHS', 'SCIENCE', 'SOCIAL SCIENCE']; }); });
         ['A', 'B', 'C', 'D'].forEach(sec => {
@@ -679,15 +680,16 @@
         let teachers = [];
         let classTeacherAssignments = {};
         let examCoreTeam = {};
-        let isExamConfigOpen = false;
-        let activeExamId = null;
-        let isPreExamFullPageOpen = sessionStorage.getItem('vems_pre_exam_open') === '1';
-        let activePreExamSubTab = localStorage.getItem('vems_pre_exam_tab') || 'qp-setters';
-        let selectedPreExamVaultId = Number(localStorage.getItem('vems_pre_exam_id')) || null;
-        let isVaultOverviewOpen = sessionStorage.getItem('vems_vault_overview_open') === '1';
-        let activeLifecycleStage = null;
+        let isExamConfigOpen = !!savedWorkspaceState.examEditorOpen;
+        let activeExamId = savedWorkspaceState.activeExamId??null;
+        let isPreExamFullPageOpen = savedWorkspaceState.preExamOpen??(sessionStorage.getItem('vems_pre_exam_open') === '1');
+        let activePreExamSubTab = savedWorkspaceState.preExamTab||localStorage.getItem('vems_pre_exam_tab') || 'qp-setters';
+        let selectedPreExamVaultId = Number(savedWorkspaceState.vaultId||localStorage.getItem('vems_pre_exam_id')) || null;
+        let isVaultOverviewOpen = savedWorkspaceState.vaultOverviewOpen??(sessionStorage.getItem('vems_vault_overview_open') === '1');
+        let activeLifecycleStage = savedWorkspaceState.lifecycleStage||null;
         let lastRenderedTab = null;
         let workspaceScrollTimer = null;
+        let workspaceScrollRestored = false;
         let qpSubmissionDeadline = '';
         let qpSubmissionDeadlines = {};
 
@@ -711,13 +713,15 @@
         ];
         let seatingRooms = {};
         let seatingPlans = {};
+        let suggestedSeatingPlan = (()=>{try{return JSON.parse(sessionStorage.getItem('vems_seating_suggestion')||'null')}catch{return null}})();
         let publicAttendanceAccess = {};
         let examCirculars = {};
         let circularSettings = {};
         let signatureProfiles = {};
         let documentApprovals = {};
         let signatureProfileFormDirty = false;
-        let selectedSeatingDate = null;
+        let selectedSeatingDate = savedWorkspaceState.seatingDate||null;
+        function rememberWorkspaceState(){localStorage.setItem('vems_workspace_state',JSON.stringify({mainTab:currentActiveTab,examEditorOpen:isExamConfigOpen,activeExamId,preExamOpen:isPreExamFullPageOpen,preExamTab:activePreExamSubTab,vaultId:selectedPreExamVaultId,vaultOverviewOpen:isVaultOverviewOpen,lifecycleStage:activeLifecycleStage,seatingDate:selectedSeatingDate}));}
 
         const defaultQpSetterInstructions = [
             'Prepare the question paper strictly according to the prescribed syllabus, blueprint and approved marks distribution.',
@@ -819,6 +823,7 @@
             currentActiveTab = tab;
             lastRenderedTab = tab;
             localStorage.setItem('vems_active_tab', tab);
+            rememberWorkspaceState();
             document.getElementById('sec-config').classList.toggle('hidden', tab !== 'config');
             document.getElementById('sec-students').classList.toggle('hidden', tab !== 'students');
             document.getElementById('sec-teachers').classList.toggle('hidden', tab !== 'teachers');
@@ -2984,6 +2989,7 @@
         }
 
         function renderExamCreatorModule() {
+            rememberWorkspaceState();
             const htmlContent = isPreExamFullPageOpen ? renderFullPagePreExamWorkstation() : activeLifecycleStage ? renderLifecycleFullPage(activeLifecycleStage) : isVaultOverviewOpen ? renderSelectedVaultOverview() : renderMainLifecycleHub();
             let prinMount = document.getElementById('exam-creator-mount-prin');
             let secMount = document.getElementById('exam-creator-mount-sec');
@@ -2992,6 +2998,7 @@
             if (secMount) secMount.innerHTML = currentActiveRole === 'sec-ic' ? htmlContent : '';
             if (priMount) priMount.innerHTML = currentActiveRole === 'pri-ic' ? htmlContent : '';
             if (isExamConfigOpen) renderDatesheetDaysContainer();
+            if(currentActiveRole!=='public'&&!workspaceScrollRestored){workspaceScrollRestored=true;setTimeout(()=>window.scrollTo(0,Number(localStorage.getItem(`vems_scroll_${currentActiveRole}_${currentActiveTab}`))||0),120);}
         }
 
         function examSlotCandidateCount(slot) {
@@ -3051,6 +3058,7 @@
         async function addRemainingClassroom(){const key=document.getElementById('seating-add-classroom')?.value;if(!key){alert('Select a remaining school classroom.');return;}const rows=Number(prompt(`Desk rows for Classroom ${key}:`,'5')),desksPerRow=Number(prompt('Desks in each row:','4'));if(!Number.isInteger(rows)||!Number.isInteger(desksPerRow)||rows<1||desksPerRow<1){alert('Enter valid room rows and desks per row.');return;}const id=`classroom-${key}`;seatingRooms[id]={id,name:`Classroom ${key}`,classSection:key,type:'classroom',rows,desksPerRow};if(await saveData(['seatingRooms']))renderExamCreatorModule();}
 
         function toggleAllDisplayedSeatingRooms(selectAll){document.querySelectorAll('.seating-room-check').forEach(input=>input.checked=!!selectAll);}
+        function selectSeatingDate(value){selectedSeatingDate=value;rememberWorkspaceState();renderExamCreatorModule();}
 
         async function generateAutomaticSeating() {
             const exam = archivedExams.find(item => item.id === selectedPreExamVaultId);
@@ -3069,10 +3077,12 @@
             const allocation=allocateTwoPerDesk(candidates,rooms);if(allocation.error){alert(`SEATING ALLOTMENT STOPPED\n\n${allocation.error}\n\nNo unsafe seating plan was saved.`);return;}const assignments=allocation.assignments;
             const ids = assignments.map(item => item.studentId);
             if (new Set(ids).size !== ids.length || assignments.length !== source.candidates.length) { alert('Seating validation failed: a student is duplicated or left out. Please regenerate.'); return; }
-            seatingPlans[String(selectedPreExamVaultId)] ||= {};
-            seatingPlans[String(selectedPreExamVaultId)][date] = { date, method, roomIds, rooms:rooms.map(room=>({...room,attendancePin:String(Math.floor(100+Math.random()*900))})), assignments, attendance:{}, updatedAt: new Date().toISOString() };
-            if (await saveData(['seatingPlans'])) {renderExamCreatorModule();setTimeout(()=>document.getElementById('generated-seating-result')?.scrollIntoView({behavior:'smooth',block:'start'}),80);}
+            const existing=seatingPlanFor(selectedPreExamVaultId,date),generated={date,method,roomIds,rooms:rooms.map(room=>({...room,attendancePin:existing?.rooms?.find(saved=>saved.id===room.id)?.attendancePin||String(Math.floor(100+Math.random()*900))})),assignments,attendance:cloneData(existing?.attendance||{}),updatedAt:new Date().toISOString()};
+            suggestedSeatingPlan={examId:selectedPreExamVaultId,date,plan:generated};sessionStorage.setItem('vems_seating_suggestion',JSON.stringify(suggestedSeatingPlan));renderExamCreatorModule();setTimeout(()=>document.getElementById('generated-seating-result')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
         }
+
+        async function approveSuggestedSeating(){if(!suggestedSeatingPlan)return;const{examId,date,plan}=suggestedSeatingPlan;seatingPlans[String(examId)]||={};seatingPlans[String(examId)][date]=cloneData(plan);if(await saveData(['seatingPlans'])){suggestedSeatingPlan=null;sessionStorage.removeItem('vems_seating_suggestion');renderExamCreatorModule();setTimeout(()=>document.getElementById('generated-seating-result')?.scrollIntoView({behavior:'smooth',block:'start'}),80);}}
+        function discardSuggestedSeating(){suggestedSeatingPlan=null;sessionStorage.removeItem('vems_seating_suggestion');renderExamCreatorModule();}
 
         function seatingPlanFor(examId, date) { return seatingPlans[String(examId)]?.[date] || null; }
 
@@ -3109,11 +3119,12 @@
             const dates = [...new Set((exam.datesheetSnapshot || []).map(day => day.dateStr))].sort();
             if (!dates.includes(selectedSeatingDate)) selectedSeatingDate = dates[0] || '';
             const selectedDate = selectedSeatingDate;
-            const plan = seatingPlanFor(exam.id, selectedDate);
+            const savedPlan = seatingPlanFor(exam.id, selectedDate),isSuggestion=String(suggestedSeatingPlan?.examId)===String(exam.id)&&suggestedSeatingPlan?.date===selectedDate;
+            const plan = isSuggestion?suggestedSeatingPlan.plan:savedPlan;
             const rooms = seatingRoomList(exam,selectedDate);
             const shownClassrooms=new Set(rooms.map(room=>room.classSection).filter(Boolean)),remainingClassrooms=Object.keys(sectionConfigs).filter(key=>!shownClassrooms.has(key)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
             const unallotted = plan ? seatingCandidates(exam, selectedDate).candidates.filter(student => !plan.assignments.some(item => item.studentId === student.studentId)) : [];
-            return `<div class="space-y-5"><div class="bg-white rounded-xl border p-5 space-y-4"><div class="flex justify-between gap-3 flex-wrap"><div><h3 class="font-bold text-indigo-950">🪑 Seating Arrangement Workspace</h3><p class="text-xs text-slate-500">Exam schedule, students and classroom mappings load automatically.</p></div><div class="flex flex-wrap gap-2"><select id="seating-add-classroom" class="rounded border bg-white p-2 text-xs"><option value="">Add remaining classroom…</option>${remainingClassrooms.map(key=>`<option value="${escapeHtml(key)}">Classroom ${escapeHtml(key)}</option>`).join('')}</select><button type="button" onclick="addRemainingClassroom()" class="rounded bg-indigo-700 px-3 py-2 text-xs font-bold text-white">＋ Add Classroom</button><button type="button" onclick="addSeatingRoom()" class="rounded bg-slate-700 px-4 py-2 text-xs font-bold text-white">＋ Add Open Area / Hall</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><label class="text-xs font-bold">Exam date<select id="seating-date" onchange="selectedSeatingDate=this.value; renderExamCreatorModule()" class="mt-1 w-full border rounded p-2 bg-white">${dates.map(date=>`<option value="${date}" ${date===selectedDate?'selected':''}>${escapeHtml(formatDateWithDay(date))}</option>`).join('')}</select></label><label class="text-xs font-bold">Automatic allotment method<select id="seating-method" class="mt-1 w-full border rounded p-2 bg-white"><option value="mixed">Mixed classes — alternate allocation</option><option value="sequential">Class / section / roll sequence</option></select></label><div class="flex items-end"><button type="button" onclick="generateAutomaticSeating()" class="w-full bg-emerald-700 text-white text-xs font-bold p-2.5 rounded-lg">⚡ Generate & Save Seating</button></div></div>${plan?`<div class="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs font-bold text-emerald-950">✅ Saved seating: ${plan.assignments.length} students · ${plan.rooms.length} room(s). Room diagrams and PINs are displayed below.</div>`:''}<div><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><p class="text-xs font-bold">Select rooms (two students per desk)</p><div class="flex gap-2"><button id="select-all-seating-rooms" type="button" onclick="toggleAllDisplayedSeatingRooms(true)" class="rounded bg-indigo-100 px-3 py-1.5 text-[10px] font-bold text-indigo-800">✓ Select All Displayed Rooms</button><button type="button" onclick="toggleAllDisplayedSeatingRooms(false)" class="rounded bg-slate-200 px-3 py-1.5 text-[10px] font-bold text-slate-700">Clear All</button></div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${rooms.map(room=>`<label class="border rounded-lg p-2 text-xs bg-slate-50"><input type="checkbox" class="seating-room-check mr-1" value="${escapeHtml(room.id)}" ${plan?.roomIds?.includes(room.id)?'checked':''}> <b>${escapeHtml(room.name)}</b><br><span class="text-slate-500">${room.rows*room.desksPerRow} desks · ${room.rows*room.desksPerRow*2} seats</span></label>`).join('')}</div></div></div>${plan ? `<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3"><h4 class="font-bold text-amber-900">Manual Allotment (${unallotted.length} unallotted)</h4><div class="grid grid-cols-1 md:grid-cols-5 gap-2"><select id="manual-seat-student" class="border rounded p-2 text-xs"><option value="">Select unallotted student</option>${unallotted.map(s=>`<option value="${escapeHtml(s.studentId)}">${escapeHtml(s.name)} — ${escapeHtml(formatClass(s.cls))}-${escapeHtml(s.section)} Roll ${escapeHtml(s.roll)}</option>`).join('')}</select><select id="manual-seat-room" class="border rounded p-2 text-xs">${plan.rooms.map(r=>`<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)}</option>`).join('')}</select><input id="manual-seat-desk" type="number" min="1" value="1" class="border rounded p-2 text-xs" placeholder="Desk"><select id="manual-seat-position" class="border rounded p-2 text-xs"><option>A</option><option>B</option></select><button type="button" onclick="manuallyPlaceSeatingStudent()" class="bg-amber-700 text-white rounded p-2 text-xs font-bold">Place Student</button></div></div>` : ''}<div id="generated-seating-result" class="scroll-mt-24 space-y-4">${seatingDeskDiagrams(plan)}</div>${plan ? `<div class="bg-white border rounded-xl p-4 flex flex-wrap justify-end gap-2"><button type="button" onclick="toggleSeatingPublishing()" class="${publicPortalBoards.seating?.examId===exam.id?'bg-red-700':'bg-violet-700'} text-white text-xs font-bold px-4 py-2 rounded">${publicPortalBoards.seating?.examId===exam.id?'⛔ Stop Publishing Seating':'📢 Publish Seating & Attendance'}</button><button type="button" onclick="previewSeatingPdf('common')" class="bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Common Display</button><button type="button" onclick="previewSeatingPdf('room')" class="bg-sky-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Room-wise</button><button type="button" onclick="previewSeatingPdf('class')" class="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Class Teacher-wise</button></div>` : ''}</div>`;
+            return `<div class="space-y-5"><div class="bg-white rounded-xl border p-5 space-y-4"><div class="flex justify-between gap-3 flex-wrap"><div><h3 class="font-bold text-indigo-950">🪑 Seating Arrangement Workspace</h3><p class="text-xs text-slate-500">Exam schedule, students and classroom mappings load automatically.</p></div><div class="flex flex-wrap gap-2"><select id="seating-add-classroom" class="rounded border bg-white p-2 text-xs"><option value="">Add remaining classroom…</option>${remainingClassrooms.map(key=>`<option value="${escapeHtml(key)}">Classroom ${escapeHtml(key)}</option>`).join('')}</select><button type="button" onclick="addRemainingClassroom()" class="rounded bg-indigo-700 px-3 py-2 text-xs font-bold text-white">＋ Add Classroom</button><button type="button" onclick="addSeatingRoom()" class="rounded bg-slate-700 px-4 py-2 text-xs font-bold text-white">＋ Add Open Area / Hall</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><label class="text-xs font-bold">Exam date<select id="seating-date" onchange="selectSeatingDate(this.value)" class="mt-1 w-full border rounded p-2 bg-white">${dates.map(date=>`<option value="${date}" ${date===selectedDate?'selected':''}>${escapeHtml(formatDateWithDay(date))}</option>`).join('')}</select></label><label class="text-xs font-bold">Automatic allotment method<select id="seating-method" class="mt-1 w-full border rounded p-2 bg-white"><option value="mixed">Mixed classes — alternate allocation</option><option value="sequential">Class / section / roll sequence</option></select></label><div class="flex items-end"><button type="button" onclick="generateAutomaticSeating()" class="w-full bg-emerald-700 text-white text-xs font-bold p-2.5 rounded-lg">⚡ Generate Suggested Seating</button></div></div>${plan?`<div class="rounded-lg border ${isSuggestion?'border-amber-300 bg-amber-50 text-amber-950':'border-emerald-300 bg-emerald-50 text-emerald-950'} p-3 text-xs font-bold">${isSuggestion?'📝 Suggested seating ready for review':'✅ Saved seating'}: ${plan.assignments.length} students · ${plan.rooms.length} room(s). ${isSuggestion?'Check the diagrams below, then approve or change the room selection and generate again.':'Room diagrams and PINs are displayed below.'}</div>`:''}<div><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><p class="text-xs font-bold">Select rooms (two students per desk)</p><div class="flex gap-2"><button id="select-all-seating-rooms" type="button" onclick="toggleAllDisplayedSeatingRooms(true)" class="rounded bg-indigo-100 px-3 py-1.5 text-[10px] font-bold text-indigo-800">✓ Select All Displayed Rooms</button><button type="button" onclick="toggleAllDisplayedSeatingRooms(false)" class="rounded bg-slate-200 px-3 py-1.5 text-[10px] font-bold text-slate-700">Clear All</button></div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-2">${rooms.map(room=>`<label class="border rounded-lg p-2 text-xs bg-slate-50"><input type="checkbox" class="seating-room-check mr-1" value="${escapeHtml(room.id)}" ${plan?plan.roomIds?.includes(room.id)?'checked':'':'checked'}> <b>${escapeHtml(room.name)}</b><br><span class="text-slate-500">${room.rows*room.desksPerRow} desks · ${room.rows*room.desksPerRow*2} seats</span></label>`).join('')}</div></div></div>${savedPlan&&!isSuggestion ? `<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3"><h4 class="font-bold text-amber-900">Manual Allotment (${unallotted.length} unallotted)</h4><div class="grid grid-cols-1 md:grid-cols-5 gap-2"><select id="manual-seat-student" class="border rounded p-2 text-xs"><option value="">Select unallotted student</option>${unallotted.map(s=>`<option value="${escapeHtml(s.studentId)}">${escapeHtml(s.name)} — ${escapeHtml(formatClass(s.cls))}-${escapeHtml(s.section)} Roll ${escapeHtml(s.roll)}</option>`).join('')}</select><select id="manual-seat-room" class="border rounded p-2 text-xs">${plan.rooms.map(r=>`<option value="${escapeHtml(r.id)}">${escapeHtml(r.name)}</option>`).join('')}</select><input id="manual-seat-desk" type="number" min="1" value="1" class="border rounded p-2 text-xs" placeholder="Desk"><select id="manual-seat-position" class="border rounded p-2 text-xs"><option>A</option><option>B</option></select><button type="button" onclick="manuallyPlaceSeatingStudent()" class="bg-amber-700 text-white rounded p-2 text-xs font-bold">Place Student</button></div></div>` : ''}<div id="generated-seating-result" class="scroll-mt-24 space-y-4">${seatingDeskDiagrams(plan)}</div>${isSuggestion?`<div class="sticky bottom-3 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg"><b class="text-sm text-amber-950">Review this suggested arrangement</b><div class="flex gap-2"><button type="button" onclick="discardSuggestedSeating()" class="rounded bg-slate-200 px-4 py-2 text-xs font-bold">Discard / Change</button><button type="button" onclick="approveSuggestedSeating()" class="rounded bg-emerald-700 px-5 py-2 text-xs font-bold text-white">✅ Approve & Save Seating</button></div></div>`:savedPlan ? `<div class="bg-white border rounded-xl p-4 flex flex-wrap justify-end gap-2"><button type="button" onclick="toggleSeatingPublishing()" class="${publicPortalBoards.seating?.examId===exam.id?'bg-red-700':'bg-violet-700'} text-white text-xs font-bold px-4 py-2 rounded">${publicPortalBoards.seating?.examId===exam.id?'⛔ Stop Publishing Seating':'📢 Publish Seating & Attendance'}</button><button type="button" onclick="previewSeatingPdf('common')" class="bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Common Display</button><button type="button" onclick="previewSeatingPdf('room')" class="bg-sky-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Room-wise</button><button type="button" onclick="previewSeatingPdf('class')" class="bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded">PDF: Class Teacher-wise</button></div>` : ''}</div>`;
         }
 
         function previewSeatingPdf(type) {
@@ -3766,7 +3777,7 @@
         window.addEventListener('scroll', () => {
             clearTimeout(workspaceScrollTimer);
             workspaceScrollTimer=setTimeout(() => {
-                if(currentActiveRole==='principal') localStorage.setItem(`vems_scroll_${currentActiveRole}_${currentActiveTab}`,String(Math.round(window.scrollY)));
+                if(currentActiveRole!=='public') localStorage.setItem(`vems_scroll_${currentActiveRole}_${currentActiveTab}`,String(Math.round(window.scrollY)));
             },120);
         }, {passive:true});
     </script>
