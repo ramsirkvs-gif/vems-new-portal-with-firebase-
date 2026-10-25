@@ -668,7 +668,8 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:/Download CSV/}).count(),1);
         assert.equal(await a.evaluate(()=>parseHolidayCsvDate('26/10/2026')),'2026-10-26');
         await a.evaluate(()=>toggleHolidayPublishing());
-        await a.waitForFunction(()=>publicPortalBoards.holidays?.rows?.[0]?.accountOf==='Test Holiday');
+        await a.waitForFunction(()=>publicPortalBoards.holidays?.rows?.some(row=>row.accountOf==='Test Holiday'));
+        assert.equal(await a.evaluate(()=>holidayPublishedRows().some(row=>row.accountOf==='Sunday')&&holidayPublishedRows().some(row=>row.accountOf==='Second Saturday')),true,'weekly holidays must be generated for publishing and all holiday uses');
         assert.equal(await a.locator('#public-holiday-section').evaluate(element=>!element.classList.contains('hidden')),true,'published holidays must render on Public View');
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await toggleHolidayCalendarLock();}finally{window.confirm=old;}});
         assert.equal(await a.locator('#holiday-date').isDisabled(),true,'locked holiday calendar must disable feeding');
