@@ -130,7 +130,7 @@ async function main() {
         await a.evaluate(()=>{publicPortalBoards=window._noticeTestBoards;delete window._noticeTestBoards;renderPublicPortalBoards();activateArea('principal');});
         console.log('PASS: passcode-only role entry, same-account reauthentication, independent PC and mobile sessions');
 
-        await a.evaluate(() => switchTab('exam-creator-prin'));
+        await a.evaluate(() => { switchTab('exam-creator-prin'); toggleNoticePanel(); });
         await a.fill('#exam-notice-heading', 'Test Notice');
         await a.fill('#exam-notice-text', 'Published notice body');
         await a.getByRole('button', { name: 'Publish New Notice' }).click();
@@ -147,7 +147,7 @@ async function main() {
         assert.ok(await a.getByText('Title Only Notice', { exact: true }).count() >= 1, 'a title-only notice must be visible publicly');
         await a.evaluate(() => activateArea('principal'));
         console.log('PASS: title-only public notices publish and display');
-        await a.evaluate(() => openCircularEditor());
+        await a.evaluate(() => { if (!circularPanelOpen) toggleCircularPanel(); openCircularEditor(); });
         await a.fill('#circular-subject', 'Examination Committee Meeting');
         await a.fill('#circular-body', 'All members shall attend the meeting at the notified time.');
         await a.locator('[name="circular-target"]').first().check();
