@@ -607,6 +607,9 @@ async function main() {
         const crossSubjectRollOrder=await a.evaluate(() => {const candidates=[{studentId:'x6',name:'RN 6',cls:'10',section:'A',subject:'MATHS BASIC',roll:6},{studentId:'x1',name:'RN 1',cls:'10',section:'A',subject:'MATHS STANDARD',roll:1},{studentId:'y1',name:'XI 1',cls:'11',section:'A',subject:'ENGLISH',roll:1},{studentId:'y2',name:'XI 2',cls:'11',section:'A',subject:'ENGLISH',roll:2}],room={id:'r1',name:'Room 1',rows:2,desksPerRow:1},result=allocateTwoPerDesk(candidates,[room]);return result.assignments.filter(item=>item.cls==='10').map(item=>item.roll);});
         assert.deepEqual(crossSubjectRollOrder,[1,6],'a higher roll number from another subject must never start before the class-section initial roll number');
 
+        const mathsSummary=await a.evaluate(() => {const host=document.createElement('div');host.innerHTML=roomSeatingSummaryHtml([{cls:'10',section:'A',subject:'MATHS STANDARD',roll:10101},{cls:'10',section:'A',subject:'MATHS BASIC',roll:10106}]);return host.innerText;});
+        assert.match(mathsSummary,/Class X-A · MATHS STD\/BASIC · RN 10101 to 10106 · 2 students/,'Maths Standard and Basic must use one combined room-summary range');
+
         await a.evaluate(async () => {
             studentRecords = { '10': { A: {
                 seat1: { id: 'seat1', class: '10', section: 'A', roll: 1, name: 'Seat Student One' },
