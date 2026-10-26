@@ -714,6 +714,14 @@ async function main() {
         assert.match(previewText, /Use the approved blueprint/);
         assert.doesNotMatch(previewText, /Prepare the question paper strictly/);
         await a.evaluate(() => closeQpOfficeOrderPreview());
+        assert.equal(await a.locator('#qp-order-number').isDisabled(),true,'an issued QP-setter circular must open locked');
+        await a.getByRole('button',{name:/Edit Circular/}).click();
+        assert.equal(await a.locator('#qp-order-number').isEditable(),true,'Edit Circular must reopen the issued circular as an editable draft');
+        await a.fill('#qp-order-number','KV1/EXAM/2026/01-REVISED');
+        await a.getByRole('button',{name:'💾 Save Draft'}).click();
+        await a.waitForFunction(()=>qpOfficeOrders['100']?.officeNo==='KV1/EXAM/2026/01-REVISED'&&qpOfficeOrders['100']?.status==='DRAFT');
+        assert.equal(await a.getByRole('button',{name:/Issue.*Preview PDF/}).count(),1,'the edited draft must offer an updated issue action');
+        await a.evaluate(() => closeQpOfficeOrderPreview());
         console.log('PASS: issued QP office order auto-links setters, syncs, and opens an in-app A4 preview');
 
         const count = Object.values(data.archivedExams).length;

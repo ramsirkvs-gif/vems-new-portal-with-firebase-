@@ -2744,6 +2744,16 @@
             generateQpSetterOfficeOrderPrint();
         }
 
+        function editIssuedQpOfficeOrder() {
+            if (!selectedPreExamVaultId) return;
+            const key=String(selectedPreExamVaultId),saved=qpOfficeOrders[key];
+            if (!saved) return;
+            qpOfficeOrderFormDrafts[key]={...cloneData(saved),status:'DRAFT',issuedAt:'',editedFromIssuedAt:saved.issuedAt||''};
+            qpOfficeOrderFormDirty=true;
+            renderExamCreatorModule();
+            setTimeout(()=>document.getElementById('qp-order-number')?.focus(),0);
+        }
+
         function formatOrderDate(value) {
             if (!value) return '—';
             if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return value;
@@ -3414,6 +3424,7 @@
             const subjectsList = getExamSubjectsListForVault(selectedExam.id);
             const internalSetterSubjects = subjectsList.filter(item=>!item.isExternal);
             const officeOrder = currentQpOfficeOrder(selectedExam.id);
+            const officeOrderLocked = officeOrder.status === 'ISSUED';
             let totalSubjects = subjectsList.length;
             let totalSubmittedCount = 0;
             subjectsList.forEach(sub => {
@@ -3458,8 +3469,10 @@
                                         <h3 class="text-base font-bold text-indigo-950">📄 Office Order to Question Paper Setters</h3>
                                         <p class="text-xs text-slate-500 mt-1">The list below comes from this exam's datesheet and Faculty Manager mappings.</p>
                                     </div>
-                                    <span class="text-xs font-black px-3 py-1.5 rounded-full ${officeOrder.status === 'ISSUED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${escapeHtml(officeOrder.status)}</span>
+                                    <div class="flex flex-wrap items-center gap-2"><span class="text-xs font-black px-3 py-1.5 rounded-full ${officeOrder.status === 'ISSUED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${escapeHtml(officeOrder.status)}</span>${officeOrderLocked?'<button type="button" onclick="editIssuedQpOfficeOrder()" class="rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-amber-950 shadow">✏️ Edit Circular</button>':''}</div>
                                 </div>
+                                ${officeOrderLocked?'<div class="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs font-bold text-emerald-900">✅ This circular is issued and locked. Select <b>Edit Circular</b> to create an editable draft, then save or reissue it.</div>':''}
+                                <fieldset ${officeOrderLocked?'disabled':''} class="space-y-5 disabled:opacity-65">
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                                     <label class="lg:col-span-2 text-xs font-bold text-slate-600">School header
                                         <input id="qp-order-school" value="${escapeHtml(officeOrder.schoolName)}" class="mt-1 w-full border rounded-lg p-2.5 text-xs font-semibold bg-slate-50">
@@ -3503,10 +3516,11 @@
                                     <p class="text-[11px] text-indigo-900"><b>Reusable instructions:</b> Edit the text above, then save it as the default for this and all future exam orders.</p>
                                     <button type="button" onclick="saveQpInstructionsAsDefault()" class="shrink-0 bg-indigo-800 hover:bg-indigo-900 text-white text-xs font-bold px-4 py-2 rounded-lg">🔄 Save & Set as Default</button>
                                 </div>
+                                </fieldset>
                                 <div class="flex flex-wrap justify-end gap-2">
-                                    <button type="button" onclick="saveQpOfficeOrder('DRAFT')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save Draft</button>
+                                    ${officeOrderLocked?'<button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-700 hover:bg-indigo-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ View Issued Circular & PDF</button>':`<button type="button" onclick="saveQpOfficeOrder('DRAFT')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save Draft</button>
                                     <button type="button" onclick="previewQpOfficeOrderDraft()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview & PDF</button>
-                                    <button type="button" onclick="issueAndGenerateQpOfficeOrderPdf()" ${internalSetterSubjects.length && !internalSetterSubjects.some(item => !item.teacherId) ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">✅ Issue & Preview PDF</button>
+                                    <button type="button" onclick="issueAndGenerateQpOfficeOrderPdf()" ${internalSetterSubjects.length && !internalSetterSubjects.some(item => !item.teacherId) ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">✅ ${qpOfficeOrders[String(selectedExam.id)]?.status==='ISSUED'?'Reissue Updated':'Issue &'} Preview PDF</button>`}
                                 </div>
                                 <p class="text-[11px] text-slate-500 text-right">The PDF preview opens inside the portal. Use <b>Print / Save PDF</b> after reviewing it.</p>
                             </div>
