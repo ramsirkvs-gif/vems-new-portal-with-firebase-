@@ -611,6 +611,8 @@ async function main() {
         assert.match(await roomCard.locator('.seating-room-capacity').textContent(),/12 desks · 24 seats/);
         await a.locator('button', { hasText: 'Generate Suggested Seating' }).click();
         assert.equal(await a.getByRole('button',{name:/Approve & Save Seating/}).count(),1,'generated seating must be shown for approval before saving');
+        assert.match(await a.locator('#generated-seating-result').innerText(),/STUDENT 1.*STUDENT 2 · DIFFERENT CLASS/s);
+        assert.match(await a.getByText(/ALL EXAMINEES ARRANGED/).first().textContent(),/ALL EXAMINEES ARRANGED/);
         await a.getByRole('button',{name:/Approve & Save Seating/}).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
         assert.deepEqual({rows:data.seatingPlans['100']['2026-11-01'].rooms[0].rows,cols:data.seatingPlans['100']['2026-11-01'].rooms[0].desksPerRow},{rows:3,cols:4});
