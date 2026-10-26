@@ -601,6 +601,7 @@ async function main() {
         assert.equal(await a.locator('#student-status-filter').inputValue(), 'inactive');
         assert.match(await a.locator('#student-status-results').innerText(), /INACTIVE/);
         await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); switchPreExamSubTab('seating'); });
+        assert.deepEqual(await a.evaluate(()=>{const candidates=[{studentId:'xa1',cls:'10',section:'A',roll:'10101'},{studentId:'xa2',cls:'10',section:'A',roll:'10102'},{studentId:'xb1',cls:'10',section:'B',roll:'10201'},{studentId:'xia1',cls:'11',section:'A',roll:'11101'},{studentId:'xia2',cls:'11',section:'A',roll:'11102'}],result=allocateTwoPerDesk(candidates,[{id:'r',name:'R',rows:2,desksPerRow:2}]);return{student1:result.assignments.filter(x=>x.seat==='A').map(x=>`${x.roll}@${x.desk}`),pairs:[...new Set(result.assignments.map(x=>x.desk))].map(d=>result.assignments.filter(x=>x.desk===d).map(x=>x.cls))};}),{student1:['10101@1','10102@3','10201@2'],pairs:[['10','11'],['10','11'],['10']]},'Student 1 must run down columns in class-section-roll order and Student 2 must use another standard');
         await a.getByRole('button',{name:/Select All Displayed Rooms/}).click();
         assert.equal(await a.locator('.seating-room-check:not(:checked)').count(),0,'select all must check every displayed room');
         await a.getByRole('button',{name:'Clear All'}).click();
@@ -611,12 +612,12 @@ async function main() {
         assert.match(await roomCard.locator('.seating-room-capacity').textContent(),/Columns: 4 · Rows: 3 · Desks: 12 · Seating: 24/);
         await a.locator('button', { hasText: 'Generate Suggested Seating' }).click();
         assert.equal(await a.getByRole('button',{name:/Approve & Save Seating/}).count(),1,'generated seating must be shown for approval before saving');
-        assert.match(await a.locator('#generated-seating-result').innerText(),/STUDENT 1.*STUDENT 2 · DIFFERENT CLASS/s);
+        assert.match(await a.locator('#generated-seating-result').innerText(),/STUDENT 1.*STUDENT 2 · DIFFERENT STANDARD/s);
         assert.match(await a.getByText(/ALL EXAMINEES ARRANGED/).first().textContent(),/ALL EXAMINEES ARRANGED/);
         await a.getByRole('button',{name:/Approve & Save Seating/}).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
         assert.deepEqual({rows:data.seatingPlans['100']['2026-11-01'].rooms[0].rows,cols:data.seatingPlans['100']['2026-11-01'].rooms[0].desksPerRow},{rows:3,cols:4});
-        assert.deepEqual(data.seatingPlans['100']['2026-11-01'].assignments.map(item => `${item.desk}${item.seat}`), ['1A', '2A'], 'students of the same class must never share one desk');
+        assert.deepEqual(data.seatingPlans['100']['2026-11-01'].assignments.map(item => `${item.desk}${item.seat}`), ['1A', '5A'], 'students of the same standard must never share one desk');
         assert.match(data.seatingPlans['100']['2026-11-01'].rooms[0].attendancePin,/^\d{3}$/);
         await a.locator('button', { hasText: 'PDF: Room-wise' }).click();
         const seatingPdfText = await a.locator('#seating-pdf-preview iframe').contentFrame().locator('body').textContent();
