@@ -659,6 +659,7 @@ async function main() {
         assert.doesNotMatch(await a.locator('#generated-seating-result').innerText(),/DIFFERENT STANDARD/i,'the seating chart must identify students by roll and class without the redundant different-standard label');
         assert.match(await a.locator('#seating-examinee-store').innerText(),/2\/2 allocated/,'automatic seating must update the Examinee Store preview');
         assert.equal(await a.locator('[data-seating-room-id]').count(),2,'the automatic arrangement must show every saved room');
+        assert.match(await a.locator('[data-seating-room-id]').first().locator('.room-seating-summary').innerText(),/Class X-A · RN 1 to 2 · 2 students/,'each room chart must summarize seated class-section and roll-number range');
         await a.getByRole('button',{name:/Save Seating Arrangement/}).click();
         await a.getByText('✓ Saved',{exact:true}).waitFor();
         assert.equal(await a.evaluate(() => seatingPlans['100']?.['2026-11-01']?.assignments.length),2,'the simple automatic arrangement must save all examinees');
