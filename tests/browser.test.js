@@ -636,6 +636,9 @@ async function main() {
         assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),1,'selecting manual flow must immediately open the room-column range filler');
         await a.getByRole('button',{name:/Open Manual Room Feeding/}).click();
         assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),1,'manual seating must show both feeding methods in the selected classroom header');
+        const manualColumnGrid=a.locator('#generated-seating-result [data-manual-column-grid]');
+        assert.equal(await manualColumnGrid.locator(':scope > div').count(),4,'all four room-column controls must remain in one seating line');
+        assert.match(await manualColumnGrid.getAttribute('style'),/repeat\(4,/,'manual controls must use the same four-column geometry as the room');
         const rangeClass=a.locator('#generated-seating-result select[id^="manual-col-"][id$="-class"]').first();
         await rangeClass.selectOption('10-A');
         const rangePrefix=(await rangeClass.getAttribute('id')).replace(/-class$/,'');
