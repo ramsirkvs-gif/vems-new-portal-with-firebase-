@@ -614,8 +614,12 @@ async function main() {
         const addClassSelect=a.locator('#seating-add-classroom');
         const addedClassKey=await addClassSelect.locator('option').nth(1).getAttribute('value');
         await addClassSelect.selectOption(addedClassKey);
+        slowWrites=true;
         await a.getByRole('button',{name:'＋ Add Classroom'}).click();
-        await a.waitForFunction(key=>!!document.querySelector(`.seating-room-check[value="classroom-${CSS.escape(key)}"]`),addedClassKey);
+        assert.equal(await a.locator(`.seating-room-check[value="classroom-${addedClassKey}"]`).count(),1,'a selected classroom must appear immediately while its cloud save is still pending');
+        await a.waitForTimeout(250);
+        slowWrites=false;
+        assert.ok(data.seatingRooms[`classroom-${addedClassKey}`],'the immediately displayed classroom must also persist');
         await a.fill('#seating-open-area-name','Library Hall');
         await a.getByRole('button',{name:'＋ Add Open Area / Hall'}).click();
         await a.waitForFunction(()=>[...document.querySelectorAll('.seating-room-card b')].some(item=>item.textContent==='Library Hall'));
