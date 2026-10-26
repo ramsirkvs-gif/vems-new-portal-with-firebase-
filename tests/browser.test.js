@@ -605,10 +605,15 @@ async function main() {
         assert.equal(await a.locator('.seating-room-check:not(:checked)').count(),0,'select all must check every displayed room');
         await a.getByRole('button',{name:'Clear All'}).click();
         await a.locator('.seating-room-check[value="classroom-10-A"]').check();
+        const roomCard=a.locator('.seating-room-check[value="classroom-10-A"]').locator('xpath=ancestor::div[contains(@class,"seating-room-card")]');
+        await roomCard.locator('.seating-room-rows').fill('3');
+        await roomCard.locator('.seating-room-cols').fill('4');
+        assert.match(await roomCard.locator('.seating-room-capacity').textContent(),/12 desks · 24 seats/);
         await a.locator('button', { hasText: 'Generate Suggested Seating' }).click();
         assert.equal(await a.getByRole('button',{name:/Approve & Save Seating/}).count(),1,'generated seating must be shown for approval before saving');
         await a.getByRole('button',{name:/Approve & Save Seating/}).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
+        assert.deepEqual({rows:data.seatingPlans['100']['2026-11-01'].rooms[0].rows,cols:data.seatingPlans['100']['2026-11-01'].rooms[0].desksPerRow},{rows:3,cols:4});
         assert.deepEqual(data.seatingPlans['100']['2026-11-01'].assignments.map(item => `${item.desk}${item.seat}`), ['1A', '2A'], 'students of the same class must never share one desk');
         assert.match(data.seatingPlans['100']['2026-11-01'].rooms[0].attendancePin,/^\d{3}$/);
         await a.locator('button', { hasText: 'PDF: Room-wise' }).click();
