@@ -612,7 +612,7 @@ async function main() {
         assert.match(await a.locator('#seating-room-layout').innerText(),/2\. Select rooms and enter the room layout/);
         assert.equal(await a.locator('#seating-add-classroom').count(),0,'mapped-room formulas and dropdowns must be removed');
         assert.equal(await a.getByRole('button',{name:/Add Open Area|Add Selected Room/}).count(),0,'special room commands must be removed');
-        assert.equal(await a.evaluate(() => examActions.includes('addSeatingRoom')),false,'Add Room is a local draft action and must not be blocked by the Firebase write guard');
+        assert.equal(await a.evaluate(() => examActions.includes('createManualSeatingRoomDraft')||examActions.includes('createMappedSeatingRoomDraft')),false,'room creation is a local draft action and must not be blocked by the Firebase write guard');
         assert.equal((await a.locator('#seating-remaining-room option').allTextContents()).includes('Classroom 10-A'),true,'remaining mapped classrooms must be available from a dropdown');
         await a.selectOption('#seating-remaining-room','10-A');
         await a.getByRole('button',{name:'+ Add Available Room',exact:true}).click();
