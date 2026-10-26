@@ -124,6 +124,7 @@ function showSyncStatus(state) {
     if (state?.error) showSyncError(state.error);
 }
 function canEditSharedData(required = 'exam') {
+    if (isExamIcMasterView()) { showSyncError('This master-data screen is view-only for Exam IC accounts. Return to your Exam IC workspace for authorized examination work.'); return false; }
     const allowed = authorizedRole === 'principal' || (required === 'exam' && ['sec-ic', 'pri-ic'].includes(authorizedRole));
     if (!allowed) { showSyncError('Your staff role cannot make this change. Sign in with the appropriate account.'); return false; }
     if (isSelectedSessionFrozen()) { showSyncError(`Session ${selectedAcademicSession} is frozen and read-only. Select an open session or ask the Principal to unfreeze it.`); return false; }
@@ -303,12 +304,13 @@ async function saveSubmissionDeadline(value) {
 }
 
 function switchPortalArea(area) {
-    if (area === 'public' || authorizedRole === 'principal' || authorizedRole === area) {
+    if (area === 'public' || authorizedRole === 'principal' || authorizedRole === area || (area === 'principal' && ['sec-ic', 'pri-ic'].includes(authorizedRole))) {
         currentActiveRole = area;
         activateArea(area);
         if(area==='public'&&authorizedRole==='principal')reconcilePublishedDataNow();
     } else openLoginModal(area);
 }
+function isExamIcMasterView() { return currentActiveRole === 'principal' && ['sec-ic', 'pri-ic'].includes(authorizedRole); }
 function openLoginModal(role) {
     if (!Object.hasOwn(roleAccounts, role)) return;
     pendingLoginRole = role;

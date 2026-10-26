@@ -850,6 +850,13 @@ async function main() {
         await login(secondary, 'secondary@example.test', 'sec-ic');
         assert.equal(await secondary.locator('#area-principal').isVisible(), false);
         assert.equal(await secondary.evaluate(() => saveTeacherDirect({ preventDefault() {} })), false);
+        await secondary.evaluate(() => switchPortalArea('principal'));
+        assert.equal(await secondary.locator('#area-principal').isVisible(), true, 'both Exam ICs must be able to open the master-data view');
+        assert.equal(await secondary.locator('#exam-ic-master-view-banner').isVisible(), true);
+        assert.equal(await secondary.locator('#tab-btn-settings').isVisible(), false, 'system and password settings must stay hidden from the Exam IC master-data view');
+        assert.equal(await secondary.evaluate(() => canEditSharedData('exam')), false, 'the master-data view must block even normally authorized exam writes');
+        await secondary.evaluate(() => switchPortalArea('sec-ic'));
+        assert.equal(await secondary.evaluate(() => canEditSharedData('exam')), true, 'returning to the Exam IC workspace must restore authorized exam work');
         await secondary.evaluate(() => openPreExamFullPageWorkspace(100));
         assert.equal(await secondary.locator('#exam-creator-mount-prin').innerHTML(), '');
         await secondary.evaluate(() => saveSubmissionDeadline('2026-11-06'));
@@ -865,6 +872,10 @@ async function main() {
         assert.equal(await primary.evaluate(() => authorizedRole), null);
         await login(primary, null, 'pri-ic');
         assert.equal(await primary.locator('#area-pri-ic').isVisible(), true);
+        await primary.evaluate(() => switchPortalArea('principal'));
+        assert.equal(await primary.locator('#exam-ic-master-view-banner').isVisible(), true, 'Primary Exam IC must receive the same read-only master-data view');
+        assert.equal(await primary.locator('#tab-btn-settings').isVisible(), false);
+        await primary.evaluate(() => switchPortalArea('pri-ic'));
         assert.equal(await primary.locator('#exam-creator-mount-pri').getByRole('button', { name: '＋ Create New Examination Vault' }).count(), 1);
         await primary.evaluate(() => startNewExamSetup());
         await primary.evaluate(() => addPaperSlotToDay(1));
