@@ -625,7 +625,7 @@ async function main() {
         await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
         await a.selectOption('#seating-method','manual');
         await a.getByRole('button',{name:/Generate Suggested Seating/}).click();
-        const manualSeat=a.locator('#generated-seating-result select').first();
+        const manualSeat=a.locator('#generated-seating-result select[onchange^="assignManualSuggestedSeat"]').first();
         await manualSeat.selectOption('seat1');
         assert.match(await a.locator('section',{hasText:'Examinee Store'}).locator('article').first().innerText(),/1\/2 allotted/,'manual dropdown feeding must update Examinee Store allocation status');
         await a.getByRole('button',{name:'Discard / Change'}).click();
