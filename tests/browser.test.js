@@ -648,6 +648,7 @@ async function main() {
         await a.getByRole('button',{name:/Generate Automatic Seating Arrangement/}).click();
         await a.locator('#generated-seating-result').waitFor();
         assert.match(await a.locator('#generated-seating-result').innerText(),/3\. Automatic Seating Arrangement/);
+        assert.doesNotMatch(await a.locator('#generated-seating-result').innerText(),/DIFFERENT STANDARD/i,'the seating chart must identify students by roll and class without the redundant different-standard label');
         assert.match(await a.locator('#seating-examinee-store').innerText(),/2\/2 allocated/,'automatic seating must update the Examinee Store preview');
         assert.equal(await a.locator('[data-seating-room-id]').count(),2,'the automatic arrangement must show every saved room');
         await a.getByRole('button',{name:/Save Seating Arrangement/}).click();
