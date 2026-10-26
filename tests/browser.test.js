@@ -478,9 +478,15 @@ async function main() {
         await a.evaluate(() => {window.alert=window._mathAlert;delete window._mathAlert;delete window.mathChoiceAlert;document.getElementById('filter-section').value='B';rememberStudentLocation();filterStudents();});
         console.log('PASS: each student must select exactly one of Maths Standard or Maths Basic');
 
+        const savedScrollPosition=await b.evaluate(async()=>{activateArea('principal');switchTab('students');const target=Math.min(360,Math.max(0,document.documentElement.scrollHeight-innerHeight));window.scrollTo(0,target);await new Promise(resolve=>setTimeout(resolve,100));saveWorkspacePositionNow();return Math.round(window.scrollY);});
+        const savedScrollState=await b.evaluate(()=>localStorage.getItem('vems_workspace_state'));
         await b.reload();
         await login(b, 'principal2@example.test');
         assert.equal(await b.locator('#filter-section').inputValue(), 'B', 'reload must restore the selected section');
+        await b.waitForTimeout(750);
+        const restoredScrollPosition=await b.evaluate(()=>Math.round(window.scrollY));
+        const restoredScrollState=await b.evaluate(()=>localStorage.getItem('vems_workspace_state'));
+        assert.equal(Math.abs(restoredScrollPosition-savedScrollPosition)<=2,true,`reload must restore the same workspace scroll position (saved ${savedScrollPosition}, restored ${restoredScrollPosition}, before ${savedScrollState}, after ${restoredScrollState})`);
         await b.waitForFunction(() => teachers.some(t => t.name === 'New Shared Teacher'));
         console.log('PASS: shared records and the current class/section location survive rerender and reload');
 
@@ -625,6 +631,7 @@ async function main() {
         assert.match(seatingPdfText, /Seat Student One/);
         await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
         await a.selectOption('#seating-method','manual');
+        assert.equal(await a.getByText('ROOM COLUMN HALF-WISE RN RANGE FILLER',{exact:true}).count(),1,'selecting manual flow must immediately open the room-column range filler');
         await a.getByRole('button',{name:/Create Room Column Range Grid/}).click();
         assert.equal(await a.getByText('ROOM COLUMN HALF-WISE RN RANGE FILLER',{exact:true}).count(),1,'manual seating must show the range filler in the selected classroom header');
         const manualSeat=a.locator('#generated-seating-result select[onchange^="assignManualSuggestedSeat"]').first();
