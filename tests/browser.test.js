@@ -635,6 +635,13 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:'＋ Add Classroom'}).evaluate((button,card)=>button.getBoundingClientRect().top>card.getBoundingClientRect().bottom,await roomCard.elementHandle()),true,'room-add controls must appear below the displayed room cards');
         await a.getByRole('button',{name:/Save Room Layout/}).click();
         await a.waitForFunction(() => seatingRooms['classroom-10-A']?.rows===3&&seatingRooms['classroom-10-A']?.desksPerRow===4);
+        await a.waitForFunction(() => !!document.getElementById('edit-seating-room-layout'));
+        assert.equal(await a.locator('.seating-room-check:not(:disabled)').count(),0,'saved room selections must stay locked until Edit is clicked');
+        assert.deepEqual(await a.locator('.seating-room-check:checked').evaluateAll(inputs=>inputs.map(input=>input.value)),['classroom-10-A'],'saved checked and unchecked room selections must remain exact after rerender');
+        await a.getByRole('button',{name:/Edit Room Selection & Layout/}).click();
+        assert.equal(await a.locator('.seating-room-check:not(:disabled)').count()>0,true,'Edit must unlock room selection and dimensions');
+        await a.getByRole('button',{name:/Save Room Layout/}).click();
+        await a.waitForFunction(() => !!document.getElementById('edit-seating-room-layout'));
         await a.locator('button', { hasText: 'Generate Automatic Seating Suggestion' }).click();
         assert.equal(await a.getByRole('button',{name:/Save \/ Update Seating/}).count(),1,'generated seating must be shown for approval before saving');
         assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),0,'automatic seating must not show manual range controls');
@@ -651,6 +658,7 @@ async function main() {
         assert.match(seatingPdfText, /Seat Student One/);
         await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
         assert.equal(await a.getByRole('button',{name:/Manual Range|Manual Each Cell|Edit by Range|Edit Each Cell/}).count(),0,'manual and range actions must be removed from the automatic-only workflow');
+        await a.getByRole('button',{name:/Edit Room Selection & Layout/}).click();
         await a.getByRole('button',{name:'Clear All'}).click();
         assert.match(await a.locator('#seating-examinee-store').innerText(),/0\/2 allocated/,'Clear All must reset the visible Examinee Store allocation status');
         console.log('PASS: seating separates same-class students, creates room PINs and generates room-wise PDF');
