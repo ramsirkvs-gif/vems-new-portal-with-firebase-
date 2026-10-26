@@ -608,7 +608,7 @@ async function main() {
         const roomCard=a.locator('.seating-room-check[value="classroom-10-A"]').locator('xpath=ancestor::div[contains(@class,"seating-room-card")]');
         await roomCard.locator('.seating-room-rows').fill('3');
         await roomCard.locator('.seating-room-cols').fill('4');
-        assert.match(await roomCard.locator('.seating-room-capacity').textContent(),/12 desks · 24 seats/);
+        assert.match(await roomCard.locator('.seating-room-capacity').textContent(),/Columns: 4 · Rows: 3 · Desks: 12 · Seating: 24/);
         await a.locator('button', { hasText: 'Generate Suggested Seating' }).click();
         assert.equal(await a.getByRole('button',{name:/Approve & Save Seating/}).count(),1,'generated seating must be shown for approval before saving');
         assert.match(await a.locator('#generated-seating-result').innerText(),/STUDENT 1.*STUDENT 2 · DIFFERENT CLASS/s);
