@@ -639,6 +639,8 @@ async function main() {
         await a.locator('.seating-room-card').last().locator('.seating-room-name').fill('Library Annex');
         await a.getByRole('button',{name:/Save Room Layout/}).click();
         await a.getByRole('button',{name:/Edit Room Layout/}).waitFor();
+        assert.equal(await a.evaluate(() => savedSeatingLayoutRooms('100').length),2,'one saved room layout must belong to the entire vault');
+        assert.equal(await a.evaluate(() => Object.values(seatingRooms).filter(room=>room.layoutSelections?.['100']).length),2,'vault rooms must be stored under the exam ID without a date suffix');
         assert.equal(await a.locator('.seating-room-columns').first().isDisabled(),true,'saved room layouts must lock until Edit is selected');
         await a.evaluate(() => renderExamCreatorModule());
         assert.equal(await a.locator('.seating-room-card').filter({hasText:'Classroom 10-A'}).locator('.seating-room-columns').inputValue(),'6','saved room dimensions must remain stable after a refresh');
