@@ -569,11 +569,33 @@
 
         <!-- AREA 3: SECONDARY EXAM IC WORKSPACE -->
         <div id="area-sec-ic" class="hidden space-y-6">
+            <nav aria-label="Secondary Exam IC portal sections" class="exam-ic-section-belt rounded-xl border border-indigo-200 bg-white p-4 shadow-sm no-print">
+                <div class="mb-3"><b class="text-sm text-indigo-950">Portal Sections</b><p class="text-xs text-slate-500">Examination Workspace is editable. Master-data sections open in view-only mode.</p></div>
+                <div class="flex gap-2 overflow-x-auto pb-1">
+                    <button type="button" class="whitespace-nowrap rounded-lg bg-indigo-700 px-4 py-2 text-xs font-bold text-white">📊 Examination Workspace</button>
+                    <button type="button" data-master-tab="config" onclick="openExamIcMasterTab('config')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">⚙️ Subject Mapping</button>
+                    <button type="button" data-master-tab="students" onclick="openExamIcMasterTab('students')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">👨‍🎓 Students</button>
+                    <button type="button" data-master-tab="teachers" onclick="openExamIcMasterTab('teachers')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">👩‍🏫 Faculty</button>
+                    <button type="button" data-master-tab="holidays" onclick="openExamIcMasterTab('holidays')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">🗓️ Holidays</button>
+                    <button type="button" data-master-tab="exam-creator-prin" onclick="openExamIcMasterTab('exam-creator-prin')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">🗂️ Exam Records</button>
+                </div>
+            </nav>
             <div id="exam-creator-mount-sec"></div>
         </div>
 
         <!-- AREA 4: PRIMARY EXAM IC WORKSPACE -->
         <div id="area-pri-ic" class="hidden space-y-6">
+            <nav aria-label="Primary Exam IC portal sections" class="exam-ic-section-belt rounded-xl border border-amber-200 bg-white p-4 shadow-sm no-print">
+                <div class="mb-3"><b class="text-sm text-amber-950">Portal Sections</b><p class="text-xs text-slate-500">Examination Workspace is editable. Master-data sections open in view-only mode.</p></div>
+                <div class="flex gap-2 overflow-x-auto pb-1">
+                    <button type="button" class="whitespace-nowrap rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white">📊 Examination Workspace</button>
+                    <button type="button" data-master-tab="config" onclick="openExamIcMasterTab('config')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">⚙️ Subject Mapping</button>
+                    <button type="button" data-master-tab="students" onclick="openExamIcMasterTab('students')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">👨‍🎓 Students</button>
+                    <button type="button" data-master-tab="teachers" onclick="openExamIcMasterTab('teachers')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">👩‍🏫 Faculty</button>
+                    <button type="button" data-master-tab="holidays" onclick="openExamIcMasterTab('holidays')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">🗓️ Holidays</button>
+                    <button type="button" data-master-tab="exam-creator-prin" onclick="openExamIcMasterTab('exam-creator-prin')" class="whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-900">🗂️ Exam Records</button>
+                </div>
+            </nav>
             <div id="exam-creator-mount-pri"></div>
         </div>
     </main>
@@ -831,6 +853,12 @@
         }
 
         function handleMobilePortalSelection(area){const menu=document.getElementById('mobile-portal-menu');if(menu)menu.value=currentActiveRole||'public';switchPortalArea(area);}
+
+        function openExamIcMasterTab(tab) {
+            if (!['sec-ic', 'pri-ic'].includes(authorizedRole)) return;
+            currentActiveTab = tab;
+            switchPortalArea('principal');
+        }
 
         function switchTab(tab) {
             if (tab === 'settings' && isExamIcMasterView()) tab = 'config';

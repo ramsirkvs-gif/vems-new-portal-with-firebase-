@@ -849,9 +849,11 @@ async function main() {
         const secondary = await pageFor();
         await login(secondary, 'secondary@example.test', 'sec-ic');
         assert.equal(await secondary.locator('#area-principal').isVisible(), false);
+        assert.deepEqual(await secondary.locator('#area-sec-ic [data-master-tab]').allTextContents(), ['⚙️ Subject Mapping','👨‍🎓 Students','👩‍🏫 Faculty','🗓️ Holidays','🗂️ Exam Records'], 'the Secondary IC workspace must show a belt for every view-only master section');
         assert.equal(await secondary.evaluate(() => saveTeacherDirect({ preventDefault() {} })), false);
-        await secondary.evaluate(() => switchPortalArea('principal'));
+        await secondary.locator('#area-sec-ic [data-master-tab="teachers"]').click();
         assert.equal(await secondary.locator('#area-principal').isVisible(), true, 'both Exam ICs must be able to open the master-data view');
+        assert.equal(await secondary.locator('#sec-teachers').isVisible(), true, 'a belt button must open its requested segment directly');
         assert.equal(await secondary.locator('#exam-ic-master-view-banner').isVisible(), true);
         assert.equal(await secondary.locator('#tab-btn-settings').isVisible(), false, 'system and password settings must stay hidden from the Exam IC master-data view');
         assert.equal(await secondary.evaluate(() => canEditSharedData('exam')), false, 'the master-data view must block even normally authorized exam writes');
@@ -872,8 +874,10 @@ async function main() {
         assert.equal(await primary.evaluate(() => authorizedRole), null);
         await login(primary, null, 'pri-ic');
         assert.equal(await primary.locator('#area-pri-ic').isVisible(), true);
-        await primary.evaluate(() => switchPortalArea('principal'));
+        assert.equal(await primary.locator('#area-pri-ic [data-master-tab]').count(), 5, 'the Primary IC workspace must show the same section belt');
+        await primary.locator('#area-pri-ic [data-master-tab="students"]').click();
         assert.equal(await primary.locator('#exam-ic-master-view-banner').isVisible(), true, 'Primary Exam IC must receive the same read-only master-data view');
+        assert.equal(await primary.locator('#sec-students').isVisible(), true);
         assert.equal(await primary.locator('#tab-btn-settings').isVisible(), false);
         await primary.evaluate(() => switchPortalArea('pri-ic'));
         assert.equal(await primary.locator('#exam-creator-mount-pri').getByRole('button', { name: '＋ Create New Examination Vault' }).count(), 1);
