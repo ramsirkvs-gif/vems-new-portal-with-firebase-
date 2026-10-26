@@ -642,8 +642,15 @@ async function main() {
         assert.equal(await a.locator('.seating-room-columns').first().isDisabled(),true,'saved room layouts must lock until Edit is selected');
         await a.evaluate(() => renderExamCreatorModule());
         assert.equal(await a.locator('.seating-room-card').filter({hasText:'Classroom 10-A'}).locator('.seating-room-columns').inputValue(),'6','saved room dimensions must remain stable after a refresh');
-        assert.equal(await a.locator('#generated-seating-result').count(),0,'room layout must not generate a seating suggestion');
-        console.log('PASS: room layout uses manual room names, supports removal and persists edited dimensions');
+        await a.getByRole('button',{name:/Generate Automatic Seating Arrangement/}).click();
+        await a.locator('#generated-seating-result').waitFor();
+        assert.match(await a.locator('#generated-seating-result').innerText(),/3\. Automatic Seating Arrangement/);
+        assert.match(await a.locator('#seating-examinee-store').innerText(),/2\/2 allocated/,'automatic seating must update the Examinee Store preview');
+        assert.equal(await a.locator('[data-seating-room-id]').count(),2,'the automatic arrangement must show every saved room');
+        await a.getByRole('button',{name:/Save Seating Arrangement/}).click();
+        await a.getByText('✓ Saved',{exact:true}).waitFor();
+        assert.equal(await a.evaluate(() => seatingPlans['100']?.['2026-11-01']?.assignments.length),2,'the simple automatic arrangement must save all examinees');
+        console.log('PASS: room layout supports mapped/manual rooms and one-step automatic seating generation');
 
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
