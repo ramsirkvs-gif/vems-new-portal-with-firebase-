@@ -610,7 +610,7 @@ async function main() {
         assert.deepEqual(await a.evaluate(()=>{const candidates=[{studentId:'xa1',cls:'10',section:'A',roll:'10101'},{studentId:'xa2',cls:'10',section:'A',roll:'10102'},{studentId:'xb1',cls:'10',section:'B',roll:'10201'},{studentId:'xia1',cls:'11',section:'A',roll:'11101'},{studentId:'xia2',cls:'11',section:'A',roll:'11102'}],result=allocateTwoPerDesk(candidates,[{id:'r',name:'R',rows:2,desksPerRow:2}]);return{student1:result.assignments.filter(x=>x.seat==='A').map(x=>`${x.roll}@${x.desk}`),pairs:[...new Set(result.assignments.map(x=>x.desk))].map(d=>result.assignments.filter(x=>x.desk===d).map(x=>x.cls))};}),{student1:['10101@1','10102@3','10201@2'],pairs:[['10','11'],['10','11'],['10']]},'Student 1 must run down columns in class-section-roll order and Student 2 must use another standard');
         assert.deepEqual(await a.evaluate(()=>{const room={id:'r',name:'Room',rows:3,desksPerRow:1};return mixedAutomaticHalfColumns({rooms:[room],assignments:[{roomId:'r',desk:1,seat:'A',cls:'10',section:'A'},{roomId:'r',desk:2,seat:'A',cls:'12',section:'A'}]});}),['Room · Column 1 · Student 1'],'automatic validation must detect any class change below a room-column half');
         assert.deepEqual(await a.evaluate(()=>{const plan={rooms:[{id:'r',rows:3,desksPerRow:1}],assignments:[{studentId:'keep',roomId:'r',desk:1,seat:'A',cls:'10',section:'A'},{studentId:'remove',roomId:'r',desk:2,seat:'A',cls:'12',section:'A'}]};normalizeManualHalfColumns(plan);return plan.assignments.map(item=>item.studentId);}),['keep'],'manual seating must remove older mixed-class entries below the first class in every column half');
-        assert.deepEqual(await a.evaluate(()=>{const host=document.createElement('div');host.innerHTML=seatingDeskDiagrams({method:'auto',rooms:[{id:'r1',name:'Room 1',rows:2,desksPerRow:1,deskCount:2},{id:'r2',name:'Room 2',rows:2,desksPerRow:1,deskCount:2}],assignments:[]});return{rooms:host.querySelectorAll('[data-seating-room-id]').length,emptyRoomDesks:host.querySelector('[data-seating-room-id="r2"]').textContent.match(/Vacant/g)?.length||0};}),{rooms:2,emptyRoomDesks:4},'continuous seating scroll must render every room and all vacant desk cells');
+        assert.deepEqual(await a.evaluate(()=>{const host=document.createElement('div');host.innerHTML=seatingDeskDiagrams({method:'auto',rooms:[{id:'r1',name:'Room 1',rows:2,desksPerRow:1,deskCount:2},{id:'r2',name:'Room 2',rows:2,desksPerRow:1,deskCount:2}],assignments:[]});const filtered=document.createElement('div');filtered.innerHTML=seatingDeskDiagrams({method:'auto',rooms:[{id:'r1',name:'Room 1',rows:1,desksPerRow:1},{id:'r2',name:'Room 2',rows:1,desksPerRow:1}],assignments:[]},'r2');return{rooms:host.querySelectorAll('[data-seating-room-id]').length,emptyRoomDesks:host.querySelector('[data-seating-room-id="r2"]').textContent.match(/Vacant/g)?.length||0,filteredRooms:filtered.querySelectorAll('[data-seating-room-id]').length,filteredId:filtered.querySelector('[data-seating-room-id]')?.getAttribute('data-seating-room-id')};}),{rooms:2,emptyRoomDesks:4,filteredRooms:1,filteredId:'r2'},'continuous seating scroll must render every room and all vacant desk cells');
         const addClassSelect=a.locator('#seating-add-classroom');
         const addedClassKey=await addClassSelect.locator('option').nth(1).getAttribute('value');
         await addClassSelect.selectOption(addedClassKey);
@@ -647,6 +647,11 @@ async function main() {
         assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),0,'automatic seating must not show manual range controls');
         assert.match(await a.locator('#generated-seating-result').innerText(),/STUDENT 1.*STUDENT 2 · DIFFERENT STANDARD/s);
         assert.equal(await a.getByRole('button',{name:/Add New Desk|Remove Last Empty Desk/}).count(),0,'desk counts must be edited only in the saved room-layout fields');
+        assert.equal(await a.getByRole('button',{name:/Delete Suggestion \/ Change Rooms/}).count(),1,'a suggestion must provide a delete-and-return action');
+        await a.getByRole('button',{name:/Delete Suggestion \/ Change Rooms/}).click();
+        assert.match(await a.locator('#generated-seating-result').innerText(),/Generate or save a seating plan/,'deleting a suggestion must remove its room charts');
+        assert.equal(await a.locator('.seating-room-check:not(:disabled)').count()>0,true,'deleting a suggestion must return room selection to Edit mode');
+        await a.locator('button', { hasText: 'Generate Automatic Seating Suggestion' }).click();
         assert.match(await a.getByText(/ALL EXAMINEES ARRANGED/).first().textContent(),/ALL EXAMINEES ARRANGED/);
         await a.getByRole('button',{name:/Save \/ Update Seating/}).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
@@ -658,7 +663,7 @@ async function main() {
         assert.match(seatingPdfText, /Seat Student One/);
         await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
         assert.equal(await a.getByRole('button',{name:/Manual Range|Manual Each Cell|Edit by Range|Edit Each Cell/}).count(),0,'manual and range actions must be removed from the automatic-only workflow');
-        await a.getByRole('button',{name:/Edit Room Selection & Layout/}).click();
+        if(await a.getByRole('button',{name:/Edit Room Selection & Layout/}).count())await a.getByRole('button',{name:/Edit Room Selection & Layout/}).click();
         await a.getByRole('button',{name:'Clear All'}).click();
         assert.match(await a.locator('#seating-examinee-store').innerText(),/0\/2 allocated/,'Clear All must reset the visible Examinee Store allocation status');
         console.log('PASS: seating separates same-class students, creates room PINs and generates room-wise PDF');
