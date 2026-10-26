@@ -619,10 +619,14 @@ async function main() {
         await roomCard.locator('.seating-room-rows').fill('3');
         await roomCard.locator('.seating-room-cols').fill('4');
         assert.match(await roomCard.locator('.seating-room-capacity').textContent(),/12 desks · 24 seating/);
+        assert.equal(await a.getByRole('button',{name:'＋ Add Classroom'}).evaluate((button,card)=>button.getBoundingClientRect().top>card.getBoundingClientRect().bottom,await roomCard.elementHandle()),true,'room-add controls must appear below the displayed room cards');
+        await a.getByRole('button',{name:/Save Room Layout/}).click();
+        await a.waitForFunction(() => seatingRooms['classroom-10-A']?.rows===3&&seatingRooms['classroom-10-A']?.desksPerRow===4);
         await a.locator('button', { hasText: 'Generate Automatic Seating Suggestion' }).click();
         assert.equal(await a.getByRole('button',{name:/Save \/ Update Seating/}).count(),1,'generated seating must be shown for approval before saving');
         assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),0,'automatic seating must not show manual range controls');
         assert.match(await a.locator('#generated-seating-result').innerText(),/STUDENT 1.*STUDENT 2 · DIFFERENT STANDARD/s);
+        assert.equal(await a.getByRole('button',{name:/Add New Desk|Remove Last Empty Desk/}).count(),0,'desk counts must be edited only in the saved room-layout fields');
         assert.match(await a.getByText(/ALL EXAMINEES ARRANGED/).first().textContent(),/ALL EXAMINEES ARRANGED/);
         await a.getByRole('button',{name:/Save \/ Update Seating/}).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
