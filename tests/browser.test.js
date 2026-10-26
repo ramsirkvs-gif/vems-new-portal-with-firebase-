@@ -592,6 +592,9 @@ async function main() {
         assert.notEqual(await a.evaluate(() => qpRecordKey(100, '10', 'SCIENCE')), await a.evaluate(() => qpRecordKey(200, '10', 'SCIENCE')));
         console.log('PASS: exam-scoped QP submission, printing, and deadlines synchronize');
 
+        const packedRoomResult=await a.evaluate(() => {const candidates=[...Array(4)].map((_,i)=>({studentId:`x${i}`,name:`X ${i}`,cls:i%2?'12':'10',section:'A',roll:i+1})),rooms=[{id:'r1',name:'Room 1',rows:1,desksPerRow:1},{id:'r2',name:'Room 2',rows:1,desksPerRow:1},{id:'r3',name:'Room 3',rows:1,desksPerRow:1}],result=allocateTwoPerDesk(candidates,rooms);return{error:result.error,roomIds:[...new Set(result.assignments.map(item=>item.roomId))],counts:Object.fromEntries(rooms.map(room=>[room.id,result.assignments.filter(item=>item.roomId===room.id).length]))};});
+        assert.deepEqual(packedRoomResult,{error:'',roomIds:['r1','r2'],counts:{r1:2,r2:2,r3:0}},'automatic seating must completely fill each room before proceeding to the next room');
+
         await a.evaluate(async () => {
             studentRecords = { '10': { A: {
                 seat1: { id: 'seat1', class: '10', section: 'A', roll: 1, name: 'Seat Student One' },
