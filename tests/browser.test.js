@@ -618,6 +618,8 @@ async function main() {
         assert.equal(await a.evaluate(() => examActions.includes('createManualSeatingRoomDraft')||examActions.includes('createMappedSeatingRoomDraft')),false,'room creation is a local draft action and must not be blocked by the Firebase write guard');
         const classroomCard=a.locator('.seating-room-card').first();
         assert.equal(await classroomCard.locator('.seating-room-name').inputValue(),'Classroom 10-A','a classroom appearing in the selected exam date must be displayed by default');
+        assert.deepEqual(await classroomCard.locator('.seating-room-columns').inputValue(),'4','every unsaved default classroom must start with four columns');
+        assert.deepEqual(await classroomCard.locator('.seating-room-desks').inputValue(),'5','every unsaved default classroom must start with five desks per row');
         assert.deepEqual(await a.evaluate(() => mergeStoreRoomsIntoLayout(archivedExams.find(exam=>exam.id===100),'2026-11-01',[{id:'custom',name:'Library',type:'custom',rows:5,desksPerRow:4}]).map(room=>room.name)),['Classroom 10-A','Library'],'Store classrooms must be restored alongside previously saved custom rooms');
         assert.equal((await a.locator('#seating-remaining-room option').allTextContents()).includes('Classroom 10-A'),false,'an automatically displayed exam-day classroom must not remain in the available-room list');
         await classroomCard.locator('.seating-room-columns').fill('6');
