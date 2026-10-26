@@ -3054,16 +3054,22 @@
         }
 
         function allocateTwoPerDesk(candidates,rooms){
-            const remaining=[...candidates].sort((a,b)=>String(a.cls).localeCompare(String(b.cls),undefined,{numeric:true})||String(a.section).localeCompare(String(b.section),undefined,{numeric:true})||String(a.roll).localeCompare(String(b.roll),undefined,{numeric:true})),assignments=[];
-            const takeFirst=excludedStandard=>{const index=remaining.findIndex(student=>excludedStandard===undefined||String(student.cls)!==String(excludedStandard));return index<0?null:remaining.splice(index,1)[0];};
+            const remaining=[...candidates].sort((a,b)=>String(a.cls).localeCompare(String(b.cls),undefined,{numeric:true})||String(a.section).localeCompare(String(b.section),undefined,{numeric:true})||String(a.subject).localeCompare(String(b.subject),undefined,{numeric:true})||String(a.roll).localeCompare(String(b.roll),undefined,{numeric:true})),pairs=[],singles=[];
+            const compatible=(left,right)=>String(left.cls)!==String(right.cls)||String(left.subject)!==String(right.subject);
+            while(remaining.length){
+                const first=remaining.shift();
+                let partnerIndex=remaining.findIndex(student=>String(student.cls)!==String(first.cls));
+                if(partnerIndex<0)partnerIndex=remaining.findIndex(student=>compatible(first,student));
+                if(partnerIndex>=0)pairs.push([first,remaining.splice(partnerIndex,1)[0]]);else singles.push([first]);
+            }
+            const deskGroups=[...pairs,...singles],availableDesks=rooms.reduce((sum,room)=>sum+(Number(room.deskCount)||Number(room.rows)*Number(room.desksPerRow)),0);
+            if(deskGroups.length>availableDesks)return{error:`${deskGroups.length} desks are required after applying the standard-and-subject pairing rule, but the saved rooms contain only ${availableDesks}. Add ${deskGroups.length-availableDesks} more desk(s).`,assignments:[]};
+            const assignments=[];let groupIndex=0;
             for(const room of rooms){
                 const deskCount=Number(room.deskCount)||Number(room.rows)*Number(room.desksPerRow);
-                for(let desk=1;desk<=deskCount&&remaining.length;desk++){
-                    const first=takeFirst();if(first)assignments.push({...first,roomId:room.id,roomName:room.name,desk,seat:'A'});
-                    const second=takeFirst(first?.cls);if(second)assignments.push({...second,roomId:room.id,roomName:room.name,desk,seat:'B'});
-                }
+                for(let desk=1;desk<=deskCount&&groupIndex<deskGroups.length;desk++,groupIndex++)deskGroups[groupIndex].forEach((student,seatIndex)=>assignments.push({...student,roomId:room.id,roomName:room.name,desk,seat:seatIndex?'B':'A'}));
             }
-            return remaining.length?{error:`${remaining.length} students remain. Add more desks or rooms; students of the same standard cannot share one desk.`,assignments:[]}:{error:'',assignments};
+            return{error:'',assignments};
         }
 
         function mixedAutomaticHalfColumns(plan){return(plan?.rooms||[]).flatMap(room=>['A','B'].flatMap(seat=>Array.from({length:Number(room.desksPerRow)||1},(_,index)=>{const column=index+1,classes=new Set((plan.assignments||[]).filter(item=>item.roomId===room.id&&item.seat===seat&&((item.desk-1)%room.desksPerRow)+1===column).map(item=>`${item.cls}-${item.section}`));return classes.size>1?`${room.name} · Column ${column} · Student ${seat==='A'?'1':'2'}`:null;}))).filter(Boolean);}
@@ -3098,8 +3104,6 @@
             if(!source.candidates.length){alert('No matching students were found in Student Master for this date.');return;}
             if(!rooms.length){alert('Save at least one room in the room layout first.');return;}
             rooms.forEach(room=>room.deskCount=Number(room.rows)*Number(room.desksPerRow));
-            const capacity=rooms.reduce((sum,room)=>sum+room.deskCount*2,0);
-            if(capacity<source.candidates.length){alert(`Room capacity shortage: ${source.candidates.length} students require seats, but the saved rooms have only ${capacity}.`);return;}
             const allocation=allocateTwoPerDesk(source.candidates,rooms);
             if(allocation.error){alert(`SEATING ALLOTMENT STOPPED\n\n${allocation.error}`);return;}
             const existing=seatingPlanFor(exam.id,date),generated={date,method:'auto',roomIds:rooms.map(room=>room.id),rooms:rooms.map(room=>({...room,attendancePin:existing?.rooms?.find(saved=>saved.id===room.id)?.attendancePin||String(Math.floor(100+Math.random()*900))})),assignments:allocation.assignments,attendance:cloneData(existing?.attendance||{}),updatedAt:new Date().toISOString()};
@@ -3108,7 +3112,7 @@
 
         function discardSimpleSeatingSuggestion(){suggestedSeatingPlan=null;sessionStorage.removeItem('vems_seating_suggestion');renderExamCreatorModule();setTimeout(()=>document.getElementById('seating-room-layout')?.scrollIntoView({behavior:'smooth',block:'end'}),50);}
 
-        async function approveSuggestedSeating(){if(!suggestedSeatingPlan)return;const{examId,date,plan}=suggestedSeatingPlan,exam=archivedExams.find(item=>String(item.id)===String(examId)),remaining=seatingCandidates(exam,date).candidates.filter(student=>!plan.assignments.some(item=>item.studentId===student.studentId)),sameStandardDesk=plan.assignments.some(item=>plan.assignments.some(other=>other!==item&&other.roomId===item.roomId&&other.desk===item.desk&&String(other.cls)===String(item.cls)));if(sameStandardDesk){alert('SEATING RULE VIOLATION\n\nTwo students of the same standard cannot share one desk.');return;}if(remaining.length){alert(`SEATING INCOMPLETE\n\n${remaining.length} examinee(s) are still unallotted.`);return;}seatingPlans[String(examId)]||={};seatingPlans[String(examId)][date]=cloneData(plan);if(await saveData(['seatingPlans'])){suppressSavedSeatingPreview=false;suggestedSeatingPlan=null;sessionStorage.removeItem('vems_seating_suggestion');renderExamCreatorModule();setTimeout(()=>document.getElementById('generated-seating-result')?.scrollIntoView({behavior:'smooth',block:'start'}),80);}}
+        async function approveSuggestedSeating(){if(!suggestedSeatingPlan)return;const{examId,date,plan}=suggestedSeatingPlan,exam=archivedExams.find(item=>String(item.id)===String(examId)),remaining=seatingCandidates(exam,date).candidates.filter(student=>!plan.assignments.some(item=>item.studentId===student.studentId)),invalidDesk=plan.assignments.some(item=>plan.assignments.some(other=>other!==item&&other.roomId===item.roomId&&other.desk===item.desk&&String(other.cls)===String(item.cls)&&String(other.subject)===String(item.subject)));if(invalidDesk){alert('SEATING RULE VIOLATION\n\nStudents from the same standard with the same mapped subject cannot share one desk.');return;}if(remaining.length){alert(`SEATING INCOMPLETE\n\n${remaining.length} examinee(s) are still unallotted.`);return;}seatingPlans[String(examId)]||={};seatingPlans[String(examId)][date]=cloneData(plan);if(await saveData(['seatingPlans'])){suppressSavedSeatingPreview=false;suggestedSeatingPlan=null;sessionStorage.removeItem('vems_seating_suggestion');renderExamCreatorModule();setTimeout(()=>document.getElementById('generated-seating-result')?.scrollIntoView({behavior:'smooth',block:'start'}),80);}}
         function deleteSuggestedSeating(){suggestedSeatingPlan=null;suppressSavedSeatingPreview=true;editingSeatingRoomLayout=true;sessionStorage.removeItem('vems_seating_suggestion');renderExamCreatorModule();setTimeout(()=>document.getElementById('select-all-seating-rooms')?.scrollIntoView({behavior:'smooth',block:'start'}),50);}
         function discardSuggestedSeating(){deleteSuggestedSeating();}
         function manualHalfClassKey(plan,roomId,column,seat){return plan.manualHalfClasses?.[roomId]?.[column]?.[seat]||'';}
