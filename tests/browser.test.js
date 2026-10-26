@@ -620,11 +620,11 @@ async function main() {
         await roomCard.locator('.seating-room-cols').fill('4');
         assert.match(await roomCard.locator('.seating-room-capacity').textContent(),/12 desks · 24 seating/);
         await a.locator('button', { hasText: 'Generate Automatic Seating Suggestion' }).click();
-        assert.equal(await a.getByRole('button',{name:/Approve & Save Seating/}).count(),1,'generated seating must be shown for approval before saving');
+        assert.equal(await a.getByRole('button',{name:/Save \/ Update Seating/}).count(),1,'generated seating must be shown for approval before saving');
         assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),0,'automatic seating must not show manual range controls');
         assert.match(await a.locator('#generated-seating-result').innerText(),/STUDENT 1.*STUDENT 2 · DIFFERENT STANDARD/s);
         assert.match(await a.getByText(/ALL EXAMINEES ARRANGED/).first().textContent(),/ALL EXAMINEES ARRANGED/);
-        await a.getByRole('button',{name:/Approve & Save Seating/}).click();
+        await a.getByRole('button',{name:/Save \/ Update Seating/}).click();
         await a.waitForFunction(() => seatingPlans['100']?.['2026-11-01']?.assignments.length === 2);
         assert.deepEqual({rows:data.seatingPlans['100']['2026-11-01'].rooms[0].rows,cols:data.seatingPlans['100']['2026-11-01'].rooms[0].desksPerRow},{rows:3,cols:4});
         assert.deepEqual(data.seatingPlans['100']['2026-11-01'].assignments.map(item => `${item.desk}${item.seat}`), ['1A', '5A'], 'students of the same standard must never share one desk');
@@ -633,10 +633,9 @@ async function main() {
         const seatingPdfText = await a.locator('#seating-pdf-preview iframe').contentFrame().locator('body').textContent();
         assert.match(seatingPdfText, /Seat Student One/);
         await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
-        await a.selectOption('#seating-method','manual');
-        assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),1,'selecting manual flow must immediately open the room-column range filler');
-        await a.getByRole('button',{name:/Open Manual Room Feeding/}).click();
-        assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),1,'manual seating must show both feeding methods in the selected classroom header');
+        assert.equal(await a.locator('#seating-method').count(),0,'manual mode must not be selected before the automatic suggestion');
+        await a.getByRole('button',{name:'I · Edit by Range'}).click();
+        assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),1,'manual range editing must open only after the automatic plan is generated or saved');
         const manualColumnGrid=a.locator('#generated-seating-result [data-manual-column-grid]');
         assert.equal(await manualColumnGrid.locator(':scope > div').count(),4,'all four room-column controls must remain in one seating line');
         assert.match(await manualColumnGrid.getAttribute('style'),/repeat\(4,/,'manual controls must use the same four-column geometry as the room');
@@ -645,7 +644,7 @@ async function main() {
         const rangePrefix=(await rangeClass.getAttribute('id')).replace(/-class$/,'');
         assert.deepEqual(await a.locator(`#${rangePrefix}-from option`).evaluateAll(options=>options.map(option=>option.value)),['','1','2'],'Start RN must be a dropdown containing only rolls from the selected class-section');
         assert.deepEqual(await a.locator(`#${rangePrefix}-to option`).evaluateAll(options=>options.map(option=>option.value)),['','1','2'],'End RN must use the same selected class-section roll list');
-        await a.locator('#generated-seating-result select[onchange="setManualFeedingMode(this.value)"]').selectOption('class-cell');
+        await a.getByRole('button',{name:'II · Each Cell Dropdown'}).click();
         const firstHalfClass=a.locator('#generated-seating-result select[onchange^="setManualHalfClass"]').first();
         await firstHalfClass.selectOption('10-A');
         const manualSeat=a.locator('#generated-seating-result select[onchange^="assignManualSuggestedSeat"]').first();
@@ -653,7 +652,8 @@ async function main() {
         assert.equal(await manualSeat.locator('option').evaluateAll(options=>options.slice(1).every(option=>/· X-A/.test(option.textContent))),true,'desk-cell dropdown must contain only students from the selected class-section');
         await manualSeat.selectOption('seat1');
         assert.match(await a.locator('section',{hasText:'Examinee Store'}).locator('article').first().innerText(),/1\/2 allotted/,'manual dropdown feeding must update Examinee Store allocation status');
-        await a.getByRole('button',{name:'Discard / Change'}).click();
+        assert.equal(await a.getByRole('button',{name:/See Updated Examinee Store Status/}).count(),1,'the final workflow action must reopen the live Store Status');
+        await a.getByRole('button',{name:'Change Rooms'}).click();
         console.log('PASS: seating separates same-class students, creates room PINs and generates room-wise PDF');
 
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
