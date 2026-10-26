@@ -850,6 +850,7 @@
             document.getElementById('btn-icon-pri').className = area === 'pri-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
             const mobileMenu=document.getElementById('mobile-portal-menu');if(mobileMenu&&[...mobileMenu.options].some(option=>option.value===area))mobileMenu.value=area;
             renderExamCreatorModule();
+            applyExamIcMasterReadOnlyUi();
         }
 
         function handleMobilePortalSelection(area){const menu=document.getElementById('mobile-portal-menu');if(menu)menu.value=currentActiveRole||'public';switchPortalArea(area);}
@@ -858,6 +859,49 @@
             if (!['sec-ic', 'pri-ic'].includes(authorizedRole)) return;
             currentActiveTab = tab;
             switchPortalArea('principal');
+        }
+
+        let examIcReadOnlyObserver = null;
+        function applyExamIcMasterReadOnlyUi() {
+            const area = document.getElementById('area-principal');
+            if (!area) return;
+            const locked = isExamIcMasterView();
+            area.classList.toggle('exam-ic-read-only', locked);
+            area.setAttribute('aria-readonly', String(locked));
+            area.querySelectorAll('input, textarea').forEach(control => {
+                if (locked) {
+                    if (!control.dataset.examIcOriginalReadonly) control.dataset.examIcOriginalReadonly = control.readOnly ? 'true' : 'false';
+                    control.readOnly = true;
+                    if (control.type === 'file' || control.type === 'checkbox' || control.type === 'radio') {
+                        if (!control.dataset.examIcOriginalDisabled) control.dataset.examIcOriginalDisabled = control.disabled ? 'true' : 'false';
+                        control.disabled = true;
+                    }
+                } else if (control.dataset.examIcOriginalReadonly) {
+                    control.readOnly = control.dataset.examIcOriginalReadonly === 'true';
+                    if (control.dataset.examIcOriginalDisabled) control.disabled = control.dataset.examIcOriginalDisabled === 'true';
+                    delete control.dataset.examIcOriginalReadonly;
+                    delete control.dataset.examIcOriginalDisabled;
+                }
+            });
+            area.querySelectorAll('button:not(.module-tabs button)').forEach(button => {
+                if (locked) {
+                    if (!button.dataset.examIcOriginalDisabled) button.dataset.examIcOriginalDisabled = button.disabled ? 'true' : 'false';
+                    button.disabled = true;
+                    button.title = 'View only for Exam IC accounts';
+                } else if (button.dataset.examIcOriginalDisabled) {
+                    button.disabled = button.dataset.examIcOriginalDisabled === 'true';
+                    delete button.dataset.examIcOriginalDisabled;
+                    if (button.title === 'View only for Exam IC accounts') button.removeAttribute('title');
+                }
+            });
+            area.querySelectorAll('[contenteditable]').forEach(element => element.contentEditable = locked ? 'false' : 'true');
+            if (locked && !examIcReadOnlyObserver) {
+                examIcReadOnlyObserver = new MutationObserver(() => applyExamIcMasterReadOnlyUi());
+                examIcReadOnlyObserver.observe(area, { childList: true, subtree: true });
+            } else if (!locked && examIcReadOnlyObserver) {
+                examIcReadOnlyObserver.disconnect();
+                examIcReadOnlyObserver = null;
+            }
         }
 
         function switchTab(tab) {
@@ -887,6 +931,7 @@
             if(tab === 'holidays') renderHolidayManager();
             if(tab === 'settings') { populateLegacyExamOptions(); renderSignatureProfiles(); updateSessionChrome(); }
             document.getElementById('tab-btn-settings')?.classList.toggle('hidden', isExamIcMasterView());
+            applyExamIcMasterReadOnlyUi();
             if (shouldRestore) setTimeout(() => window.scrollTo(0, Number(localStorage.getItem(`vems_scroll_${currentActiveRole}_${tab}`)) || 0), 80);
         }
 

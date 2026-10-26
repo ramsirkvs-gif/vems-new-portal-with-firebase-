@@ -856,6 +856,9 @@ async function main() {
         assert.equal(await secondary.locator('#sec-teachers').isVisible(), true, 'a belt button must open its requested segment directly');
         assert.equal(await secondary.locator('#exam-ic-master-view-banner').isVisible(), true);
         assert.equal(await secondary.locator('#tab-btn-settings').isVisible(), false, 'system and password settings must stay hidden from the Exam IC master-data view');
+        assert.equal(await secondary.locator('#sec-teachers input').first().isEditable(), false, 'master-data form fields must be visibly locked');
+        assert.equal(await secondary.locator('#sec-teachers button:not(.module-tabs button)').first().isDisabled(), true, 'master-data action buttons must be disabled');
+        assert.equal(await secondary.locator('#tab-btn-students').isDisabled(), false, 'read-only users must still be able to navigate between segments');
         assert.equal(await secondary.evaluate(() => canEditSharedData('exam')), false, 'the master-data view must block even normally authorized exam writes');
         await secondary.evaluate(() => switchPortalArea('sec-ic'));
         assert.equal(await secondary.evaluate(() => canEditSharedData('exam')), true, 'returning to the Exam IC workspace must restore authorized exam work');

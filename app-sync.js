@@ -267,6 +267,7 @@ function refreshSharedViews() {
     renderSignatureProfiles();
     if (currentActiveTab === 'holidays') renderHolidayManager();
     updateSessionChrome();
+    applyExamIcMasterReadOnlyUi();
 }
 document.addEventListener('focusout', event => {
     if (event.target.closest('#settings-signature-profiles, #public-notice-manager, #circular-editor, #exam-vault-editor, #faculty-order-manager') || event.target.id?.startsWith('circular-signature-')) return;
