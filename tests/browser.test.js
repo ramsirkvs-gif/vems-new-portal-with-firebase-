@@ -598,6 +598,9 @@ async function main() {
         const subjectPairingResult=await a.evaluate(() => {const rooms=[{id:'r1',name:'Room 1',rows:1,desksPerRow:2}],allowed=allocateTwoPerDesk([{studentId:'p',name:'Physics Student',cls:'12',section:'A',subject:'PHYSICS',roll:1},{studentId:'q',name:'Political Science Student',cls:'12',section:'B',subject:'POLITICAL SCIENCE',roll:2}],rooms),blocked=allocateTwoPerDesk([{studentId:'x',name:'Physics One',cls:'12',section:'A',subject:'PHYSICS',roll:1},{studentId:'y',name:'Physics Two',cls:'12',section:'B',subject:'PHYSICS',roll:2}],rooms);return{allowedDesks:[...new Set(allowed.assignments.map(item=>item.desk))],blockedDesks:[...new Set(blocked.assignments.map(item=>item.desk))]};});
         assert.deepEqual(subjectPairingResult,{allowedDesks:[1],blockedDesks:[1,2]},'same-standard students may share a desk only when their locked mapped subjects differ');
 
+        const verticalFlow=await a.evaluate(() => {const candidates=[1,2,3,4].flatMap(roll=>[{studentId:`x${roll}`,name:`X ${roll}`,cls:'10',section:'A',subject:'MATHS',roll},{studentId:`y${roll}`,name:`Y ${roll}`,cls:'11',section:'A',subject:'ENGLISH',roll}]),room={id:'r1',name:'Room 1',rows:2,desksPerRow:2},result=allocateTwoPerDesk(candidates,[room]);return result.assignments.filter(item=>item.cls==='10').map(item=>({roll:item.roll,desk:item.desk}));});
+        assert.deepEqual(verticalFlow,[{roll:1,desk:1},{roll:2,desk:3},{roll:3,desk:2},{roll:4,desk:4}],'roll numbers must continue vertically down each column before moving horizontally to the next column');
+
         await a.evaluate(async () => {
             studentRecords = { '10': { A: {
                 seat1: { id: 'seat1', class: '10', section: 'A', roll: 1, name: 'Seat Student One' },
