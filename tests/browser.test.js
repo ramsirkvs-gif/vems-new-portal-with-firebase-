@@ -635,6 +635,11 @@ async function main() {
         assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),1,'selecting manual flow must immediately open the room-column range filler');
         await a.getByRole('button',{name:/Open Manual Room Feeding/}).click();
         assert.equal(await a.getByText('MANUAL ROOM-COLUMN HALF FEEDING',{exact:true}).count(),1,'manual seating must show both feeding methods in the selected classroom header');
+        const rangeClass=a.locator('#generated-seating-result select[id^="manual-col-"][id$="-class"]').first();
+        await rangeClass.selectOption('10-A');
+        const rangePrefix=(await rangeClass.getAttribute('id')).replace(/-class$/,'');
+        assert.deepEqual(await a.locator(`#${rangePrefix}-from option`).evaluateAll(options=>options.map(option=>option.value)),['','1','2'],'Start RN must be a dropdown containing only rolls from the selected class-section');
+        assert.deepEqual(await a.locator(`#${rangePrefix}-to option`).evaluateAll(options=>options.map(option=>option.value)),['','1','2'],'End RN must use the same selected class-section roll list');
         await a.locator('#generated-seating-result select[onchange="setManualFeedingMode(this.value)"]').selectOption('class-cell');
         const firstHalfClass=a.locator('#generated-seating-result select[onchange^="setManualHalfClass"]').first();
         await firstHalfClass.selectOption('10-A');
