@@ -732,6 +732,11 @@ async function main() {
         await a.evaluate(()=>switchTab('holidays'));
         assert.match(await a.locator('#holiday-manager-mount h2').textContent(),/4\. Holiday Manager/);
         assert.deepEqual(await a.locator('#holiday-manager-mount thead').first().locator('th').allTextContents(),['S.No.','Date','Day','On Account Of','Remark','Edit']);
+        assert.equal(await a.locator('#holiday-manager-mount h3',{hasText:'Vidyalaya Holiday Calendar'}).count(),1);
+        assert.equal(await a.locator('#holiday-manager-mount h3',{hasText:'Automatic Weekly Closures'}).count(),1,'Sundays and second Saturdays must have a separate list');
+        const vidyalayaHolidaySection=a.locator('#holiday-manager-mount h3',{hasText:'Vidyalaya Holiday Calendar'}).locator('..');
+        assert.doesNotMatch(await vidyalayaHolidaySection.innerText(),/Sunday|Second Saturday/,'automatic weekly closures must not be mixed into the Vidyalaya holiday table');
+        assert.deepEqual(await a.evaluate(()=>({manual:examDateWarning('2026-10-28'),sunday:examDateWarning('2026-11-01'),secondSaturday:examDateWarning('2026-11-14')})),{manual:'Test Holiday',sunday:'Sunday',secondSaturday:'Second Saturday'},'all three separate holiday sources must trigger Exam Vault warnings');
         assert.equal(await a.locator('#holiday-manager-mount h3',{hasText:'Monthly Holiday Calendar'}).count(),1,'Holiday Manager must show its own monthly holiday calendar');
         assert.equal(await a.locator('#holiday-manager-mount').evaluate(mount=>mount.lastElementChild?.lastElementChild?.querySelector('#holiday-publish-button')!==null),true,'holiday publishing control must be at the end of Holiday Manager');
         assert.equal(await a.locator('#holiday-manager-mount button',{hasText:'Edit'}).count(),1);
