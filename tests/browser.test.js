@@ -616,12 +616,9 @@ async function main() {
         assert.equal(await a.locator('#seating-add-classroom').count(),0,'mapped-room formulas and dropdowns must be removed');
         assert.equal(await a.getByRole('button',{name:/Add Open Area|Add Selected Room/}).count(),0,'special room commands must be removed');
         assert.equal(await a.evaluate(() => examActions.includes('createManualSeatingRoomDraft')||examActions.includes('createMappedSeatingRoomDraft')),false,'room creation is a local draft action and must not be blocked by the Firebase write guard');
-        assert.equal((await a.locator('#seating-remaining-room option').allTextContents()).includes('Classroom 10-A'),true,'remaining mapped classrooms must be available from a dropdown');
-        await a.selectOption('#seating-remaining-room','10-A');
-        await a.getByRole('button',{name:'+ Add Available Room',exact:true}).click();
         const classroomCard=a.locator('.seating-room-card').first();
-        assert.equal(await classroomCard.locator('.seating-room-name').inputValue(),'Classroom 10-A');
-        assert.equal((await a.locator('#seating-remaining-room option').allTextContents()).includes('Classroom 10-A'),false,'an added mapped classroom must leave the remaining-room list');
+        assert.equal(await classroomCard.locator('.seating-room-name').inputValue(),'Classroom 10-A','a classroom appearing in the selected exam date must be displayed by default');
+        assert.equal((await a.locator('#seating-remaining-room option').allTextContents()).includes('Classroom 10-A'),false,'an automatically displayed exam-day classroom must not remain in the available-room list');
         await classroomCard.locator('.seating-room-columns').fill('6');
         await classroomCard.locator('.seating-room-desks').fill('7');
         assert.match(await classroomCard.innerText(),/42 desks · 84 seating/,'capacity must update while room dimensions are edited');
