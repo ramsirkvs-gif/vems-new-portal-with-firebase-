@@ -672,7 +672,9 @@ async function main() {
         await a.getByText('✓ Saved',{exact:true}).waitFor();
         assert.match(await a.locator('#seating-occupancy-report').innerText(),/Ready for Invigilation Workflow/,'a saved complete arrangement must become invigilation workflow data');
         assert.equal(await a.evaluate(() => seatingPlans['100']?.['2026-11-01']?.assignments.length),2,'the simple automatic arrangement must save all examinees');
-        console.log('PASS: room layout supports mapped/manual rooms and one-step automatic seating generation');
+        await a.getByRole('button',{name:/Proceed to 6\. Invigilation/}).click();
+        assert.equal(await a.evaluate(() => activePreExamSubTab),'invigilation','the completed occupancy report must proceed directly to the linked Invigilation module');
+        console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
 
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
