@@ -618,6 +618,10 @@ async function main() {
         await classroomCard.locator('.seating-room-columns').fill('6');
         await classroomCard.locator('.seating-room-desks').fill('7');
         assert.match(await classroomCard.innerText(),/42 desks · 84 seating/,'capacity must update while room dimensions are edited');
+        await a.evaluate(() => acceptSharedValue('seatingRooms', cloneData(seatingRooms)));
+        await a.waitForTimeout(100);
+        assert.equal(await a.locator('.seating-room-card').filter({hasText:'Classroom 10-A'}).count(),1,'an incoming live seatingRooms refresh must not erase the local room-layout draft');
+        assert.equal(await a.locator('.seating-room-card').filter({hasText:'Classroom 10-A'}).locator('.seating-room-columns').inputValue(),'6','live synchronization must not reset draft room dimensions');
         await a.fill('#seating-custom-room-name','Library');
         await a.getByRole('button',{name:'+ Add Room',exact:true}).click();
         assert.equal(await a.locator('.seating-room-card').count(),2,'manually named rooms must be addable continuously');
