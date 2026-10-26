@@ -664,10 +664,12 @@ async function main() {
         assert.match(await a.locator('#generated-seating-result').innerText(),/3\. Automatic Seating Arrangement/);
         assert.doesNotMatch(await a.locator('#generated-seating-result').innerText(),/DIFFERENT STANDARD/i,'the seating chart must identify students by roll and class without the redundant different-standard label');
         assert.match(await a.locator('#seating-examinee-store').innerText(),/2\/2 allocated/,'automatic seating must update the Examinee Store preview');
+        assert.match(await a.locator('#seating-occupancy-report').innerText(),/2\s*Vault candidates.*2\s*Allotted.*0\s*Students remaining.*1\s*Rooms occupied.*1\s*Rooms unused/s,'the occupancy report must distinguish created rooms from actually occupied rooms and confirm no remaining candidates');
         assert.equal(await a.locator('[data-seating-room-id]').count(),1,'the automatic arrangement must exclude unused saved rooms to minimize invigilation duty');
         assert.match(await a.locator('[data-seating-room-id]').first().locator('.room-seating-summary').innerText(),/Class X-A · RN 1 to 2 · 2 students/,'each room chart must summarize seated class-section and roll-number range');
         await a.getByRole('button',{name:/Save Seating Arrangement/}).click();
         await a.getByText('✓ Saved',{exact:true}).waitFor();
+        assert.match(await a.locator('#seating-occupancy-report').innerText(),/Ready for Invigilation Workflow/,'a saved complete arrangement must become invigilation workflow data');
         assert.equal(await a.evaluate(() => seatingPlans['100']?.['2026-11-01']?.assignments.length),2,'the simple automatic arrangement must save all examinees');
         console.log('PASS: room layout supports mapped/manual rooms and one-step automatic seating generation');
 
