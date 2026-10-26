@@ -612,6 +612,7 @@ async function main() {
         assert.match(await a.locator('#seating-room-layout').innerText(),/2\. Select rooms and enter the room layout/);
         assert.equal(await a.locator('#seating-add-classroom').count(),0,'mapped-room formulas and dropdowns must be removed');
         assert.equal(await a.getByRole('button',{name:/Add Open Area|Add Selected Room/}).count(),0,'special room commands must be removed');
+        assert.equal(await a.evaluate(() => examActions.includes('addSeatingRoom')),false,'Add Room is a local draft action and must not be blocked by the Firebase write guard');
         await a.fill('#seating-custom-room-name','Classroom 10-A');
         await a.getByRole('button',{name:'+ Add Room',exact:true}).click();
         const classroomCard=a.locator('.seating-room-card').first();

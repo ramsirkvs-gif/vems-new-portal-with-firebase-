@@ -595,7 +595,7 @@ const examActions = ['startNewExamSetup', 'saveMainHeaderConfig', 'saveOrUpdateD
     'loadArchivedExamToEdit', 'deleteArchivedExam', 'bindupAndSaveExamRecord', 'updateExamDates', 'handleExamNameSelect',
     'addNextDatesheetDay', 'addPaperSlotToDay', 'removePaperSlotFromDay', 'handleSlotClassChange', 'handleSlotSubjectChange',
     'toggleSlotSection', 'updateSlotField', 'toggleQpSubmissionTick', 'updateQpPrintingStatus', 'saveSubmissionDeadline',
-    'addSeatingRoom', 'addRemainingClassroom', 'generateAutomaticSeating', 'approveSuggestedSeating', 'removeSeatingStudent', 'manuallyPlaceSeatingStudent',
+    'generateAutomaticSeating', 'approveSuggestedSeating', 'removeSeatingStudent', 'manuallyPlaceSeatingStudent',
     'toggleSeatingPublishing', 'publishSeatingBoard', 'togglePublicStudentAttendance'];
 [...principalActions, ...examActions].forEach(name => {
     const handler = window[name];
