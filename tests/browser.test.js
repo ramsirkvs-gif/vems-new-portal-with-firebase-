@@ -610,8 +610,9 @@ async function main() {
         await roomCard.locator('.seating-room-rows').fill('3');
         await roomCard.locator('.seating-room-cols').fill('4');
         assert.match(await roomCard.locator('.seating-room-capacity').textContent(),/12 desks · 24 seating/);
-        await a.locator('button', { hasText: 'Generate Suggested Seating' }).click();
+        await a.locator('button', { hasText: 'Generate Automatic Seating Suggestion' }).click();
         assert.equal(await a.getByRole('button',{name:/Approve & Save Seating/}).count(),1,'generated seating must be shown for approval before saving');
+        assert.equal(await a.getByText('MANUAL COLUMN RN FEEDING',{exact:true}).count(),0,'automatic seating must not show manual range controls');
         assert.match(await a.locator('#generated-seating-result').innerText(),/STUDENT 1.*STUDENT 2 · DIFFERENT STANDARD/s);
         assert.match(await a.getByText(/ALL EXAMINEES ARRANGED/).first().textContent(),/ALL EXAMINEES ARRANGED/);
         await a.getByRole('button',{name:/Approve & Save Seating/}).click();
@@ -624,7 +625,8 @@ async function main() {
         assert.match(seatingPdfText, /Seat Student One/);
         await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
         await a.selectOption('#seating-method','manual');
-        await a.getByRole('button',{name:/Generate Suggested Seating/}).click();
+        await a.getByRole('button',{name:/Create Manual Seating Grid/}).click();
+        assert.equal(await a.getByText('MANUAL COLUMN RN FEEDING',{exact:true}).count(),1,'manual seating must show the range filler in the selected classroom header');
         const manualSeat=a.locator('#generated-seating-result select[onchange^="assignManualSuggestedSeat"]').first();
         await manualSeat.selectOption('seat1');
         assert.match(await a.locator('section',{hasText:'Examinee Store'}).locator('article').first().innerText(),/1\/2 allotted/,'manual dropdown feeding must update Examinee Store allocation status');
