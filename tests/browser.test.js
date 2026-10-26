@@ -598,6 +598,9 @@ async function main() {
         const subjectPairingResult=await a.evaluate(() => {const rooms=[{id:'r1',name:'Room 1',rows:1,desksPerRow:2}],allowed=allocateTwoPerDesk([{studentId:'p',name:'Physics Student',cls:'12',section:'A',subject:'PHYSICS',roll:1},{studentId:'q',name:'Political Science Student',cls:'12',section:'B',subject:'POLITICAL SCIENCE',roll:2}],rooms),blocked=allocateTwoPerDesk([{studentId:'x',name:'Physics One',cls:'12',section:'A',subject:'PHYSICS',roll:1},{studentId:'y',name:'Physics Two',cls:'12',section:'B',subject:'PHYSICS',roll:2}],rooms);return{allowedDesks:[...new Set(allowed.assignments.map(item=>item.desk))],blockedDesks:[...new Set(blocked.assignments.map(item=>item.desk))]};});
         assert.deepEqual(subjectPairingResult,{allowedDesks:[1],blockedDesks:[1,2]},'same-standard students may share a desk only when their locked mapped subjects differ');
 
+        const balancedPairing=await a.evaluate(() => {const candidates=[...Array(6)].flatMap((_,index)=>[{studentId:`a${index}`,name:`A ${index}`,cls:'12',section:'A',subject:'PHYSICS',roll:index+1},{studentId:`b${index}`,name:`B ${index}`,cls:'12',section:'B',subject:'POLITICAL SCIENCE',roll:index+1},{studentId:`c${index}`,name:`C ${index}`,cls:'11',section:'A',subject:'ENGLISH',roll:index+1}]),room={id:'r1',name:'Room 1',rows:5,desksPerRow:2},result=allocateTwoPerDesk(candidates,[room]);return{error:result.error,students:result.assignments.length,desks:new Set(result.assignments.map(item=>item.desk)).size,singles:[...new Set(result.assignments.map(item=>item.desk))].filter(desk=>result.assignments.filter(item=>item.desk===desk).length===1).length};});
+        assert.deepEqual(balancedPairing,{error:'',students:18,desks:9,singles:0},'balanced pairing must reserve compatible partners and minimize the number of desks and rooms used');
+
         const verticalFlow=await a.evaluate(() => {const candidates=[1,2,3,4].flatMap(roll=>[{studentId:`x${roll}`,name:`X ${roll}`,cls:'10',section:'A',subject:'MATHS',roll},{studentId:`y${roll}`,name:`Y ${roll}`,cls:'11',section:'A',subject:'ENGLISH',roll}]),room={id:'r1',name:'Room 1',rows:2,desksPerRow:2},result=allocateTwoPerDesk(candidates,[room]);return result.assignments.filter(item=>item.cls==='10').map(item=>({roll:item.roll,desk:item.desk}));});
         assert.deepEqual(verticalFlow,[{roll:1,desk:1},{roll:2,desk:3},{roll:3,desk:2},{roll:4,desk:4}],'roll numbers must continue vertically down each column before moving horizontally to the next column');
 
@@ -661,7 +664,7 @@ async function main() {
         assert.match(await a.locator('#generated-seating-result').innerText(),/3\. Automatic Seating Arrangement/);
         assert.doesNotMatch(await a.locator('#generated-seating-result').innerText(),/DIFFERENT STANDARD/i,'the seating chart must identify students by roll and class without the redundant different-standard label');
         assert.match(await a.locator('#seating-examinee-store').innerText(),/2\/2 allocated/,'automatic seating must update the Examinee Store preview');
-        assert.equal(await a.locator('[data-seating-room-id]').count(),2,'the automatic arrangement must show every saved room');
+        assert.equal(await a.locator('[data-seating-room-id]').count(),1,'the automatic arrangement must exclude unused saved rooms to minimize invigilation duty');
         assert.match(await a.locator('[data-seating-room-id]').first().locator('.room-seating-summary').innerText(),/Class X-A · RN 1 to 2 · 2 students/,'each room chart must summarize seated class-section and roll-number range');
         await a.getByRole('button',{name:/Save Seating Arrangement/}).click();
         await a.getByText('✓ Saved',{exact:true}).waitFor();
