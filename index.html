@@ -3054,7 +3054,7 @@
         }
 
         function allocateTwoPerDesk(candidates,rooms){
-            const remaining=[...candidates].sort((a,b)=>String(a.cls).localeCompare(String(b.cls),undefined,{numeric:true})||String(a.section).localeCompare(String(b.section),undefined,{numeric:true})||String(a.subject).localeCompare(String(b.subject),undefined,{numeric:true})||String(a.roll).localeCompare(String(b.roll),undefined,{numeric:true})),pairs=[],singles=[];
+            const remaining=[...candidates].sort((a,b)=>String(a.cls).localeCompare(String(b.cls),undefined,{numeric:true})||String(a.section).localeCompare(String(b.section),undefined,{numeric:true})||String(a.roll).localeCompare(String(b.roll),undefined,{numeric:true})||String(a.subject).localeCompare(String(b.subject),undefined,{numeric:true})),pairs=[],singles=[];
             const compatible=(left,right)=>String(left.cls)!==String(right.cls)||String(left.subject)!==String(right.subject);
             while(remaining.length){
                 const first=remaining.shift();

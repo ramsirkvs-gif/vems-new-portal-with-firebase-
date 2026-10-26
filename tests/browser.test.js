@@ -601,6 +601,9 @@ async function main() {
         const verticalFlow=await a.evaluate(() => {const candidates=[1,2,3,4].flatMap(roll=>[{studentId:`x${roll}`,name:`X ${roll}`,cls:'10',section:'A',subject:'MATHS',roll},{studentId:`y${roll}`,name:`Y ${roll}`,cls:'11',section:'A',subject:'ENGLISH',roll}]),room={id:'r1',name:'Room 1',rows:2,desksPerRow:2},result=allocateTwoPerDesk(candidates,[room]);return result.assignments.filter(item=>item.cls==='10').map(item=>({roll:item.roll,desk:item.desk}));});
         assert.deepEqual(verticalFlow,[{roll:1,desk:1},{roll:2,desk:3},{roll:3,desk:2},{roll:4,desk:4}],'roll numbers must continue vertically down each column before moving horizontally to the next column');
 
+        const crossSubjectRollOrder=await a.evaluate(() => {const candidates=[{studentId:'x6',name:'RN 6',cls:'10',section:'A',subject:'MATHS BASIC',roll:6},{studentId:'x1',name:'RN 1',cls:'10',section:'A',subject:'MATHS STANDARD',roll:1},{studentId:'y1',name:'XI 1',cls:'11',section:'A',subject:'ENGLISH',roll:1},{studentId:'y2',name:'XI 2',cls:'11',section:'A',subject:'ENGLISH',roll:2}],room={id:'r1',name:'Room 1',rows:2,desksPerRow:1},result=allocateTwoPerDesk(candidates,[room]);return result.assignments.filter(item=>item.cls==='10').map(item=>item.roll);});
+        assert.deepEqual(crossSubjectRollOrder,[1,6],'a higher roll number from another subject must never start before the class-section initial roll number');
+
         await a.evaluate(async () => {
             studentRecords = { '10': { A: {
                 seat1: { id: 'seat1', class: '10', section: 'A', roll: 1, name: 'Seat Student One' },
