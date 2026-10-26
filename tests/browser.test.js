@@ -623,6 +623,12 @@ async function main() {
         const seatingPdfText = await a.locator('#seating-pdf-preview iframe').contentFrame().locator('body').textContent();
         assert.match(seatingPdfText, /Seat Student One/);
         await a.evaluate(() => document.getElementById('seating-pdf-preview').remove());
+        await a.selectOption('#seating-method','manual');
+        await a.getByRole('button',{name:/Generate Suggested Seating/}).click();
+        const manualSeat=a.locator('#generated-seating-result select').first();
+        await manualSeat.selectOption('seat1');
+        assert.match(await a.locator('section',{hasText:'Examinee Store'}).locator('article').first().innerText(),/1\/2 allotted/,'manual dropdown feeding must update Examinee Store allocation status');
+        await a.getByRole('button',{name:'Discard / Change'}).click();
         console.log('PASS: seating separates same-class students, creates room PINs and generates room-wise PDF');
 
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
