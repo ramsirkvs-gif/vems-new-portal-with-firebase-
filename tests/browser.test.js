@@ -605,6 +605,9 @@ async function main() {
         assert.deepEqual(strictSectionFlow.blocks,['10-A','10-B'],'the primary seating lane must finish Class X-A before starting Class X-B and must never return to an earlier section');
         assert.equal(strictSectionFlow.primary.filter(key=>key==='10-A').length,5,'every Class X-A candidate must remain in one continuous section block');
 
+        const orderedRoomFlow=await a.evaluate(()=>{const candidates=[...Array(2)].flatMap((_,index)=>[{studentId:`x${index}`,name:`X ${index}`,cls:'10',section:'A',subject:'SCIENCE',roll:index+1},{studentId:`y${index}`,name:`Y ${index}`,cls:'11',section:'A',subject:'ENGLISH',roll:index+1}]),rooms=[{id:'d',name:'Classroom 10-D',classSection:'10-D',type:'classroom',rows:1,desksPerRow:1},{id:'a',name:'Classroom 10-A',classSection:'10-A',type:'classroom',rows:1,desksPerRow:1}],result=allocateTwoPerDesk(candidates,rooms);return result.assignments.map(item=>item.roomName);});
+        assert.deepEqual([...new Set(orderedRoomFlow)],['Classroom 10-A','Classroom 10-D'],'allocation must begin in the initial naturally ordered classroom even when Firebase returns rooms in another insertion order');
+
         const verticalFlow=await a.evaluate(() => {const candidates=[1,2,3,4].flatMap(roll=>[{studentId:`x${roll}`,name:`X ${roll}`,cls:'10',section:'A',subject:'MATHS',roll},{studentId:`y${roll}`,name:`Y ${roll}`,cls:'11',section:'A',subject:'ENGLISH',roll}]),room={id:'r1',name:'Room 1',rows:2,desksPerRow:2},result=allocateTwoPerDesk(candidates,[room]);return result.assignments.filter(item=>item.cls==='10').map(item=>({roll:item.roll,desk:item.desk}));});
         assert.deepEqual(verticalFlow,[{roll:1,desk:1},{roll:2,desk:3},{roll:3,desk:2},{roll:4,desk:4}],'roll numbers must continue vertically down each column before moving horizontally to the next column');
 
@@ -612,7 +615,7 @@ async function main() {
         assert.deepEqual(crossSubjectRollOrder,[1,6],'a higher roll number from another subject must never start before the class-section initial roll number');
 
         const mathsSummary=await a.evaluate(() => {const host=document.createElement('div');host.innerHTML=roomSeatingSummaryHtml([{cls:'10',section:'A',subject:'MATHS STANDARD',roll:10101},{cls:'10',section:'A',subject:'MATHS BASIC',roll:10106}]);return host.innerText;});
-        assert.match(mathsSummary,/Class X-A · MATHS STD\/BASIC · RN 10101 to 10106 · 2 students/,'Maths Standard and Basic must use one combined room-summary range');
+        assert.match(mathsSummary,/RN 10101 · 1 student.*RN 10106 · 1 student/s,'non-consecutive roll numbers must use separate truthful ranges and counts');
 
         await a.evaluate(async () => {
             studentRecords = { '10': { A: {
