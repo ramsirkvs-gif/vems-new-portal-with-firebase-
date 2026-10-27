@@ -687,6 +687,7 @@ async function main() {
         assert.equal(await a.evaluate(() => seatingPlans['100']?.['2026-11-01']?.assignments.length),2,'the simple automatic arrangement must save all examinees');
         await a.getByRole('button',{name:/Proceed to 6\. Invigilation/}).click();
         assert.equal(await a.evaluate(() => activePreExamSubTab),'invigilation','the completed occupancy report must proceed directly to the linked Invigilation module');
+        assert.deepEqual(await a.evaluate(()=>invigilationVaultDates({datesheetSnapshot:[{dateStr:'2026-11-01'},{dateStr:'2026-11-03'},{dateStr:'2026-11-02'}]})),['2026-11-01','2026-11-02','2026-11-03'],'the Invigilation day belt must use every date in the full Vault, independent of saved seating');
         assert.equal(await a.locator('[data-invigilation-room]').count(),1,'invigilation must use only rooms actually occupied in the saved seating workflow');
         assert.doesNotMatch(await a.locator('[data-invigilation-room]').first().innerText(),/Library Annex/,'an unused room from the room layout must not enter invigilation');
         assert.match(await a.locator('[data-invigilation-room]').first().innerText(),/Students allotted:\s*2/,'invigilation must display the exact student count from the actual occupied-room calculation');
