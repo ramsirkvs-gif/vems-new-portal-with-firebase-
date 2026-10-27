@@ -727,8 +727,18 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:'📢 Publish'}).count(),1,'the edited draft must offer a simple Publish action');
         await a.evaluate(() => publishQpOfficeOrder());
         await a.waitForFunction(()=>qpOfficeOrders['100']?.status==='ISSUED');
+        await a.waitForFunction(()=>publicPortalBoards.qpSetterCirculars?.['100']);
+        assert.equal(await a.locator('#public-qp-circular-section').isVisible(),false,'the published circular section belongs to Public View');
+        await a.evaluate(()=>switchPortalArea('public'));
+        assert.equal(await a.locator('#public-qp-circular-section').isVisible(),true);
+        assert.match(await a.locator('#public-qp-circular-section').innerText(),/4\..*Circulars to Question Paper Setters.*Existing Exam.*KV1\/EXAM\/2026\/01-REVISED/s);
+        await a.getByRole('button',{name:/View Circular \/ PDF/}).click();
+        await a.locator('#qp-office-order-preview iframe').waitFor();
+        assert.match(await a.locator('#qp-office-order-preview iframe').contentFrame().locator('body').textContent(),/Other Device Name/);
+        await a.evaluate(()=>{closeQpOfficeOrderPreview();switchPortalArea('principal');openPreExamFullPageWorkspace(100);switchPreExamSubTab('qp-setters');});
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await stopPublishingQpOfficeOrder();}finally{window.confirm=old;}});
         await a.waitForFunction(()=>qpOfficeOrders['100']?.status==='DRAFT');
+        await a.waitForFunction(()=>!publicPortalBoards.qpSetterCirculars?.['100']);
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await deleteQpOfficeOrder();}finally{window.confirm=old;}});
         await a.waitForFunction(()=>!qpOfficeOrders['100']);
         await a.evaluate(() => closeQpOfficeOrderPreview());
