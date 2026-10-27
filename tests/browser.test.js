@@ -712,6 +712,13 @@ async function main() {
         await a.getByText('✓ Saved',{exact:true}).waitFor();
         assert.match(await a.locator('#seating-occupancy-report').innerText(),/Ready for Invigilation Workflow/,'a saved complete arrangement must become invigilation workflow data');
         assert.equal(await a.evaluate(() => seatingPlans['100']?.['2026-11-01']?.assignments.length),2,'the simple automatic arrangement must save all examinees');
+        await a.locator('.workflow-document-actions').getByRole('button',{name:'📢 Publish',exact:true}).click();
+        await a.waitForFunction(()=>!!publicPortalBoards.seating?.plans?.['2026-11-01']);
+        assert.deepEqual(await a.evaluate(()=>Object.keys(publicPortalBoards.seating?.plans||{})),['2026-11-01'],'Seating publication must expose only the selected examination day');
+        assert.match(await a.locator('.workflow-document-actions').innerText(),/DAYWISE[\s\S]*01\/11\/2026/,'the Seating action bar must identify the selected day');
+        await a.evaluate(()=>{window.confirm=()=>true;});
+        await a.locator('.workflow-document-actions').getByRole('button',{name:'⏹ Stop Publishing',exact:true}).click();
+        await a.waitForFunction(()=>!publicPortalBoards.seating);
         await a.getByRole('button',{name:/Proceed to 6\. Invigilation/}).click();
         assert.equal(await a.evaluate(() => activePreExamSubTab),'invigilation','the completed occupancy report must proceed directly to the linked Invigilation module');
         assert.equal(await a.evaluate(() => selectedInvigilationDate),await a.evaluate(() => selectedSeatingDate),'Proceed to Invigilation must preserve the exact Seating report date');
