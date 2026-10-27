@@ -737,6 +737,7 @@ async function main() {
         await a.getByRole('button',{name:/Save Invigilation Plan/}).click();
         await a.getByRole('button',{name:/Edit Day 1/}).waitFor();
         assert.equal(await a.locator('#invigilation-duty-load').count(),0,'the duty-load side panel must stay collapsed by default to leave room duties full width');
+        assert.match(await a.getByRole('button',{name:/Show duty load/}).getAttribute('class'),/fixed[\s\S]*top-1\/2/,'the collapsed duty-load control must remain visible beside the current room while scrolling');
         await a.getByRole('button',{name:/Show duty load/}).click();
         assert.match(await a.locator('#invigilation-duty-load').innerText(),/Selected day[\s\S]*Full Vault[\s\S]*Full-time[\s\S]*Relieving/,'one combined duty-load table must show day and full-Vault columns');
         const firstDutyName=await a.evaluate(id=>teachers.find(item=>String(item.id)===id).name,facultyIds[0]);
