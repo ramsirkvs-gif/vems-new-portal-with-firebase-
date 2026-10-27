@@ -702,6 +702,10 @@ async function main() {
         await a.getByLabel('Relief from for Classroom 10-A').fill('10:00');
         await a.getByLabel('Relief until for Classroom 10-A').fill('10:20');
         await a.getByRole('button',{name:/Save Invigilation Plan/}).click();
+        await a.getByRole('button',{name:/Edit Day 1/}).waitFor();
+        assert.match(await a.locator('#invigilation-day-load').innerText(),/Selected day duty load[\s\S]*Full-time:\s*1[\s\S]*Relieving:\s*1/,'the selected-day load belt must count full-time and relieving duties');
+        assert.match(await a.locator('#invigilation-vault-load').innerText(),/Full Vault duty load[\s\S]*Full-time:\s*1[\s\S]*Relieving:\s*1/,'the full-Vault load belt must total saved duties');
+        assert.equal(await a.getByLabel('Invigilator 1 for Classroom 10-A').isDisabled(),true,'a completed day must lock until Edit Day is selected');
         await b.waitForFunction(() => invigilationPlans['100']?.['2026-11-01']);
         assert.deepEqual(await b.evaluate(() => {const row=Object.values(invigilationPlans['100']['2026-11-01'])[0];return{invigilators:row.invigilators,relieverId:row.relieverId,reliefFrom:row.reliefFrom,reliefTo:row.reliefTo,studentCount:row.studentCount};}),{invigilators:facultyIds.slice(0,2),relieverId:facultyIds[2],reliefFrom:'10:00',reliefTo:'10:20',studentCount:2},'room invigilators, reliever and relief slot must synchronize from the saved occupied-room plan');
         console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
