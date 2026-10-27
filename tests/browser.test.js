@@ -798,6 +798,7 @@ async function main() {
         await a.locator('#inventory-bag-slip-preview').waitFor();
         await a.waitForTimeout(150);
         assert.equal(await a.locator('#inventory-bag-slip-preview iframe').getAttribute('srcdoc').then(value=>value?.includes('ROOM INVIGILATOR BAGGAGE SLIP')),true,'the generated room slip must contain the printable exam-day document');
+        assert.equal(await a.locator('#inventory-bag-slip-preview iframe').getAttribute('srcdoc').then(value=>value?.includes('Display outside the examination room')),false,'the removed exam-day display instruction must not appear in the room PDF');
         await a.locator('#inventory-bag-slip-preview').getByRole('button',{name:/Close/}).click();
         assert.equal(await a.locator('[data-inventory-line-check]:checked').count(),11,'all saved checklist ticks must remain after generating and closing the PDF');
         await a.getByRole('button',{name:/Generate All Room PDFs/}).click();
