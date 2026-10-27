@@ -684,6 +684,11 @@ async function main() {
         assert.match(await a.locator('#seating-occupancy-report').innerText(),/2\s*Vault candidates.*2\s*Allotted.*0\s*Students remaining.*1\s*Rooms occupied.*1\s*Rooms unused/s,'the occupancy report must distinguish created rooms from actually occupied rooms and confirm no remaining candidates');
         assert.equal(await a.locator('[data-seating-room-id]').count(),1,'the automatic arrangement must exclude unused saved rooms to minimize invigilation duty');
         assert.match(await a.locator('[data-seating-room-id]').first().locator('.room-seating-summary').innerText(),/Class X-A · SCIENCE · RN 1 to 2 · 2 students/,'each room chart must summarize seated class-section and roll-number range');
+        assert.equal(await a.locator('#seating-room-quick-select option').count(),2,'the occupancy report must provide All Rooms plus every actually occupied examination room');
+        const quickRoomId=await a.locator('#seating-room-quick-select option').nth(1).getAttribute('value');
+        await a.locator('#seating-room-quick-select').selectOption(quickRoomId);
+        assert.equal(await a.locator('[data-seating-room-id]').count(),1,'the room dropdown must directly show only the concerned room seating chart');
+        assert.equal(await a.evaluate(async()=>{const{exam,plan,roomId}=selectedSeatingRoomContext(),blob=seatingRoomPdfBlob(plan,roomId,exam.title,selectedSeatingDate);return blob?.type==='application/pdf'&&new TextDecoder().decode((await blob.arrayBuffer()).slice(0,4))==='%PDF';}),true,'the selected examination room must produce a real shareable PDF');
         await a.evaluate(()=>switchPreExamSubTab('invigilation'));
         assert.match(await a.getByRole('alert').filter({hasText:/Latest Seating Arrangement/}).innerText(),/not saved[\s\S]*exact saved arrangement/,'Invigilation must block stale room data while a newer Seating arrangement is still unsaved');
         assert.equal(await a.locator('[data-invigilation-room]').count(),0,'old saved room allocations must not be displayed beside a newer unsaved Seating preview');
