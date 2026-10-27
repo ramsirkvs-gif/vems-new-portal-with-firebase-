@@ -715,12 +715,21 @@ async function main() {
         assert.doesNotMatch(previewText, /Prepare the question paper strictly/);
         await a.evaluate(() => closeQpOfficeOrderPreview());
         assert.equal(await a.locator('#qp-order-number').isDisabled(),true,'an issued QP-setter circular must open locked');
-        await a.getByRole('button',{name:/Edit Circular/}).click();
+        assert.equal(await a.getByRole('button',{name:'⏹ Stop Publishing'}).count(),1);
+        assert.equal(await a.getByRole('button',{name:'🗑 Delete'}).count(),1);
+        assert.equal(await a.getByRole('button',{name:'👁️ Preview / PDF'}).count(),1);
+        await a.getByRole('button',{name:'✏️ Edit'}).last().click();
         assert.equal(await a.locator('#qp-order-number').isEditable(),true,'Edit Circular must reopen the issued circular as an editable draft');
         await a.fill('#qp-order-number','KV1/EXAM/2026/01-REVISED');
-        await a.getByRole('button',{name:'💾 Save Draft'}).click();
+        await a.getByRole('button',{name:'💾 Save'}).click();
         await a.waitForFunction(()=>qpOfficeOrders['100']?.officeNo==='KV1/EXAM/2026/01-REVISED'&&qpOfficeOrders['100']?.status==='DRAFT');
-        assert.equal(await a.getByRole('button',{name:/Issue.*Preview PDF/}).count(),1,'the edited draft must offer an updated issue action');
+        assert.equal(await a.getByRole('button',{name:'📢 Publish'}).count(),1,'the edited draft must offer a simple Publish action');
+        await a.evaluate(() => publishQpOfficeOrder());
+        await a.waitForFunction(()=>qpOfficeOrders['100']?.status==='ISSUED');
+        await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await stopPublishingQpOfficeOrder();}finally{window.confirm=old;}});
+        await a.waitForFunction(()=>qpOfficeOrders['100']?.status==='DRAFT');
+        await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await deleteQpOfficeOrder();}finally{window.confirm=old;}});
+        await a.waitForFunction(()=>!qpOfficeOrders['100']);
         await a.evaluate(() => closeQpOfficeOrderPreview());
         console.log('PASS: issued QP office order auto-links setters, syncs, and opens an in-app A4 preview');
 
