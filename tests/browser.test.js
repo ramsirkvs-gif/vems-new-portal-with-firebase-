@@ -687,6 +687,8 @@ async function main() {
         assert.match(await a.locator('#seating-occupancy-report .room-bundle-summary').first().innerText(),/SCIENCE · Class X-A: 2 · Total 2 scripts/,'the occupancy report must provide an invigilator-ready subject bundle total');
         assert.deepEqual(await a.evaluate(()=>roomBundleSummary([{cls:'10',section:'A',subject:'AI'},{cls:'10',section:'A',subject:'AI'},{cls:'10',section:'B',subject:'AI'},{cls:'12',section:'A',subject:'CS'}]).map(item=>({subject:item.subject,total:item.total,parts:item.classParts}))),[{subject:'AI',total:3,parts:['Class X-A: 2','Class X-B: 1']},{subject:'CS',total:1,parts:['Class XII-A: 1']}],'spread RN records must collapse into subject-wise bundles with class-section subtotals');
         assert.equal(await a.locator('#seating-room-quick-select option').count(),2,'the occupancy report must provide All Rooms plus every actually occupied examination room');
+        assert.equal(await a.getByRole('button',{name:/Share PDF to WhatsApp/}).count(),0,'WhatsApp sharing must not appear inside the staff Seating workspace');
+        assert.equal(await a.getByRole('button',{name:/Publish Seating to Public View/}).count(),1,'the staff Seating workspace must provide publishing instead of internal sharing');
         const quickRoomId=await a.locator('#seating-room-quick-select option').nth(1).getAttribute('value');
         await a.locator('#seating-room-quick-select').selectOption(quickRoomId);
         assert.equal(await a.locator('[data-seating-room-id]').count(),1,'the room dropdown must directly show only the concerned room seating chart');
