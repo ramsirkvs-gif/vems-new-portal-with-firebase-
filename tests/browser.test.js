@@ -689,6 +689,8 @@ async function main() {
         assert.equal(await a.evaluate(() => activePreExamSubTab),'invigilation','the completed occupancy report must proceed directly to the linked Invigilation module');
         assert.equal(await a.locator('[data-invigilation-room]').count(),1,'invigilation must use only rooms actually occupied in the saved seating workflow');
         assert.doesNotMatch(await a.locator('[data-invigilation-room]').first().innerText(),/Library Annex/,'an unused room from the room layout must not enter invigilation');
+        assert.match(await a.locator('[data-invigilation-room]').first().innerText(),/Students allotted:\s*2/,'invigilation must display the exact student count from the actual occupied-room calculation');
+        assert.equal(await a.evaluate(()=>actualOccupiedRoomRows({rooms:[{id:'10-B',name:'Classroom 10-B'}],assignments:Array.from({length:40},(_,index)=>({studentId:`student-${index}`,roomId:'10-B',desk:Math.floor(index/2)+1}))})[0].studentCount),40,'a fully occupied 20-desk room must transfer all 40 allotted students to Invigilation');
         assert.match(await a.getByRole('alert').first().innerText(),/only from this Vault's saved Seating Arrangement/,'the invigilation workspace must state its Vault workflow lock');
         await a.evaluate(async()=>{if(teachers.length<3){teachers.push({id:'relief-test-faculty',name:'Relief Test Faculty',desig:'TGT',allotments:[]});await saveData(['teachers']);renderExamCreatorModule();}});
         const facultyIds=await a.evaluate(() => sortFacultyForDisplay().slice(0,3).map(item=>String(item.id)));
