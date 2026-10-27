@@ -876,10 +876,13 @@ async function main() {
         await a.getByRole('button',{name:/Publish Sensitive Attendance/}).click();
         await a.evaluate(()=>switchPortalArea('public'));
         assert.match(await a.locator('#public-exam-day-flow').innerText(),/REAL-TIME DISPLAY FOR EXAM DAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a read-only live public display');
+        assert.equal(await a.locator('#public-exam-day-flow #exam-day-public-pin').count(),0,'the sensitive attendance control must not appear inside the real-time display');
+        assert.equal(await a.locator('#public-attendance-panel #exam-day-public-pin').count(),1,'the PIN-protected attendance control must appear under Section 3 Seating Arrangement Display');
+        assert.equal(await a.locator('#public-attendance-panel #public-attendance-pin').count(),0,'the general seating publication must remain read-only without its legacy attendance control');
         const roomPin=await a.evaluate(()=>publicPortalBoards.examDayFlow.rooms[0].room.attendancePin);
         await a.locator('#exam-day-public-pin').fill(roomPin);
         await a.getByRole('button',{name:'Unlock Room Seating'}).click();
-        const attendanceSeat=a.locator('#public-exam-day-flow').getByRole('button',{name:/Desk \d+-[AB]/}).first();await attendanceSeat.click();
+        const attendanceSeat=a.locator('#public-attendance-panel').getByRole('button',{name:/Desk \d+-[AB]/}).first();await attendanceSeat.click();
         assert.match(await attendanceSeat.innerText(),/ABSENT/,'the invigilator must mark an individual half-desk red');
         await a.getByRole('button',{name:'Submit Absentees to Examination Cell'}).click();
         await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.submitted));
