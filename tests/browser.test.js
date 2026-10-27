@@ -872,7 +872,8 @@ async function main() {
         await a.getByRole('button',{name:/Edit Handovers/}).click();
         assert.equal(await a.getByRole('button',{name:/Edit \/ Reopen/}).count(),initialPending,'the header handover report must list every completed room');
         await a.getByRole('button',{name:/Done & Next/}).click();
-        assert.match(await a.locator('#exam-day-step-panel').innerText(),/WAITING FOR INVIGILATOR/);
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/Waiting for invigilator submission/);
+        await a.getByRole('button',{name:/Publish Sensitive Attendance/}).click();
         await a.evaluate(()=>switchPortalArea('public'));
         assert.match(await a.locator('#public-exam-day-flow').innerText(),/REAL-TIME DISPLAY FOR EXAM DAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a read-only live public display');
         const roomPin=await a.evaluate(()=>publicPortalBoards.examDayFlow.rooms[0].room.attendancePin);
@@ -883,7 +884,7 @@ async function main() {
         await a.getByRole('button',{name:'Submit Absentees to Examination Cell'}).click();
         await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.submitted));
         await a.evaluate(()=>{switchPortalArea('principal');openLifecycleStage('during');});
-        assert.match(await a.locator('#exam-day-step-panel').innerText(),/SUBMITTED[\s\S]*Seat Student One/,'Exam IC must see the room report only after invigilator submission');
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/Invigilator submitted[\s\S]*Seat Student One/,'Exam IC must see full candidate details only after invigilator submission');
         await a.getByRole('button',{name:'5. Exam IC Attendance Report'}).click();
         assert.equal(await a.getByRole('button',{name:'👁 Print / PDF'}).count(),1,'the Exam IC report must provide print, edit, save and publish controls');
         await a.evaluate(()=>{openPreExamFullPageWorkspace(100);switchPreExamSubTab('exam-day-flow');});
