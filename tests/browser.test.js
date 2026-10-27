@@ -834,6 +834,28 @@ async function main() {
         assert.equal(await b.locator('#seating-vault-days [data-workflow-date="2026-11-01"]').count(),1,'the restored day must remain addressable in the day belt');
         console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
 
+        await a.evaluate(()=>{isPreExamFullPageOpen=false;selectedPreExamVaultId=100;openLifecycleStage('during');});
+        assert.equal(await a.locator('[data-exam-day-event]').count(),11,'During-Exam Operations must provide the complete daywise clock-flow checklist');
+        assert.equal(await a.getByText('Room baggage and instant absentee marking',{exact:true}).count(),1);
+        await a.locator('[data-exam-day-event]').first().locator('[data-event-title]').fill('Invigilator absence reporting');
+        await a.getByRole('button',{name:'💾 Save',exact:true}).click();
+        await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.duringExamDays?.['2026-11-01']?.events?.[0]?.title==='Invigilator absence reporting');
+        await a.getByText('Baggage issued',{exact:true}).locator('input').check();
+        await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].baggageIssued).some(item=>item?.issued));
+        const attendanceSeat=a.getByRole('button',{name:/Desk 1-A/}).first();await attendanceSeat.click();
+        await a.getByRole('button',{name:/Desk 1-A[\s\S]*ABSENT/}).first().waitFor();
+        assert.match(await a.getByRole('button',{name:/Desk 1-A/}).first().innerText(),/ABSENT/,'clicking a half-desk seat must immediately mark that student absent in red');
+        await a.getByRole('button',{name:/Submit room attendance/}).click();
+        await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.submitted));
+        await a.getByRole('button',{name:/Publish Live Display/}).click();
+        await a.waitForFunction(()=>publicPortalBoards.examDayFlow?.date==='2026-11-01');
+        await a.evaluate(()=>switchPortalArea('public'));
+        assert.match(await a.locator('#public-exam-day-flow').innerText(),/REAL-TIME DISPLAY FOR EXAM DAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a read-only live public display');
+        await a.evaluate(()=>{switchPortalArea('principal');openLifecycleStage('during');});
+        await a.getByRole('button',{name:/Stop Publishing/}).click();
+        await a.waitForFunction(()=>!publicPortalBoards.examDayFlow);
+        await a.evaluate(()=>openPreExamFullPageWorkspace(100));
+
         await a.evaluate(()=>switchPreExamSubTab('datesheet-orders'));
         assert.deepEqual(await a.locator('.workflow-document-actions').getByRole('button').allTextContents(),['💾 Save','✏️ Edit','👁 Preview / PDF','📢 Publish','⏹ Stop Publishing','🗑 Delete'],'Date Sheet must use the standard document action order');
         await a.evaluate(()=>switchPreExamSubTab('qp-receiving'));
