@@ -2754,20 +2754,37 @@
             setTimeout(()=>document.getElementById('qp-order-number')?.focus(),0);
         }
 
+        function editQpOfficeOrder() {
+            const saved=qpOfficeOrders[String(selectedPreExamVaultId)]||{};
+            if (saved.status==='ISSUED') { editIssuedQpOfficeOrder(); return; }
+            document.getElementById('qp-order-number')?.focus();
+            alert('The circular is already open for editing. Make the changes, then select Save.');
+        }
+
+        async function saveQpOfficeOrderFromButton() {
+            if (qpOfficeOrders[String(selectedPreExamVaultId)]?.status==='ISSUED' && currentQpOfficeOrder().status==='ISSUED') {
+                alert('This circular is published and locked. Select Edit first, make the changes, then select Save.');
+                return;
+            }
+            return saveQpOfficeOrder('DRAFT');
+        }
+
         async function publishQpOfficeOrder() {
+            const internal=getExamSubjectsListForVault(selectedPreExamVaultId).filter(item=>!item.isExternal);
+            if (!internal.length) { alert('Add at least one School / Internal subject paper to this exam datesheet before publishing the QP-setter circular.'); return; }
             if (await saveQpOfficeOrder('ISSUED')) alert('QP-setter circular published successfully.');
         }
 
         async function stopPublishingQpOfficeOrder() {
-            if (!selectedPreExamVaultId || !confirm('Stop publishing this QP-setter circular? The saved content will remain available as a draft.')) return;
             const key=String(selectedPreExamVaultId),saved=qpOfficeOrders[key];
-            if (!saved) return;
+            if (!selectedPreExamVaultId || !saved || saved.status!=='ISSUED') { alert('This circular is not currently published. It is already a draft.'); return; }
+            if (!confirm('Stop publishing this QP-setter circular? The saved content will remain available as a draft.')) return;
             qpOfficeOrders[key]={...saved,status:'DRAFT',issuedAt:'',stoppedAt:new Date().toISOString(),stoppedBy:authorizedRole};
             if (await saveData(['qpOfficeOrders'])) { qpOfficeOrderFormDirty=false; renderExamCreatorModule(); }
         }
 
         async function deleteQpOfficeOrder() {
-            if (!selectedPreExamVaultId || !qpOfficeOrders[String(selectedPreExamVaultId)]) return;
+            if (!selectedPreExamVaultId || !qpOfficeOrders[String(selectedPreExamVaultId)]) { alert('No saved QP-setter circular is available to delete.'); return; }
             if (!confirm('Delete this QP-setter circular? This removes its saved draft/published record for the selected examination.')) return;
             const key=String(selectedPreExamVaultId);delete qpOfficeOrders[key];delete qpOfficeOrderFormDrafts[key];qpOfficeOrderFormDirty=false;
             if (await saveData(['qpOfficeOrders'])) renderExamCreatorModule();
@@ -3488,7 +3505,7 @@
                                         <h3 class="text-base font-bold text-indigo-950">📄 Office Order to Question Paper Setters</h3>
                                         <p class="text-xs text-slate-500 mt-1">The list below comes from this exam's datesheet and Faculty Manager mappings.</p>
                                     </div>
-                                    <div class="flex flex-wrap items-center gap-2"><span class="text-xs font-black px-3 py-1.5 rounded-full ${officeOrder.status === 'ISSUED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${officeOrder.status==='ISSUED'?'PUBLISHED':'DRAFT'}</span>${officeOrderLocked?'<button type="button" onclick="editIssuedQpOfficeOrder()" class="rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-amber-950 shadow">✏️ Edit</button>':''}</div>
+                                    <div class="flex flex-wrap items-center gap-2"><span class="text-xs font-black px-3 py-1.5 rounded-full ${officeOrder.status === 'ISSUED' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${officeOrder.status==='ISSUED'?'PUBLISHED':'DRAFT'}</span></div>
                                 </div>
                                 ${officeOrderLocked?'<div class="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs font-bold text-emerald-900">✅ This circular is published and locked. Select <b>Edit</b> to create an editable draft.</div>':''}
                                 <fieldset ${officeOrderLocked?'disabled':''} class="space-y-5 disabled:opacity-65">
@@ -3537,10 +3554,12 @@
                                 </div>
                                 </fieldset>
                                 <div class="flex flex-wrap justify-end gap-2">
-                                    ${officeOrderLocked?`<button type="button" onclick="editIssuedQpOfficeOrder()" class="bg-amber-500 text-amber-950 text-xs font-bold px-4 py-2.5 rounded-lg">✏️ Edit</button><button type="button" onclick="generateQpSetterOfficeOrderPrint()" class="bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview / PDF</button><button type="button" onclick="stopPublishingQpOfficeOrder()" class="bg-orange-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg">⏹ Stop Publishing</button><button type="button" onclick="deleteQpOfficeOrder()" class="bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">🗑 Delete</button>`:`<button type="button" onclick="saveQpOfficeOrder('DRAFT')" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save</button>
-                                    <button type="button" onclick="previewQpOfficeOrderDraft()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview / PDF</button>
-                                    <button type="button" onclick="publishQpOfficeOrder()" ${internalSetterSubjects.length && !internalSetterSubjects.some(item => !item.teacherId) ? '' : 'disabled'} class="bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📢 Publish</button>
-                                    ${qpOfficeOrders[String(selectedExam.id)]?'<button type="button" onclick="deleteQpOfficeOrder()" class="bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">🗑 Delete</button>':''}`}
+                                    <button type="button" onclick="saveQpOfficeOrderFromButton()" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">💾 Save</button>
+                                    <button type="button" onclick="editQpOfficeOrder()" class="bg-amber-500 hover:bg-amber-600 text-amber-950 text-xs font-bold px-4 py-2.5 rounded-lg">✏️ Edit</button>
+                                    <button type="button" onclick="${officeOrderLocked?'generateQpSetterOfficeOrderPrint()':'previewQpOfficeOrderDraft()'}" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">👁️ Preview / PDF</button>
+                                    <button type="button" onclick="publishQpOfficeOrder()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">📢 Publish</button>
+                                    <button type="button" onclick="stopPublishingQpOfficeOrder()" class="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg">⏹ Stop Publishing</button>
+                                    <button type="button" onclick="deleteQpOfficeOrder()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg">🗑 Delete</button>
                                 </div>
                                 <p class="text-[11px] text-slate-500 text-right">The PDF preview opens inside the portal. Use <b>Print / Save PDF</b> after reviewing it.</p>
                             </div>

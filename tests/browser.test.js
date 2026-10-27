@@ -680,6 +680,7 @@ async function main() {
         console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
 
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
+        assert.deepEqual(await a.locator('#qp-order-number').locator('xpath=ancestor::div[contains(@class,"space-y-5")][1]').getByRole('button').filter({hasText:/^(💾 Save|✏️ Edit|👁️ Preview \/ PDF|📢 Publish|⏹ Stop Publishing|🗑 Delete)$/}).allTextContents(),['💾 Save','✏️ Edit','👁️ Preview / PDF','📢 Publish','⏹ Stop Publishing','🗑 Delete'],'all normal circular actions must always be visible and pressable');
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
         await a.fill('#qp-order-deadline-at', '2026-11-04T15:30');
         await a.selectOption('#qp-order-method', "Email from the QP setter's personal secure email with Word file and PDF");
