@@ -532,13 +532,7 @@ async function main() {
         assert.equal(await a.locator('#exam-creator-mount-prin button',{hasText:'Open After-Exam Workspace'}).count(),1);
         assert.deepEqual(await a.locator('#selected-exam-vault-workspace span').filter({hasText:/^STAGE /}).allTextContents(), ['STAGE 1','STAGE 2','STAGE 3']);
         await a.evaluate(() => openLifecycleStage('during'));
-        const emergencyEvaluatorSelect=a.locator('#lifecycle-stage-workspace table select').first();
-        assert.deepEqual(await emergencyEvaluatorSelect.evaluate(select=>({groups:[...select.querySelectorAll('optgroup')].map(group=>group.label),matched:select.querySelectorAll('optgroup[label^="Priority 1"] option').length})),{groups:['Priority 1 — same standard & subject','Priority 3 — other employees / emergency'],matched:1},'same standard and subject teachers from any section must be listed first');
-        const onSpotEvaluatorId=await emergencyEvaluatorSelect.locator('optgroup[label^="Priority 1"] option').first().getAttribute('value');
-        await emergencyEvaluatorSelect.selectOption(onSpotEvaluatorId);
-        await a.waitForFunction(()=>document.querySelector('#lifecycle-stage-workspace table tbody')?.textContent.includes('Assigned'));
-        await b.waitForFunction(id=>Object.values(archivedExams).find(exam=>String(exam.id)===String(id))?.duringExamEvaluatorAssignments&&Object.keys(Object.values(archivedExams).find(exam=>String(exam.id)===String(id)).duringExamEvaluatorAssignments).length===1,100);
-        assert.match(await a.locator('#lifecycle-stage-workspace table tbody').innerText(),/Assigned.*by principal/s);
+        assert.equal(await a.getByText('On-the-Spot Emergency Evaluator Desk',{exact:true}).count(),0,'the unwanted emergency evaluator desk must not appear in Stage 2');
         await a.evaluate(() => closeLifecycleStage());
         await a.evaluate(() => openPreExamFullPageWorkspace(100));
         await a.evaluate(() => switchPreExamSubTab('datesheet-orders'));
