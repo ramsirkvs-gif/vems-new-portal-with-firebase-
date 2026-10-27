@@ -605,11 +605,11 @@ async function main() {
         assert.deepEqual(strictSectionFlow.blocks,['10-A','10-B'],'the primary seating lane must finish Class X-A before starting Class X-B and must never return to an earlier section');
         assert.equal(strictSectionFlow.primary.filter(key=>key==='10-A').length,5,'every Class X-A candidate must remain in one continuous section block');
 
-        const fullInitialSection=await a.evaluate(()=>{const make=(cls,section,subject,count,offset=0)=>Array.from({length:count},(_,index)=>({studentId:`${cls}${section}${subject}${index}`,name:`${cls}-${section}-${index}`,cls,section,subject,roll:offset+index+1})),candidates=[...make('10','A','MATHS BASIC',12,0),...make('10','A','MATHS STANDARD',12,12),...make('11','A','ENGLISH',40,11100),...make('11','B','ENGLISH',40,11200),...make('11','C','ENGLISH',40,11300)],rooms=['A','B','C','D','E','F'].map(letter=>({id:letter,name:`Classroom 10-${letter}`,classSection:`10-${letter}`,type:'classroom',rows:5,desksPerRow:4})),result=allocateTwoPerDesk(candidates,rooms),firstRoom=result.assignments.filter(item=>item.roomId==='A'),primary=firstRoom.filter(item=>item.seat==='A'),companions=firstRoom.filter(item=>item.seat==='B');return{error:result.error,students:firstRoom.length,xa:primary.filter(item=>item.cls==='10'&&item.section==='A').length,primarySections:[...new Set(primary.map(item=>`${item.cls}-${item.section}`))],companionSections:[...new Set(companions.map(item=>`${item.cls}-${item.section}`))]};});
+        const fullInitialSection=await a.evaluate(()=>{const make=(cls,section,subject,count,offset=0)=>Array.from({length:count},(_,index)=>({studentId:`${cls}${section}${subject}${index}`,name:`${cls}-${section}-${index}`,cls,section,subject,roll:offset+index+1})),candidates=[...make('10','A','MATHS BASIC',12,0),...make('10','A','MATHS STANDARD',12,12),...make('11','A','ENGLISH',40,11100),...make('11','B','ENGLISH',40,11200),...make('11','C','ENGLISH',40,11300)],rooms=['A','B','C','D','E','F'].map(letter=>({id:letter,name:`Examination Room 10-${letter}`,classSection:`10-${letter}`,type:'classroom',rows:5,desksPerRow:4})),result=allocateTwoPerDesk(candidates,rooms),firstRoom=result.assignments.filter(item=>item.roomId==='A'),primary=firstRoom.filter(item=>item.seat==='A'),companions=firstRoom.filter(item=>item.seat==='B');return{error:result.error,students:firstRoom.length,xa:primary.filter(item=>item.cls==='10'&&item.section==='A').length,primarySections:[...new Set(primary.map(item=>`${item.cls}-${item.section}`))],companionSections:[...new Set(companions.map(item=>`${item.cls}-${item.section}`))]};});
         assert.deepEqual(fullInitialSection,{error:'',students:40,xa:20,primarySections:['10-A'],companionSections:['11-A']},'the first 20-desk room must take 20 available X-A candidates and one continuous XI-A companion section before later sections');
 
-        const orderedRoomFlow=await a.evaluate(()=>{const candidates=[...Array(2)].flatMap((_,index)=>[{studentId:`x${index}`,name:`X ${index}`,cls:'10',section:'A',subject:'SCIENCE',roll:index+1},{studentId:`y${index}`,name:`Y ${index}`,cls:'11',section:'A',subject:'ENGLISH',roll:index+1}]),rooms=[{id:'d',name:'Classroom 10-D',classSection:'10-D',type:'classroom',rows:1,desksPerRow:1},{id:'a',name:'Classroom 10-A',classSection:'10-A',type:'classroom',rows:1,desksPerRow:1}],result=allocateTwoPerDesk(candidates,rooms);return result.assignments.map(item=>item.roomName);});
-        assert.deepEqual([...new Set(orderedRoomFlow)],['Classroom 10-A','Classroom 10-D'],'allocation must begin in the initial naturally ordered classroom even when Firebase returns rooms in another insertion order');
+        const orderedRoomFlow=await a.evaluate(()=>{const candidates=[...Array(2)].flatMap((_,index)=>[{studentId:`x${index}`,name:`X ${index}`,cls:'10',section:'A',subject:'SCIENCE',roll:index+1},{studentId:`y${index}`,name:`Y ${index}`,cls:'11',section:'A',subject:'ENGLISH',roll:index+1}]),rooms=[{id:'d',name:'Examination Room 10-D',classSection:'10-D',type:'classroom',rows:1,desksPerRow:1},{id:'a',name:'Examination Room 10-A',classSection:'10-A',type:'classroom',rows:1,desksPerRow:1}],result=allocateTwoPerDesk(candidates,rooms);return result.assignments.map(item=>item.roomName);});
+        assert.deepEqual([...new Set(orderedRoomFlow)],['Examination Room 10-A','Examination Room 10-D'],'allocation must begin in the initial naturally ordered examination room even when Firebase returns rooms in another insertion order');
 
         const verticalFlow=await a.evaluate(() => {const candidates=[1,2,3,4].flatMap(roll=>[{studentId:`x${roll}`,name:`X ${roll}`,cls:'10',section:'A',subject:'MATHS',roll},{studentId:`y${roll}`,name:`Y ${roll}`,cls:'11',section:'A',subject:'ENGLISH',roll}]),room={id:'r1',name:'Room 1',rows:2,desksPerRow:2},result=allocateTwoPerDesk(candidates,[room]);return result.assignments.filter(item=>item.cls==='10').map(item=>({roll:item.roll,desk:item.desk}));});
         assert.deepEqual(verticalFlow,[{roll:1,desk:1},{roll:2,desk:3},{roll:3,desk:2},{roll:4,desk:4}],'roll numbers must continue vertically down each column before moving horizontally to the next column');
@@ -642,17 +642,18 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:/Add Open Area|Add Selected Room/}).count(),0,'special room commands must be removed');
         assert.equal(await a.evaluate(() => examActions.includes('createManualSeatingRoomDraft')||examActions.includes('createMappedSeatingRoomDraft')),false,'room creation is a local draft action and must not be blocked by the Firebase write guard');
         const classroomCard=a.locator('.seating-room-card').first();
-        assert.equal(await classroomCard.locator('.seating-room-name').inputValue(),'Classroom 10-A','a classroom appearing in the selected exam date must be displayed by default');
+        assert.equal(await classroomCard.locator('.seating-room-name').inputValue(),'Examination Room 10-A','a examination room appearing in the selected exam date must be displayed by default');
+        assert.equal(await a.evaluate(()=>examinationRoomName('Classroom 10-B')),'Examination Room 10-B','legacy saved Classroom names must migrate without changing room identity');
         assert.deepEqual(await classroomCard.locator('.seating-room-columns').inputValue(),'4','every unsaved default classroom must start with four columns');
         assert.deepEqual(await classroomCard.locator('.seating-room-desks').inputValue(),'5','every unsaved default classroom must start with five desks per row');
-        assert.deepEqual(await a.evaluate(() => mergeStoreRoomsIntoLayout(archivedExams.find(exam=>exam.id===100),'2026-11-01',[{id:'custom',name:'Library',type:'custom',rows:5,desksPerRow:4}]).map(room=>room.name)),['Classroom 10-A','Library'],'Store classrooms must be restored alongside previously saved custom rooms');
-        assert.equal((await a.locator('#seating-remaining-room option').allTextContents()).includes('Classroom 10-A'),false,'an automatically displayed exam-day classroom must not remain in the available-room list');
+        assert.deepEqual(await a.evaluate(() => mergeStoreRoomsIntoLayout(archivedExams.find(exam=>exam.id===100),'2026-11-01',[{id:'custom',name:'Library',type:'custom',rows:5,desksPerRow:4}]).map(room=>room.name)),['Examination Room 10-A','Library'],'Store examination rooms must be restored alongside previously saved custom rooms');
+        assert.equal((await a.locator('#seating-remaining-room option').allTextContents()).includes('Examination Room 10-A'),false,'an automatically displayed exam-day classroom must not remain in the available examination-room list');
         await classroomCard.locator('.seating-room-columns').fill('6');
         await classroomCard.locator('.seating-room-desks').fill('7');
         assert.match(await classroomCard.innerText(),/42 desks · 84 seating/,'capacity must update while room dimensions are edited');
         await a.evaluate(() => acceptSharedValue('seatingRooms', cloneData(seatingRooms)));
         await a.waitForTimeout(100);
-        assert.equal(await a.locator('.seating-room-card').first().locator('.seating-room-name').inputValue(),'Classroom 10-A','an incoming live seatingRooms refresh must not erase the local room-layout draft');
+        assert.equal(await a.locator('.seating-room-card').first().locator('.seating-room-name').inputValue(),'Examination Room 10-A','an incoming live seatingRooms refresh must not erase the local room-layout draft');
         assert.equal(await a.locator('.seating-room-card').first().locator('.seating-room-columns').inputValue(),'6','live synchronization must not reset draft room dimensions');
         await a.fill('#seating-custom-room-name','Library');
         await a.getByRole('button',{name:'+ Add Room',exact:true}).click();
@@ -671,7 +672,7 @@ async function main() {
         assert.equal(await a.evaluate(() => Object.values(seatingRooms).filter(room=>room.layoutSelections?.['100|2026-11-01']).length),2,'date rooms must be stored under the exam ID and examination date');
         assert.equal(await a.locator('.seating-room-columns').first().isDisabled(),true,'saved room layouts must lock until Edit is selected');
         await a.evaluate(() => renderExamCreatorModule());
-        assert.equal(await a.locator('.seating-room-card').filter({hasText:'Classroom 10-A'}).locator('.seating-room-columns').inputValue(),'6','saved room dimensions must remain stable after a refresh');
+        assert.equal(await a.locator('.seating-room-card').filter({hasText:'Examination Room 10-A'}).locator('.seating-room-columns').inputValue(),'6','saved room dimensions must remain stable after a refresh');
         await a.getByRole('button',{name:/Generate Automatic Seating Arrangement/}).click();
         await a.locator('#generated-seating-result').waitFor();
         assert.match(await a.locator('#generated-seating-result').innerText(),/3\. Automatic Seating Arrangement/);
@@ -696,24 +697,24 @@ async function main() {
         assert.doesNotMatch(await a.locator('[data-invigilation-room]').first().innerText(),/Library Annex/,'an unused room from the room layout must not enter invigilation');
         assert.match(await a.locator('[data-invigilation-room]').first().innerText(),/Students allotted:\s*2/,'invigilation must display the exact student count from the actual occupied-room calculation');
         assert.match(await a.locator('[data-invigilation-room]').first().innerText(),/Class X-A · SCIENCE · RN 1 to 2 · 2 students/,'each Invigilation room must explain its total with exact class-section, subject, roll range and student count');
-        assert.equal(await a.evaluate(()=>actualOccupiedRoomRows({rooms:[{id:'10-B',name:'Classroom 10-B'}],assignments:Array.from({length:40},(_,index)=>({studentId:`student-${index}`,roomId:'10-B',desk:Math.floor(index/2)+1}))})[0].studentCount),40,'a fully occupied 20-desk room must transfer all 40 allotted students to Invigilation');
+        assert.equal(await a.evaluate(()=>actualOccupiedRoomRows({rooms:[{id:'10-B',name:'Examination Room 10-B'}],assignments:Array.from({length:40},(_,index)=>({studentId:`student-${index}`,roomId:'10-B',desk:Math.floor(index/2)+1}))})[0].studentCount),40,'a fully occupied 20-desk room must transfer all 40 allotted students to Invigilation');
         assert.match(await a.getByRole('alert').first().innerText(),/only from this Vault's saved Seating Arrangement/,'the invigilation workspace must state its Vault workflow lock');
         await a.evaluate(async()=>{if(teachers.length<3){teachers.push({id:'relief-test-faculty',name:'Relief Test Faculty',desig:'TGT',allotments:[]});await saveData(['teachers']);renderExamCreatorModule();}});
         const facultyIds=await a.evaluate(() => sortFacultyForDisplay().slice(0,3).map(item=>String(item.id)));
         assert.ok(facultyIds.length>=3,'the test faculty roster must provide invigilators and a reliever');
-        await a.getByLabel('Invigilator 1 for Classroom 10-A').selectOption(facultyIds[0]);
+        await a.getByLabel('Invigilator 1 for Examination Room 10-A').selectOption(facultyIds[0]);
         await a.getByRole('button',{name:'+ Add Invigilator'}).click();
-        await a.getByLabel('Invigilator 2 for Classroom 10-A').selectOption(facultyIds[1]);
-        await a.getByLabel('Reliever for Classroom 10-A').selectOption(facultyIds[2]);
-        await a.getByLabel('Relief from for Classroom 10-A').fill('10:00');
-        await a.getByLabel('Relief until for Classroom 10-A').fill('10:20');
+        await a.getByLabel('Invigilator 2 for Examination Room 10-A').selectOption(facultyIds[1]);
+        await a.getByLabel('Reliever for Examination Room 10-A').selectOption(facultyIds[2]);
+        await a.getByLabel('Relief from for Examination Room 10-A').fill('10:00');
+        await a.getByLabel('Relief until for Examination Room 10-A').fill('10:20');
         await a.getByRole('button',{name:/Save Invigilation Plan/}).click();
         await a.getByRole('button',{name:/Edit Day 1/}).waitFor();
         assert.match(await a.locator('#invigilation-duty-load').innerText(),/Selected day[\s\S]*Full Vault[\s\S]*Full-time[\s\S]*Relieving/,'one combined duty-load table must show day and full-Vault columns');
         const firstDutyName=await a.evaluate(id=>teachers.find(item=>String(item.id)===id).name,facultyIds[0]);
         assert.equal(await a.locator('#invigilation-duty-load tbody tr').filter({hasText:firstDutyName}).count(),1,'each faculty member must appear in one combined duty-load row');
         assert.match(await a.locator('#invigilation-duty-load tbody tr').filter({hasText:firstDutyName}).innerText(),/1\s+0\s+1\s+0/,'the faculty row must show selected-day and full-Vault full-time/relieving totals together');
-        assert.equal(await a.getByLabel('Invigilator 1 for Classroom 10-A').isDisabled(),true,'a completed day must lock until Edit Day is selected');
+        assert.equal(await a.getByLabel('Invigilator 1 for Examination Room 10-A').isDisabled(),true,'a completed day must lock until Edit Day is selected');
         await b.waitForFunction(() => invigilationPlans['100']?.['2026-11-01']);
         assert.deepEqual(await b.evaluate(() => {const row=Object.values(invigilationPlans['100']['2026-11-01'])[0];return{invigilators:row.invigilators,relieverId:row.relieverId,reliefFrom:row.reliefFrom,reliefTo:row.reliefTo,studentCount:row.studentCount};}),{invigilators:facultyIds.slice(0,2),relieverId:facultyIds[2],reliefFrom:'10:00',reliefTo:'10:20',studentCount:2},'room invigilators, reliever and relief slot must synchronize from the saved occupied-room plan');
         console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
