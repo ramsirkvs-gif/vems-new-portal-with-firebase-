@@ -3194,28 +3194,23 @@
         }
 
         function allocateTwoPerDesk(candidates,rooms){
-            const candidateOrder=(a,b)=>String(a.cls).localeCompare(String(b.cls),undefined,{numeric:true})||String(a.section).localeCompare(String(b.section),undefined,{numeric:true})||String(a.roll).localeCompare(String(b.roll),undefined,{numeric:true})||String(a.subject).localeCompare(String(b.subject),undefined,{numeric:true}),groups={};
+            const candidateOrder=(a,b)=>String(a.cls).localeCompare(String(b.cls),undefined,{numeric:true})||String(a.section).localeCompare(String(b.section),undefined,{numeric:true})||String(a.roll).localeCompare(String(b.roll),undefined,{numeric:true})||String(a.subject).localeCompare(String(b.subject),undefined,{numeric:true});
+            const sectionKey=student=>`${student.cls}-${student.section}`,compatible=(left,right)=>String(left.cls)!==String(right.cls)||String(left.subject)!==String(right.subject);
             const orderedRooms=[...rooms].sort((a,b)=>(a.type==='classroom'?0:1)-(b.type==='classroom'?0:1)||String(a.classSection||a.name).localeCompare(String(b.classSection||b.name),undefined,{numeric:true}));
-            [...candidates].sort(candidateOrder).forEach(student=>(groups[`${student.cls}||${student.subject}`]||={cls:String(student.cls),subject:String(student.subject),students:[]}).students.push(student));
-            const active=()=>Object.values(groups).filter(group=>group.students.length),pairs=[],singles=[];
-            while(active().length>1){
-                const ranked=active().sort((a,b)=>b.students.length-a.students.length||String(a.cls).localeCompare(String(b.cls),undefined,{numeric:true})||String(a.subject).localeCompare(String(b.subject),undefined,{numeric:true})),first=ranked[0],maxPartnerCount=Math.max(...ranked.slice(1).map(group=>group.students.length)),partnerPool=ranked.slice(1).filter(group=>group.students.length===maxPartnerCount),second=partnerPool.find(group=>group.cls!==first.cls)||partnerPool[0];
-                pairs.push([first.students.shift(),second.students.shift()]);
+            const queues={};[...candidates].sort(candidateOrder).forEach(student=>(queues[sectionKey(student)]||=[]).push(student));
+            const keys=Object.keys(queues).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})),partnerFor={},deskGroups=[];
+            const nextPrimaryKey=()=>keys.find(key=>queues[key]?.length);
+            while(nextPrimaryKey()){
+                const primaryKey=nextPrimaryKey(),primary=queues[primaryKey].shift();let partnerKey=partnerFor[primaryKey],partner=partnerKey&&queues[partnerKey]?.[0];
+                if(!partner||!compatible(primary,partner)){const options=keys.filter(key=>key!==primaryKey&&queues[key]?.length&&compatible(primary,queues[key][0]));options.sort((left,right)=>{const leftDifferent=String(queues[left][0].cls)!==String(primary.cls),rightDifferent=String(queues[right][0].cls)!==String(primary.cls);if(leftDifferent!==rightDifferent)return rightDifferent-leftDifferent;return left.localeCompare(right,undefined,{numeric:true});});partnerKey=options[0]||'';partnerFor[primaryKey]=partnerKey;partner=partnerKey?queues[partnerKey].shift():null;}
+                else partner=queues[partnerKey].shift();
+                deskGroups.push(partner?[primary,partner]:[primary]);
+                if(!queues[primaryKey].length)delete partnerFor[primaryKey];
             }
-            active().forEach(group=>group.students.forEach(student=>singles.push([student])));
-            pairs.forEach(pair=>{if(candidateOrder(pair[1],pair[0])<0)[pair[0],pair[1]]=[pair[1],pair[0]];});
-            pairs.sort((left,right)=>candidateOrder(left[0],right[0])||candidateOrder(left[1],right[1]));singles.sort((left,right)=>candidateOrder(left[0],right[0]));
-            const rawDeskGroups=[...pairs,...singles],roomCapacities=orderedRooms.map(room=>Number(room.deskCount)||Number(room.rows)*Number(room.desksPerRow)),availableDesks=roomCapacities.reduce((sum,count)=>sum+count,0);
-            if(rawDeskGroups.length>availableDesks)return{error:`${rawDeskGroups.length} desks are required after applying the standard-and-subject pairing rule, but the saved rooms contain only ${availableDesks}. Add ${rawDeskGroups.length-availableDesks} more desk(s).`,assignments:[]};
-            const sectionKey=student=>`${student.cls}-${student.section}`,bundleKey=student=>`${student.cls}-${student.section}||${student.subject}`,remainingGroups=rawDeskGroups.map((students,index)=>({students,index})),deskGroups=[];
-            const isEligible=group=>{const primary=group.students[0];return!remainingGroups.some(other=>other!==group&&sectionKey(other.students[0])===sectionKey(primary)&&candidateOrder(other.students[0],primary)<0);};
-            for(const capacity of roomCapacities){const activeBundles=new Set();for(let position=0;position<capacity&&remainingGroups.length;position++){let options=remainingGroups.filter(isEligible);if(!options.length)options=[...remainingGroups];options.sort((left,right)=>{const earliest=candidateOrder(left.students[0],right.students[0]);if(earliest)return earliest;const overlapRight=right.students.filter(student=>activeBundles.has(bundleKey(student))).length,overlapLeft=left.students.filter(student=>activeBundles.has(bundleKey(student))).length;if(overlapRight!==overlapLeft)return overlapRight-overlapLeft;const newLeft=new Set(left.students.map(bundleKey).filter(key=>!activeBundles.has(key))).size,newRight=new Set(right.students.map(bundleKey).filter(key=>!activeBundles.has(key))).size;if(newLeft!==newRight)return newLeft-newRight;return left.index-right.index;});const selected=options[0];deskGroups.push(selected.students);selected.students.forEach(student=>activeBundles.add(bundleKey(student)));remainingGroups.splice(remainingGroups.indexOf(selected),1);}}
+            const roomCapacities=orderedRooms.map(room=>Number(room.deskCount)||Number(room.rows)*Number(room.desksPerRow)),availableDesks=roomCapacities.reduce((sum,count)=>sum+count,0);
+            if(deskGroups.length>availableDesks)return{error:`${deskGroups.length} desks are required after applying the strict section-and-subject pairing rule, but the saved rooms contain only ${availableDesks}. Add ${deskGroups.length-availableDesks} more desk(s).`,assignments:[]};
             const assignments=[];let groupIndex=0;
-            for(const room of orderedRooms){
-                const rows=Math.max(1,Number(room.rows)||1),columns=Math.max(1,Number(room.desksPerRow)||1),deskCount=Number(room.deskCount)||rows*columns,deskOrder=[];
-                for(let column=0;column<columns;column++)for(let row=0;row<rows;row++){const desk=row*columns+column+1;if(desk<=deskCount)deskOrder.push(desk);}
-                for(const desk of deskOrder){if(groupIndex>=deskGroups.length)break;deskGroups[groupIndex++].forEach((student,seatIndex)=>assignments.push({...student,roomId:room.id,roomName:room.name,desk,seat:seatIndex?'B':'A'}));}
-            }
+            for(const room of orderedRooms){const rows=Math.max(1,Number(room.rows)||1),columns=Math.max(1,Number(room.desksPerRow)||1),deskCount=Number(room.deskCount)||rows*columns,deskOrder=[];for(let column=0;column<columns;column++)for(let row=0;row<rows;row++){const desk=row*columns+column+1;if(desk<=deskCount)deskOrder.push(desk);}for(const desk of deskOrder){if(groupIndex>=deskGroups.length)break;deskGroups[groupIndex++].forEach((student,seatIndex)=>assignments.push({...student,roomId:room.id,roomName:room.name,desk,seat:seatIndex?'B':'A'}));}}
             return{error:'',assignments};
         }
 
@@ -3253,7 +3248,7 @@
             rooms.forEach(room=>room.deskCount=Number(room.rows)*Number(room.desksPerRow));
             const allocation=allocateTwoPerDesk(source.candidates,rooms);
             if(allocation.error){alert(`SEATING ALLOTMENT STOPPED\n\n${allocation.error}`);return;}
-            const usedRoomIds=new Set(allocation.assignments.map(item=>item.roomId)),usedRooms=rooms.filter(room=>usedRoomIds.has(room.id)),existing=seatingPlanFor(exam.id,date),generated={date,method:'auto',algorithmVersion:3,roomIds:usedRooms.map(room=>room.id),rooms:usedRooms.map(room=>({...room,attendancePin:existing?.rooms?.find(saved=>saved.id===room.id)?.attendancePin||String(Math.floor(100+Math.random()*900))})),assignments:allocation.assignments,attendance:cloneData(existing?.attendance||{}),updatedAt:new Date().toISOString()};
+            const usedRoomIds=new Set(allocation.assignments.map(item=>item.roomId)),usedRooms=rooms.filter(room=>usedRoomIds.has(room.id)),existing=seatingPlanFor(exam.id,date),generated={date,method:'auto',algorithmVersion:4,roomIds:usedRooms.map(room=>room.id),rooms:usedRooms.map(room=>({...room,attendancePin:existing?.rooms?.find(saved=>saved.id===room.id)?.attendancePin||String(Math.floor(100+Math.random()*900))})),assignments:allocation.assignments,attendance:cloneData(existing?.attendance||{}),updatedAt:new Date().toISOString()};
             suggestedSeatingPlan={examId:exam.id,date,plan:generated};sessionStorage.setItem('vems_seating_suggestion',JSON.stringify(suggestedSeatingPlan));renderExamCreatorModule();setTimeout(()=>document.getElementById('generated-seating-result')?.scrollIntoView({behavior:'smooth',block:'start'}),80);
         }
 
