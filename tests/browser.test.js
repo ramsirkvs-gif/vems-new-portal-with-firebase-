@@ -887,6 +887,7 @@ async function main() {
         assert.match(await attendanceSeat.innerText(),/ABSENT/,'the invigilator must mark an individual half-desk red');
         await a.getByRole('button',{name:'Submit Absentees to Examination Cell'}).click();
         await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.submitted));
+        assert.match(await a.locator('#public-attendance-submission-receipt').innerText(),/Attendance submitted to the Examination Cell[\s\S]*Present \d+ · Absent 1[\s\S]*Stage 2 → 5\. Exam IC Attendance Report/,'the invigilator must receive a persistent submission receipt and exact final-report location');
         await a.evaluate(()=>{switchPortalArea('principal');openLifecycleStage('during');});
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Invigilator submitted[\s\S]*Seat Student One/,'Exam IC must see full candidate details only after invigilator submission');
         await a.getByRole('button',{name:'5. Exam IC Attendance Report'}).click();
