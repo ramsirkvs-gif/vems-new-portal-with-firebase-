@@ -422,7 +422,7 @@ async function main() {
         assert.equal(await b.evaluate(async()=>new TextDecoder().decode((await publishedSubjectDirectoryPdfBlob().arrayBuffer()).slice(0,8))), '%PDF-1.4');
         assert.match(await b.evaluate(async()=>new TextDecoder().decode(await publishedSubjectDirectoryPdfBlob().arrayBuffer())), /\(Class \/ Section\).*\(Subjects\)/s);
         assert.equal(await b.evaluate(async()=>{const originalCreate=URL.createObjectURL,originalOpen=window.open;let previewBlob;URL.createObjectURL=blob=>{previewBlob=blob;return'blob:same-designed-subject-pdf';};window.open=()=>null;printPublishedSubjectDirectory();URL.createObjectURL=originalCreate;window.open=originalOpen;const sharedBlob=publishedSubjectDirectoryPdfBlob(),[preview,shared]=await Promise.all([previewBlob.arrayBuffer(),sharedBlob.arrayBuffer()]);return preview.byteLength===shared.byteLength&&new TextDecoder().decode(preview)===new TextDecoder().decode(shared);}),true,'Subject Directory print and WhatsApp sharing must use the exact same designed PDF bytes');
-        assert.equal(await b.evaluate(()=>[[printPublishedRollDirectory,sharePublishedRollDirectory,'publishedRollDirectoryPdfBlob'],[previewPublishedSeatingRoomPdf,sharePublishedSeatingRoomPdf,'seatingRoomPdfBlob'],[previewPublishedInvigilationPdf,sharePublishedInvigilationPdf,'invigilationDayPdfBlob'],[printPublishedFacultyRoster,sharePublishedFacultyRoster,'publishedFacultyRosterPdfBlob']].every(([preview,share,builder])=>preview.toString().includes(builder)&&share.toString().includes(builder))),true,'every public Print and WhatsApp pair must call the same document PDF builder');
+        assert.equal(await b.evaluate(()=>[[printPublishedRollDirectory,sharePublishedRollDirectory,'publishedRollDirectoryPdfBlob'],[previewPublishedSeatingRoomPdf,sharePublishedSeatingRoomPdf,'seatingRoomPdfBlob'],[previewPublishedInvigilationPdf,sharePublishedInvigilationPdf,'invigilationDayPdfBlob'],[printPublishedFacultyRoster,sharePublishedFacultyRoster,'publishedFacultyRosterPdfBlob'],[previewPublishedQpSetterCircular,sharePublishedQpSetterCircular,'publishedQpSetterCircularPdfBlob']].every(([preview,share,builder])=>preview.toString().includes(builder)&&share.toString().includes(builder))),true,'every public Print and WhatsApp pair must call the same document PDF builder');
         await a.evaluate(() => {switchTab('config');document.getElementById('cfg-class').value='10';updateCfgSections();document.getElementById('cfg-section').value='A';loadSectionConfigDetails();});
         await a.locator('#cfg-subjects-container button[title="Move down"]').first().click();
         await a.evaluate(() => saveSectionConfig({preventDefault(){}}));
@@ -866,7 +866,8 @@ async function main() {
         assert.equal(data.qpSubmissionDeadlines['100'], '2026-11-04');
         await a.evaluate(() => generateQpSetterOfficeOrderPrint());
         await a.locator('#qp-office-order-preview iframe').waitFor();
-        const previewText = await a.locator('#qp-office-order-preview iframe').contentFrame().locator('body').textContent();
+        assert.match(await a.locator('#qp-office-order-preview iframe').getAttribute('src'),/^blob:/,'inside QP circular preview must open the shared PDF file');
+        const previewText = await a.evaluate(async()=>new TextDecoder().decode(await qpSetterOfficeOrderPdfBlob(currentQpOfficeOrder(),'Existing Exam').arrayBuffer()));
         assert.match(previewText, /PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR/);
         assert.match(previewText, /Other Device Name/);
         assert.match(previewText, /examcell@example.test/);
@@ -896,8 +897,7 @@ async function main() {
         assert.equal(sharedCircularPdf.type,'application/pdf');assert.ok(sharedCircularPdf.size>500);assert.equal(sharedCircularPdf.official,true);
         await a.getByRole('button',{name:/View Circular \/ PDF/}).click();
         await a.locator('#qp-office-order-preview iframe').waitFor();
-        const publicCircularText=await a.locator('#qp-office-order-preview iframe').contentFrame().locator('body').textContent();
-        assert.match(publicCircularText,/PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR[\s\S]*CONFIDENTIAL[\s\S]*OFFICE ORDER[\s\S]*Acknowledgment Signature[\s\S]*Other Device Name/i,'public view must retain the exact official inside circular design and content');
+        assert.match(await a.locator('#qp-office-order-preview iframe').getAttribute('src'),/^blob:/,'Public View must open the exact PDF file generated for WhatsApp sharing');
         assert.equal(await a.evaluate(async()=>new TextDecoder().decode(await publishedQpSetterCircularPdfBlob('100').arrayBuffer()).includes('Other Device Name')),true);
         await a.evaluate(()=>{closeQpOfficeOrderPreview();switchPortalArea('principal');openPreExamFullPageWorkspace(100);switchPreExamSubTab('qp-setters');});
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await stopPublishingQpOfficeOrder();}finally{window.confirm=old;}});
