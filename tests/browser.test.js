@@ -861,7 +861,10 @@ async function main() {
         await a.waitForFunction(()=>document.querySelectorAll('#exam-day-step-panel select').length===0);
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Saved Stage 1 duty/,'Step 2 must continue showing every unaffected pre-saved duty');
         await a.getByRole('button',{name:/OK & Next/}).click();
-        assert.equal(await a.locator('iframe[title="Mini room baggage slip"]').count(),1,'Step 3 must show the selected room baggage slip as a miniature PDF view');
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/Sensitive instant absentee marker/,'Step 3 must be the Instant Absentee Marker after the requested order change');
+        await a.getByRole('button',{name:'4. Baggage Distribution',exact:true}).click();
+        assert.equal(await a.locator('iframe[title="Mini room baggage slip"]').count(),1,'Step 4 must show the selected room baggage slip as a miniature PDF view');
+        assert.match(await a.locator('iframe[title="Mini room baggage slip"]').evaluate(frame=>frame.contentDocument.body.innerText),/INVIGILATOR ATTENDANCE PIN[\s\S]*\d{3}[\s\S]*Sensitive Room Attendance/,'every room baggage slip must carry its invigilator attendance PIN and use instruction');
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Distributed to:/,'each room issue row must identify the receiving invigilator');
         const initialPending=await a.locator('[data-complete-baggage-room]').count();
         assert.equal(await a.locator('[data-print-baggage-room]').count(),initialPending,'every pending room must provide instant slip printing');
@@ -872,6 +875,8 @@ async function main() {
         await a.getByRole('button',{name:/Edit Handovers/}).click();
         assert.equal(await a.getByRole('button',{name:/Edit \/ Reopen/}).count(),initialPending,'the header handover report must list every completed room');
         await a.getByRole('button',{name:/Done & Next/}).click();
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/Exam IC — Roomwise attendance report/,'completed baggage distribution must continue to the final report');
+        await a.getByRole('button',{name:'3. Instant Absentee Marker',exact:true}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Waiting for invigilator submission/);
         await a.getByRole('button',{name:/Publish Sensitive Attendance/}).click();
         await a.evaluate(()=>switchPortalArea('public'));
