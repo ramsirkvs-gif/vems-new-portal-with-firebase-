@@ -850,9 +850,16 @@ async function main() {
         await a.evaluate(()=>{archivedExams=archivedExams.filter(item=>item.id!=='vault-text-id');openExamVault(100);});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absent Today'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
+        await a.evaluate(async()=>{teachers.push({id:'replacement-test',name:'Replacement Teacher',desig:'PGT-Test',allotments:[]});const id=Object.values(invigilationPlans['100']['2026-11-01'])[0].invigilators[0];await toggleDuringFacultyAbsent(100,'2026-11-01',id,true);});
         await a.getByRole('button',{name:'Next →'}).click();
         assert.equal(await a.getByText(/Invigilation duty update due to absence/).count(),1);
-        await a.getByRole('button',{name:'Next →'}).click();
+        const replacement=a.locator('#exam-day-step-panel select').first();
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/ABSENT/,'affected duties must list the absent faculty inline');
+        const replacementId=await replacement.locator('option').nth(1).getAttribute('value');
+        await replacement.selectOption(replacementId);
+        if(await a.locator('#core-team-duty-warning').count())await a.locator('[data-core-duty-choice="override"]').click();
+        await a.waitForFunction(()=>document.querySelectorAll('#exam-day-step-panel select').length===0);
+        await a.getByRole('button',{name:/Duty Update Complete/}).click();
         await a.locator('#exam-day-step-panel input[type="checkbox"]').first().check();
         await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].baggageIssued).some(item=>item?.issued));
         await a.getByRole('button',{name:'Next →'}).click();
