@@ -882,6 +882,7 @@ async function main() {
         const roomPin=await a.evaluate(()=>publicPortalBoards.examDayFlow.rooms[0].room.attendancePin);
         await a.locator('#exam-day-public-pin').fill(roomPin);
         await a.getByRole('button',{name:'Unlock Room Seating'}).click();
+        assert.match(await a.locator('#public-attendance-panel').innerText(),/✈️ Examination Room[\s\S]*WINDOW SIDE[\s\S]*GATE \/ DOOR SIDE[\s\S]*FRONT · BLACKBOARD · INVIGILATOR[\s\S]*COLUMN 1 · DESK 1/,'sensitive attendance must preserve the complete Stage 1 flight seating design and desk geometry');
         const attendanceSeat=a.locator('#public-attendance-panel').getByRole('button',{name:/Desk \d+-[AB]/}).first();await attendanceSeat.click();
         assert.match(await attendanceSeat.innerText(),/ABSENT/,'the invigilator must mark an individual half-desk red');
         await a.getByRole('button',{name:'Submit Absentees to Examination Cell'}).click();
