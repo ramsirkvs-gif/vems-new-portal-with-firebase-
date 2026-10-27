@@ -700,7 +700,8 @@ async function main() {
         assert.deepEqual(await a.evaluate(()=>roomBundleSummary([{cls:'11',section:'A',subject:'MATHS'},{cls:'10',section:'A',subject:'SOCIAL SCIENCE'}]).map(item=>item.subject)),['SOCIAL SCIENCE','MATHS'],'bundle titles must follow the same class-section order as the exact RN summaries below them');
         assert.equal(await a.locator('#seating-room-quick-select option').count(),2,'the occupancy report must provide All Rooms plus every actually occupied examination room');
         assert.equal(await a.getByRole('button',{name:/Share PDF to WhatsApp/}).count(),0,'WhatsApp sharing must not appear inside the staff Seating workspace');
-        assert.equal(await a.getByRole('button',{name:/Publish Seating to Public View/}).count(),1,'the staff Seating workspace must provide publishing instead of internal sharing');
+        assert.equal(await a.locator('.workflow-document-actions').getByRole('button',{name:'📢 Publish',exact:true}).count(),1,'the staff Seating workspace must provide publishing in its standard action bar');
+        assert.deepEqual(await a.locator('.workflow-document-actions').getByRole('button').allTextContents(),['💾 Save','✏️ Edit','👁 Preview / PDF','📢 Publish','⏹ Stop Publishing','🗑 Delete'],'Seating must use the standard document action order');
         const quickRoomId=await a.locator('#seating-room-quick-select option').nth(1).getAttribute('value');
         await a.locator('#seating-room-quick-select').selectOption(quickRoomId);
         assert.equal(await a.locator('[data-seating-room-id]').count(),1,'the room dropdown must directly show only the concerned room seating chart');
@@ -740,8 +741,8 @@ async function main() {
         await a.getByLabel('Reliever for Examination Room 10-A').selectOption(facultyIds[2]);
         await a.getByLabel('Relief from for Examination Room 10-A').fill('10:00');
         await a.getByLabel('Relief until for Examination Room 10-A').fill('10:20');
-        await a.getByRole('button',{name:/Save Invigilation Plan/}).click();
-        await a.getByRole('button',{name:/Edit Day 1/}).waitFor();
+        await a.locator('.workflow-document-actions').getByRole('button',{name:'💾 Save',exact:true}).click();
+        await a.locator('.workflow-document-actions').getByRole('button',{name:'✏️ Edit',exact:true}).waitFor();
         assert.equal(await a.locator('#invigilation-duty-load').count(),0,'the duty-load side panel must stay collapsed by default to leave room duties full width');
         assert.match(await a.getByRole('button',{name:/Show duty load/}).getAttribute('class'),/fixed[\s\S]*top-1\/2/,'the collapsed duty-load control must remain visible beside the current room while scrolling');
         await a.getByRole('button',{name:/Show duty load/}).click();
@@ -749,15 +750,15 @@ async function main() {
         const firstDutyName=await a.evaluate(id=>teachers.find(item=>String(item.id)===id).name,facultyIds[0]);
         assert.equal(await a.locator('#invigilation-duty-load tbody tr').filter({hasText:firstDutyName}).count(),1,'each faculty member must appear in one combined duty-load row');
         assert.match(await a.locator('#invigilation-duty-load tbody tr').filter({hasText:firstDutyName}).innerText(),/1\s+0\s+1\s+0/,'the faculty row must show selected-day and full-Vault full-time/relieving totals together');
-        assert.equal(await a.locator('#exam-creator-mount-prin').getByRole('button',{name:'👁 PDF',exact:true}).count(),1,'a completed Invigilation day must provide its PDF action');
+        assert.equal(await a.locator('.workflow-document-actions').getByRole('button',{name:'👁 Preview / PDF',exact:true}).count(),1,'a completed Invigilation day must provide its PDF action');
         assert.equal(await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),blob=invigilationDayPdfBlob(invigilationDayPublication(exam,'2026-11-01'));return blob?.type==='application/pdf';}),true,'the completed day must generate a real Invigilation Duty PDF');
-        await a.locator('#exam-creator-mount-prin').getByRole('button',{name:'📢 Publish',exact:true}).click();
+        await a.locator('.workflow-document-actions').getByRole('button',{name:'📢 Publish',exact:true}).click();
         await a.waitForFunction(()=>publicPortalBoards.liveDuty?.days?.['2026-11-01']);
         assert.match(await a.locator('#public-live-duty').innerText(),/Existing Exam[\s\S]*Examination Room 10-A[\s\S]*SCIENCE/i,'Public View item 2 must show the published day with room, bundle and student details');
         assert.equal(await a.locator('#public-live-duty-tools button').filter({hasText:'PDF / Print'}).count(),1,'published Invigilation Duty must provide a public PDF action');
         assert.equal(await a.locator('#public-live-duty-tools button').filter({hasText:'Share PDF to WhatsApp'}).count(),1,'published Invigilation Duty must provide WhatsApp PDF sharing');
         await a.evaluate(()=>{window.confirm=()=>true;});
-        await a.locator('#exam-creator-mount-prin').getByRole('button',{name:/Stop Publishing/}).click();
+        await a.locator('.workflow-document-actions').getByRole('button',{name:/Stop Publishing/}).click();
         await a.waitForFunction(()=>!publicPortalBoards.liveDuty);
         assert.equal(await a.getByLabel('Invigilator 1 for Examination Room 10-A').isDisabled(),true,'a completed day must lock until Edit Day is selected');
         await b.waitForFunction(() => invigilationPlans['100']?.['2026-11-01']);
@@ -781,6 +782,10 @@ async function main() {
         assert.equal(await b.locator('#seating-vault-days [data-workflow-date="2026-11-01"]').count(),1,'the restored day must remain addressable in the day belt');
         console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
 
+        await a.evaluate(()=>switchPreExamSubTab('datesheet-orders'));
+        assert.deepEqual(await a.locator('.workflow-document-actions').getByRole('button').allTextContents(),['💾 Save','✏️ Edit','👁 Preview / PDF','📢 Publish','⏹ Stop Publishing','🗑 Delete'],'Date Sheet must use the standard document action order');
+        await a.evaluate(()=>switchPreExamSubTab('qp-receiving'));
+        assert.deepEqual(await a.locator('.workflow-document-actions').getByRole('button').allTextContents(),['💾 Save','✏️ Edit','👁 Preview / PDF','📢 Publish','⏹ Stop Publishing','🗑 Delete'],'QP Receiving must use the standard document action order');
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
         assert.deepEqual(await a.locator('#qp-order-number').locator('xpath=ancestor::div[contains(@class,"space-y-5")][1]').getByRole('button').filter({hasText:/^(💾 Save|✏️ Edit|👁️ Preview \/ PDF|📢 Publish|⏹ Stop Publishing|🗑 Delete)$/}).allTextContents(),['💾 Save','✏️ Edit','👁️ Preview / PDF','📢 Publish','⏹ Stop Publishing','🗑 Delete'],'all normal circular actions must always be visible and pressable');
         await a.fill('#qp-order-number', 'KV1/EXAM/2026/01');
