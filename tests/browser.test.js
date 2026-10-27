@@ -845,8 +845,9 @@ async function main() {
         await a.evaluate(()=>{isPreExamFullPageOpen=false;const source=archivedExams.find(item=>String(item.id)==='100');archivedExams.push({...cloneData(source),id:'vault-text-id'});openExamVault('vault-text-id');});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByText('No examination vault is available for this session.').count(),0,'Stage 2 must retain and open a selected Vault with a text ID');
-        await a.getByRole('button',{name:/Exit \/ Back/}).click();
-        assert.equal(await a.locator('#selected-exam-vault-workspace').count(),1,'Stage 2 Exit must return to the selected Vault overview');
+        assert.equal(await a.locator('#selected-exam-vault-workspace #lifecycle-stage-workspace').count(),1,'Stage 2 must open inside its selected Vault instead of a detached full page');
+        await a.getByRole('button',{name:'✕ Close',exact:true}).click();
+        assert.equal(await a.locator('#selected-exam-vault-workspace #lifecycle-stage-workspace').count(),0,'Stage 2 Close must collapse the workflow and remain in the Vault');
         await a.evaluate(()=>{archivedExams=archivedExams.filter(item=>item.id!=='vault-text-id');openExamVault(100);});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absent Today'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
