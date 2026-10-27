@@ -766,6 +766,14 @@ async function main() {
         await a.evaluate(()=>switchPreExamSubTab('inventory'));
         assert.equal(await a.locator('.inventory-room-card').count(),1,'Room Inventory must create bags only for examination rooms occupied by the saved Seating Arrangement');
         assert.match(await a.locator('.inventory-room-card').innerText(),/Main blank answer books[\s\S]*2[\s\S]*SCIENCE[\s\S]*2 copies/,'each room bag must derive exact main answer-book and subjectwise QP quantities from its allotted candidates');
+        assert.equal(await a.locator('[data-answer-book-row]').count(),1,'the locked answer-book total must start with an editable booklet-type child row');
+        await a.locator('[data-answer-book-quantity]').first().fill('1');
+        await a.locator('[data-answer-book-remark]').first().fill('Class X');
+        await a.getByRole('button',{name:/Add Booklet Type/}).click();
+        await a.locator('[data-answer-book-pages]').nth(1).selectOption('20 pages');
+        await a.locator('[data-answer-book-quantity]').nth(1).fill('1');
+        await a.locator('[data-answer-book-remark]').nth(1).fill('Class XII');
+        assert.equal(await a.locator('[data-answer-book-row]').count(),2,'mixed rooms must allow any number of answer-book page-type rows');
         assert.equal(await a.locator('.inventory-room-card [data-inventory-item]').count(),8,'each room bag must show the eight requested document and material headings');
         assert.equal(await a.locator('[data-inventory-item="seatingPlan"] [data-inventory-field="seatingPlanRequired"]').inputValue(),'Yes','each material card must provide a Yes/No requirement control');
         assert.equal(await a.locator('[data-inventory-item="seatingPlan"] [data-inventory-field="seatingPlanQty"]').inputValue(),'1','each material card must provide a number-of-items control');
@@ -784,7 +792,7 @@ async function main() {
         await a.getByRole('button',{name:/Edit Bag Plan/}).waitFor();
         assert.equal(await a.getByText('😊 All the best for the examination days!',{exact:true}).count(),1,'finalized room bags must end with the examination-day goodwill message');
         assert.equal(await a.getByRole('button',{name:/Generate Baggage Slip \/ Print/}).count(),1,'finalized bags must provide one combined printable baggage-slip action');
-        assert.match(await a.evaluate(()=>buildInventoryBagSlipHtml(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01')),/INVENTORY RECEIPT[\s\S]*SUBJECTWISE BUNDLE DIRECTORY[\s\S]*SCIENCE[\s\S]*EXACT RN RANGES[\s\S]*RN 1 to 2/,'the baggage slip must include the complete inventory receipt, bundle directory and exact RN ranges');
+        assert.match(await a.evaluate(()=>buildInventoryBagSlipHtml(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01')),/INVENTORY RECEIPT[\s\S]*12 pages[\s\S]*Class X[\s\S]*20 pages[\s\S]*Class XII[\s\S]*SUBJECTWISE BUNDLE DIRECTORY[\s\S]*SCIENCE[\s\S]*EXACT RN RANGES[\s\S]*RN 1 to 2/,'the baggage slip must include booklet types and remarks, the complete inventory receipt, bundle directory and exact RN ranges');
         assert.deepEqual(await a.evaluate(()=>{const day=roomInventoryPlans['100']['2026-11-01'],room=Object.values(day.rooms)[0];return{finalized:day.finalized,type:room.supplementaryType,quantity:room.supplementaryQty,main:room.mainAnswerBooks,papers:room.subjectPapers.SCIENCE,other1:room.other1Label};}),{finalized:true,type:'8 pages',quantity:6,main:2,papers:2,other1:'Calculator'},'finalized room bags must persist configurable materials while preserving exact workflow quantities');
         await b.waitForFunction(()=>roomInventoryPlans['100']?.['2026-11-01']?.finalized===true);
         await b.evaluate(()=>{activateArea('principal');switchTab('exam-creator-prin');openPreExamFullPageWorkspace(100);switchPreExamSubTab('seating');selectSeatingDate('2026-11-01');});
