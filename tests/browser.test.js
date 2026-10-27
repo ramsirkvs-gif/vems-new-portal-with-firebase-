@@ -636,6 +636,7 @@ async function main() {
         assert.match(await a.locator('#student-status-results').innerText(), /INACTIVE/);
         await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); switchPreExamSubTab('seating'); });
         assert.match(await a.locator('#seating-examinee-store').innerText(),/0\/2 allocated/,'the Seating workspace must start from the unallocated Examinee Store');
+        assert.match(await a.locator('#seating-vault-days').innerText(),/Day 1 · Seating pending/,'Seating must show a full-Vault day-status belt matching Invigilation navigation');
         assert.match(await a.locator('#seating-examinee-store').innerText(),/Subject: SCIENCE/,'each Examinee Store box must show its scheduled subject');
         assert.match(await a.locator('#seating-room-layout').innerText(),/2\. Select rooms and enter the room layout/);
         assert.equal(await a.locator('#seating-add-classroom').count(),0,'mapped-room formulas and dropdowns must be removed');
@@ -692,13 +693,14 @@ async function main() {
         assert.equal(await a.evaluate(() => seatingPlans['100']?.['2026-11-01']?.assignments.length),2,'the simple automatic arrangement must save all examinees');
         await a.getByRole('button',{name:/Proceed to 6\. Invigilation/}).click();
         assert.equal(await a.evaluate(() => activePreExamSubTab),'invigilation','the completed occupancy report must proceed directly to the linked Invigilation module');
+        assert.equal(await a.evaluate(() => selectedInvigilationDate),await a.evaluate(() => selectedSeatingDate),'Proceed to Invigilation must preserve the exact Seating report date');
+        assert.match(await a.getByRole('alert').filter({hasText:/Date lock:/}).innerText(),new RegExp((await a.evaluate(()=>formatDateWithDay(selectedSeatingDate))).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'Invigilation must visibly identify the same linked Seating date');
         assert.deepEqual(await a.evaluate(()=>invigilationVaultDates({datesheetSnapshot:[{dateStr:'2026-11-01'},{dateStr:'2026-11-03'},{dateStr:'2026-11-02'}]})),['2026-11-01','2026-11-02','2026-11-03'],'the Invigilation day belt must use every date in the full Vault, independent of saved seating');
         assert.equal(await a.locator('[data-invigilation-room]').count(),1,'invigilation must use only rooms actually occupied in the saved seating workflow');
         assert.doesNotMatch(await a.locator('[data-invigilation-room]').first().innerText(),/Library Annex/,'an unused room from the room layout must not enter invigilation');
         assert.match(await a.locator('[data-invigilation-room]').first().innerText(),/Students allotted:\s*2/,'invigilation must display the exact student count from the actual occupied-room calculation');
         assert.match(await a.locator('[data-invigilation-room]').first().innerText(),/Class X-A · SCIENCE · RN 1 to 2 · 2 students/,'each Invigilation room must explain its total with exact class-section, subject, roll range and student count');
         assert.equal(await a.evaluate(()=>actualOccupiedRoomRows({rooms:[{id:'10-B',name:'Examination Room 10-B'}],assignments:Array.from({length:40},(_,index)=>({studentId:`student-${index}`,roomId:'10-B',desk:Math.floor(index/2)+1}))})[0].studentCount),40,'a fully occupied 20-desk room must transfer all 40 allotted students to Invigilation');
-        assert.match(await a.getByRole('alert').first().innerText(),/only from this Vault's saved Seating Arrangement/,'the invigilation workspace must state its Vault workflow lock');
         await a.evaluate(async()=>{if(teachers.length<3){teachers.push({id:'relief-test-faculty',name:'Relief Test Faculty',desig:'TGT',allotments:[]});await saveData(['teachers']);renderExamCreatorModule();}});
         const facultyIds=await a.evaluate(() => sortFacultyForDisplay().slice(0,3).map(item=>String(item.id)));
         assert.ok(facultyIds.length>=3,'the test faculty roster must provide invigilators and a reliever');
