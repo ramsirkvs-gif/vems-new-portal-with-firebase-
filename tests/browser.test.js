@@ -732,6 +732,9 @@ async function main() {
         await a.evaluate(()=>switchPortalArea('public'));
         assert.equal(await a.locator('#public-qp-circular-section').isVisible(),true);
         assert.match(await a.locator('#public-qp-circular-section').innerText(),/4\..*Circulars to Question Paper Setters.*Existing Exam.*KV1\/EXAM\/2026\/01-REVISED/s);
+        assert.equal(await a.locator('#public-qp-circular-section').getByRole('button',{name:/Share PDF to WhatsApp/}).count(),1,'each published QP-setter circular must offer the same PDF sharing action as other Public View sections');
+        const sharedCircularPdf=await a.evaluate(async()=>{const blob=publishedQpSetterCircularPdfBlob('100');return{type:blob?.type,size:blob?.size||0,text:new TextDecoder().decode(await blob.arrayBuffer()).includes('CIRCULAR TO QUESTION PAPER SETTERS')};});
+        assert.equal(sharedCircularPdf.type,'application/pdf');assert.ok(sharedCircularPdf.size>500);assert.equal(sharedCircularPdf.text,true);
         await a.getByRole('button',{name:/View Circular \/ PDF/}).click();
         await a.locator('#qp-office-order-preview iframe').waitFor();
         assert.match(await a.locator('#qp-office-order-preview iframe').contentFrame().locator('body').textContent(),/Other Device Name/);
