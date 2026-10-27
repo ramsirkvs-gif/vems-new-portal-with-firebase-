@@ -776,10 +776,14 @@ async function main() {
         await a.locator('[data-inventory-field="supplementaryType"]').selectOption('8 pages');
         await a.locator('[data-inventory-field="supplementaryQty"]').fill('6');
         for(const field of ['examIcVerified','coIcPackedReady'])await a.locator(`[data-inventory-field="${field}"]`).check();
+        assert.equal(await a.getByRole('button',{name:/Generate Room Baggage Slip/}).count(),1,'each room must provide its own baggage-slip action beside the two approvals');
+        await a.getByRole('button',{name:/Generate Room Baggage Slip/}).click();
+        await a.locator('#inventory-bag-slip-preview').waitFor();
+        await a.locator('#inventory-bag-slip-preview').getByRole('button',{name:/Close/}).click();
         await a.getByRole('button',{name:/Finalize All Bags for Issue/}).click();
         await a.getByRole('button',{name:/Edit Bag Plan/}).waitFor();
         assert.equal(await a.getByText('😊 All the best for the examination days!',{exact:true}).count(),1,'finalized room bags must end with the examination-day goodwill message');
-        assert.equal(await a.getByRole('button',{name:/Generate Baggage Slip/}).count(),1,'finalized bags must provide a printable baggage-slip action');
+        assert.equal(await a.getByRole('button',{name:/Generate Baggage Slip \/ Print/}).count(),1,'finalized bags must provide one combined printable baggage-slip action');
         assert.match(await a.evaluate(()=>buildInventoryBagSlipHtml(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01')),/INVENTORY RECEIPT[\s\S]*SUBJECTWISE BUNDLE DIRECTORY[\s\S]*SCIENCE[\s\S]*EXACT RN RANGES[\s\S]*RN 1 to 2/,'the baggage slip must include the complete inventory receipt, bundle directory and exact RN ranges');
         assert.deepEqual(await a.evaluate(()=>{const day=roomInventoryPlans['100']['2026-11-01'],room=Object.values(day.rooms)[0];return{finalized:day.finalized,type:room.supplementaryType,quantity:room.supplementaryQty,main:room.mainAnswerBooks,papers:room.subjectPapers.SCIENCE,other1:room.other1Label};}),{finalized:true,type:'8 pages',quantity:6,main:2,papers:2,other1:'Calculator'},'finalized room bags must persist configurable materials while preserving exact workflow quantities');
         await b.waitForFunction(()=>roomInventoryPlans['100']?.['2026-11-01']?.finalized===true);
