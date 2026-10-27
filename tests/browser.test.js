@@ -637,6 +637,7 @@ async function main() {
         await a.evaluate(() => { switchTab('exam-creator-prin'); openPreExamFullPageWorkspace(100); switchPreExamSubTab('seating'); });
         assert.match(await a.locator('#seating-examinee-store').innerText(),/0\/2 allocated/,'the Seating workspace must start from the unallocated Examinee Store');
         assert.match(await a.locator('#seating-vault-days').innerText(),/Day 1 · Seating pending/,'Seating must show a full-Vault day-status belt matching Invigilation navigation');
+        assert.match(await a.locator('#paired-day-workflow').innerText(),/Linked Day Workflow · Day 1[\s\S]*5\. Seating · Day 1[\s\S]*6\. Invigilation · Day 1/,'Seating and Invigilation must share one date-locked workflow navigator');
         assert.match(await a.locator('#seating-examinee-store').innerText(),/Subject: SCIENCE/,'each Examinee Store box must show its scheduled subject');
         assert.match(await a.locator('#seating-room-layout').innerText(),/2\. Select rooms and enter the room layout/);
         assert.equal(await a.locator('#seating-add-classroom').count(),0,'mapped-room formulas and dropdowns must be removed');
@@ -694,6 +695,7 @@ async function main() {
         await a.getByRole('button',{name:/Proceed to 6\. Invigilation/}).click();
         assert.equal(await a.evaluate(() => activePreExamSubTab),'invigilation','the completed occupancy report must proceed directly to the linked Invigilation module');
         assert.equal(await a.evaluate(() => selectedInvigilationDate),await a.evaluate(() => selectedSeatingDate),'Proceed to Invigilation must preserve the exact Seating report date');
+        assert.match(await a.locator('#paired-day-workflow').innerText(),/Seating saved[\s\S]*Invigilation pending/,'the paired navigator must show both workflow statuses for the selected day');
         assert.match(await a.getByRole('alert').filter({hasText:/Date lock:/}).innerText(),new RegExp((await a.evaluate(()=>formatDateWithDay(selectedSeatingDate))).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),'Invigilation must visibly identify the same linked Seating date');
         assert.deepEqual(await a.evaluate(()=>invigilationVaultDates({datesheetSnapshot:[{dateStr:'2026-11-01'},{dateStr:'2026-11-03'},{dateStr:'2026-11-02'}]})),['2026-11-01','2026-11-02','2026-11-03'],'the Invigilation day belt must use every date in the full Vault, independent of saved seating');
         assert.equal(await a.locator('[data-invigilation-room]').count(),1,'invigilation must use only rooms actually occupied in the saved seating workflow');
