@@ -749,6 +749,16 @@ async function main() {
         const firstDutyName=await a.evaluate(id=>teachers.find(item=>String(item.id)===id).name,facultyIds[0]);
         assert.equal(await a.locator('#invigilation-duty-load tbody tr').filter({hasText:firstDutyName}).count(),1,'each faculty member must appear in one combined duty-load row');
         assert.match(await a.locator('#invigilation-duty-load tbody tr').filter({hasText:firstDutyName}).innerText(),/1\s+0\s+1\s+0/,'the faculty row must show selected-day and full-Vault full-time/relieving totals together');
+        assert.equal(await a.locator('#exam-creator-mount-prin').getByRole('button',{name:'👁 PDF',exact:true}).count(),1,'a completed Invigilation day must provide its PDF action');
+        assert.equal(await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),blob=invigilationDayPdfBlob(invigilationDayPublication(exam,'2026-11-01'));return blob?.type==='application/pdf';}),true,'the completed day must generate a real Invigilation Duty PDF');
+        await a.locator('#exam-creator-mount-prin').getByRole('button',{name:'📢 Publish',exact:true}).click();
+        await a.waitForFunction(()=>publicPortalBoards.liveDuty?.days?.['2026-11-01']);
+        assert.match(await a.locator('#public-live-duty').innerText(),/Existing Exam[\s\S]*Examination Room 10-A[\s\S]*SCIENCE/i,'Public View item 2 must show the published day with room, bundle and student details');
+        assert.equal(await a.locator('#public-live-duty-tools button').filter({hasText:'PDF / Print'}).count(),1,'published Invigilation Duty must provide a public PDF action');
+        assert.equal(await a.locator('#public-live-duty-tools button').filter({hasText:'Share PDF to WhatsApp'}).count(),1,'published Invigilation Duty must provide WhatsApp PDF sharing');
+        await a.evaluate(()=>{window.confirm=()=>true;});
+        await a.locator('#exam-creator-mount-prin').getByRole('button',{name:/Stop Publishing/}).click();
+        await a.waitForFunction(()=>!publicPortalBoards.liveDuty);
         assert.equal(await a.getByLabel('Invigilator 1 for Examination Room 10-A').isDisabled(),true,'a completed day must lock until Edit Day is selected');
         await b.waitForFunction(() => invigilationPlans['100']?.['2026-11-01']);
         assert.deepEqual(await b.evaluate(() => {const row=Object.values(invigilationPlans['100']['2026-11-01'])[0];return{invigilators:row.invigilators,relieverId:row.relieverId,reliefFrom:row.reliefFrom,reliefTo:row.reliefTo,studentCount:row.studentCount};}),{invigilators:facultyIds.slice(0,2),relieverId:facultyIds[2],reliefFrom:'10:00',reliefTo:'10:20',studentCount:2},'room invigilators, reliever and relief slot must synchronize from the saved occupied-room plan');
