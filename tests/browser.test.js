@@ -845,6 +845,9 @@ async function main() {
         await a.evaluate(()=>{isPreExamFullPageOpen=false;openExamVault(100);});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByText('No examination vault is available for this session.').count(),0,'Stage 2 must retain and open the selected examination Vault');
+        await a.getByRole('button',{name:/Exit \/ Back/}).click();
+        assert.equal(await a.locator('#selected-exam-vault-workspace').count(),1,'Stage 2 Exit must return to the selected Vault overview');
+        await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absent Today'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
         await a.getByRole('button',{name:'Next →'}).click();
         assert.equal(await a.getByText(/Invigilation duty update due to absence/).count(),1);
@@ -869,6 +872,9 @@ async function main() {
         await a.evaluate(()=>{openPreExamFullPageWorkspace(100);switchPreExamSubTab('exam-day-flow');});
         await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).click();
         await a.waitForFunction(()=>!publicPortalBoards.examDayFlow);
+        await a.getByRole('button',{name:'🔙 Exit',exact:true}).click();
+        assert.equal(await a.locator('#selected-exam-vault-workspace').count(),1,'Pre-Exam Exit must return to the selected Vault overview');
+        await a.evaluate(()=>openPreExamFullPageWorkspace(100));
 
         await a.evaluate(()=>switchPreExamSubTab('datesheet-orders'));
         assert.deepEqual(await a.locator('.workflow-document-actions').getByRole('button').allTextContents(),['💾 Save','✏️ Edit','👁 Preview / PDF','📢 Publish','⏹ Stop Publishing','🗑 Delete'],'Date Sheet must use the standard document action order');
