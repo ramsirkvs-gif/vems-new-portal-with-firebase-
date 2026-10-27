@@ -686,6 +686,7 @@ async function main() {
         assert.match(await a.locator('[data-seating-room-id]').first().innerText(),/Subject: SCIENCE/,'every allotted candidate card must display the mapped examination subject');
         assert.match(await a.locator('#seating-examinee-store').innerText(),/2\/2 allocated/,'automatic seating must update the Examinee Store preview');
         assert.match(await a.locator('#seating-occupancy-report').innerText(),/2\s*Vault candidates.*2\s*Allotted.*0\s*Students remaining.*1\s*Rooms occupied.*1\s*Rooms unused/s,'the occupancy report must distinguish created rooms from actually occupied rooms and confirm no remaining candidates');
+        assert.match(await a.locator('#seating-occupancy-report').innerText(),/Extra dual desks[\s\S]*\+2 desks · 4 seats/,'the final occupancy report must explicitly show additional desks and added seats for each room');
         assert.equal(await a.locator('[data-seating-room-id]').count(),1,'the automatic arrangement must exclude unused saved rooms to minimize invigilation duty');
         assert.match(await a.locator('[data-seating-room-id]').first().locator('.room-seating-summary').innerText(),/Class X-A · SCIENCE · RN 1 to 2 · 2 students/,'each room chart must summarize seated class-section and roll-number range');
         assert.match(await a.locator('[data-seating-room-id]').first().innerText(),/Extra Dual Desks · 2 desks · 4 seats/,'saved extra desks must render as child seating cells inside that examination room');
