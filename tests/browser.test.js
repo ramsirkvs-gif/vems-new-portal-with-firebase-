@@ -792,8 +792,11 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:/Generate Room Baggage Slip/}).count(),1,'each room must provide its own baggage-slip action beside the two approvals');
         await a.getByRole('button',{name:/Generate Room Baggage Slip/}).click();
         await a.locator('#inventory-bag-slip-preview').waitFor();
+        await a.waitForTimeout(150);
         assert.equal(await a.evaluate(()=>Object.values(roomInventoryPlans['100']['2026-11-01'].rooms)[0].examIcVerified),true,'generating a room slip must save its verified room record before previewing it');
+        assert.equal(await a.locator('#inventory-bag-slip-preview iframe').getAttribute('srcdoc').then(value=>value?.includes('ROOM INVIGILATOR BAGGAGE SLIP')),true,'the generated room slip must contain the printable exam-day document');
         await a.locator('#inventory-bag-slip-preview').getByRole('button',{name:/Close/}).click();
+        for(const field of ['examIcVerified','coIcPackedReady'])assert.equal(await a.locator(`[data-inventory-field="${field}"]`).isChecked(),true,'room approvals must stay checked after generating and closing the slip');
         await a.getByRole('button',{name:/Finalize & Prepare All Slips/}).click();
         await a.locator('#inventory-bag-slip-preview').waitFor();
         await a.locator('#inventory-bag-slip-preview').getByRole('button',{name:/Close/}).click();
