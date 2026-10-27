@@ -766,12 +766,16 @@ async function main() {
         await a.evaluate(()=>switchPreExamSubTab('inventory'));
         assert.equal(await a.locator('.inventory-room-card').count(),1,'Room Inventory must create bags only for examination rooms occupied by the saved Seating Arrangement');
         assert.match(await a.locator('.inventory-room-card').innerText(),/Main blank answer books[\s\S]*2[\s\S]*SCIENCE[\s\S]*2 copies/,'each room bag must derive exact main answer-book and subjectwise QP quantities from its allotted candidates');
+        assert.equal(await a.locator('.inventory-room-card [data-inventory-item]').count(),8,'each room bag must show the eight requested document and material headings');
+        assert.equal(await a.locator('[data-inventory-item="seatingPlan"] [data-inventory-field="seatingPlanRequired"]').inputValue(),'Yes','each material card must provide a Yes/No requirement control');
+        assert.equal(await a.locator('[data-inventory-item="seatingPlan"] [data-inventory-field="seatingPlanQty"]').inputValue(),'1','each material card must provide a number-of-items control');
+        await a.locator('[data-inventory-field="other1Label"]').fill('Calculator');
         await a.locator('[data-inventory-field="supplementaryType"]').selectOption('8 pages');
         await a.locator('[data-inventory-field="supplementaryQty"]').fill('6');
         for(const field of ['packed','verified','sealed'])await a.locator(`[data-inventory-field="${field}"]`).check();
         await a.getByRole('button',{name:/Finalize All Bags for Issue/}).click();
         await a.getByRole('button',{name:/Edit Bag Plan/}).waitFor();
-        assert.deepEqual(await a.evaluate(()=>{const day=roomInventoryPlans['100']['2026-11-01'],room=Object.values(day.rooms)[0];return{finalized:day.finalized,type:room.supplementaryType,quantity:room.supplementaryQty,main:room.mainAnswerBooks,papers:room.subjectPapers.SCIENCE};}),{finalized:true,type:'8 pages',quantity:6,main:2,papers:2},'finalized room bags must persist configurable materials while preserving exact workflow quantities');
+        assert.deepEqual(await a.evaluate(()=>{const day=roomInventoryPlans['100']['2026-11-01'],room=Object.values(day.rooms)[0];return{finalized:day.finalized,type:room.supplementaryType,quantity:room.supplementaryQty,main:room.mainAnswerBooks,papers:room.subjectPapers.SCIENCE,other1:room.other1Label};}),{finalized:true,type:'8 pages',quantity:6,main:2,papers:2,other1:'Calculator'},'finalized room bags must persist configurable materials while preserving exact workflow quantities');
         await b.waitForFunction(()=>roomInventoryPlans['100']?.['2026-11-01']?.finalized===true);
         await b.evaluate(()=>{activateArea('principal');switchTab('exam-creator-prin');openPreExamFullPageWorkspace(100);switchPreExamSubTab('seating');selectSeatingDate('2026-11-01');});
         assert.equal(await b.evaluate(()=>JSON.parse(localStorage.getItem('vems_workspace_state')).seatingDate),'2026-11-01','clicking a Seating day must immediately persist that date');
