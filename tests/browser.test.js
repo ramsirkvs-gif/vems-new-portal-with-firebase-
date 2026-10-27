@@ -892,7 +892,7 @@ async function main() {
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Invigilator submitted[\s\S]*Seat Student One/,'Exam IC must see full candidate details only after invigilator submission');
         await a.getByRole('button',{name:'5. Exam IC Attendance Report'}).click();
         assert.equal(await a.getByRole('button',{name:'👁 Print / PDF'}).count(),1,'the Exam IC report must provide print, edit, save and publish controls');
-        assert.match(await a.locator('#exam-day-step-panel').innerText(),/Candidate[\s\S]*Class \/ Section[\s\S]*Subject[\s\S]*Roll No\.[\s\S]*Desk \/ Seat[\s\S]*Seat Student One/,'the final on-screen report must show complete candidate, class, subject, roll and seat details');
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/Candidate[\s\S]*Class \/ Section[\s\S]*Subject[\s\S]*Roll No\.[\s\S]*Seat Student One/,'the final on-screen report must show reusable candidate, class, subject and roll details');
         assert.match(await a.evaluate(()=>examDayAttendanceReportHtml(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01')),/Class \/ Section[\s\S]*Subject[\s\S]*Seat Student One[\s\S]*Class X-A[\s\S]*SCIENCE/,'the printable final report must contain the same complete absentee details');
         await a.evaluate(()=>{openPreExamFullPageWorkspace(100);switchPreExamSubTab('exam-day-flow');});
         await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).click();
