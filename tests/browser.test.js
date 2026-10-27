@@ -863,11 +863,14 @@ async function main() {
         await a.getByRole('button',{name:/OK & Next/}).click();
         assert.equal(await a.locator('iframe[title="Mini room baggage slip"]').count(),1,'Step 3 must show the selected room baggage slip as a miniature PDF view');
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Distributed to:/,'each room issue row must identify the receiving invigilator');
-        const baggageChecks=a.locator('[data-baggage-room]');
-        for(let index=0;index<await baggageChecks.count();index++)if(!await baggageChecks.nth(index).isChecked())await baggageChecks.nth(index).check();
-        await a.getByRole('button',{name:/Save Distribution/}).click();
+        const initialPending=await a.locator('[data-complete-baggage-room]').count();
+        assert.equal(await a.locator('[data-print-baggage-room]').count(),initialPending,'every pending room must provide instant slip printing');
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/Still left rooms — not collected by invigilators:[\s\S]*Examination Room[\s\S]*— [A-Za-z]/,'the header must identify pending rooms and the concerned invigilator');
+        while(await a.locator('[data-complete-baggage-room]').count()){const before=await a.locator('[data-complete-baggage-room]').count();await a.locator('[data-complete-baggage-room]').first().click();await a.waitForFunction(count=>document.querySelectorAll('[data-complete-baggage-room]').length<count,before);}
         await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].baggageIssued).some(item=>item?.issued));
-        await a.getByRole('button',{name:'✏️ Edit',exact:true}).click();
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/All room bags have been handed over/,'completed rooms must disappear from the pending list');
+        await a.getByRole('button',{name:/Edit Handovers/}).click();
+        assert.equal(await a.getByRole('button',{name:/Edit \/ Reopen/}).count(),initialPending,'the header handover report must list every completed room');
         await a.getByRole('button',{name:/Done & Next/}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/WAITING FOR INVIGILATOR/);
         await a.evaluate(()=>switchPortalArea('public'));
@@ -875,7 +878,7 @@ async function main() {
         const roomPin=await a.evaluate(()=>publicPortalBoards.examDayFlow.rooms[0].room.attendancePin);
         await a.locator('#exam-day-public-pin').fill(roomPin);
         await a.getByRole('button',{name:'Unlock Room Seating'}).click();
-        const attendanceSeat=a.locator('#public-exam-day-flow').getByRole('button',{name:/Desk 1-A/}).first();await attendanceSeat.click();
+        const attendanceSeat=a.locator('#public-exam-day-flow').getByRole('button',{name:/Desk \d+-[AB]/}).first();await attendanceSeat.click();
         assert.match(await attendanceSeat.innerText(),/ABSENT/,'the invigilator must mark an individual half-desk red');
         await a.getByRole('button',{name:'Submit Absentees to Examination Cell'}).click();
         await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.submitted));
