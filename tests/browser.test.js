@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'invigilationPlans', 'publicPortalBoards', 'examCoreTeam'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'invigilationPlans', 'roomInventoryPlans', 'publicPortalBoards', 'examCoreTeam'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -762,6 +762,16 @@ async function main() {
         assert.equal(await a.getByLabel('Invigilator 1 for Examination Room 10-A').isDisabled(),true,'a completed day must lock until Edit Day is selected');
         await b.waitForFunction(() => invigilationPlans['100']?.['2026-11-01']);
         assert.deepEqual(await b.evaluate(() => {const row=Object.values(invigilationPlans['100']['2026-11-01'])[0];return{invigilators:row.invigilators,relieverId:row.relieverId,reliefFrom:row.reliefFrom,reliefTo:row.reliefTo,studentCount:row.studentCount};}),{invigilators:facultyIds.slice(0,2),relieverId:facultyIds[2],reliefFrom:'10:00',reliefTo:'10:20',studentCount:2},'room invigilators, reliever and relief slot must synchronize from the saved occupied-room plan');
+        await a.evaluate(()=>switchPreExamSubTab('inventory'));
+        assert.equal(await a.locator('.inventory-room-card').count(),1,'Room Inventory must create bags only for examination rooms occupied by the saved Seating Arrangement');
+        assert.match(await a.locator('.inventory-room-card').innerText(),/Main blank answer books[\s\S]*2[\s\S]*SCIENCE[\s\S]*2 copies/,'each room bag must derive exact main answer-book and subjectwise QP quantities from its allotted candidates');
+        await a.locator('[data-inventory-field="supplementaryType"]').selectOption('8 pages');
+        await a.locator('[data-inventory-field="supplementaryQty"]').fill('6');
+        for(const field of ['packed','verified','sealed'])await a.locator(`[data-inventory-field="${field}"]`).check();
+        await a.getByRole('button',{name:/Finalize All Bags for Issue/}).click();
+        await a.getByRole('button',{name:/Edit Bag Plan/}).waitFor();
+        assert.deepEqual(await a.evaluate(()=>{const day=roomInventoryPlans['100']['2026-11-01'],room=Object.values(day.rooms)[0];return{finalized:day.finalized,type:room.supplementaryType,quantity:room.supplementaryQty,main:room.mainAnswerBooks,papers:room.subjectPapers.SCIENCE};}),{finalized:true,type:'8 pages',quantity:6,main:2,papers:2},'finalized room bags must persist configurable materials while preserving exact workflow quantities');
+        await b.waitForFunction(()=>roomInventoryPlans['100']?.['2026-11-01']?.finalized===true);
         await b.evaluate(()=>{activateArea('principal');switchTab('exam-creator-prin');openPreExamFullPageWorkspace(100);switchPreExamSubTab('seating');selectSeatingDate('2026-11-01');});
         assert.equal(await b.evaluate(()=>JSON.parse(localStorage.getItem('vems_workspace_state')).seatingDate),'2026-11-01','clicking a Seating day must immediately persist that date');
         await b.reload();
