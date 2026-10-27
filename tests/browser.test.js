@@ -729,8 +729,11 @@ async function main() {
         const facultyIds=await a.evaluate(() => sortFacultyForDisplay().slice(0,3).map(item=>String(item.id)));
         assert.ok(facultyIds.length>=3,'the test faculty roster must provide invigilators and a reliever');
         await a.getByLabel('Invigilator 1 for Examination Room 10-A').selectOption(facultyIds[0]);
+        assert.equal(await a.getByLabel('Reliever for Examination Room 10-A').locator(`option[value="${facultyIds[0]}"]`).count(),0,'a full-time invigilator must be unavailable for relieving duty on the same day');
         await a.getByRole('button',{name:'+ Add Invigilator'}).click();
+        assert.equal(await a.getByLabel('Invigilator 2 for Examination Room 10-A').locator(`option[value="${facultyIds[0]}"]`).count(),0,'a faculty member already on invigilation duty must be unavailable for a second duty slot');
         await a.getByLabel('Invigilator 2 for Examination Room 10-A').selectOption(facultyIds[1]);
+        assert.equal(await a.getByLabel('Reliever for Examination Room 10-A').locator(`option[value="${facultyIds[1]}"]`).count(),0,'every selected invigilator must be excluded from the reliever list');
         await a.getByLabel('Reliever for Examination Room 10-A').selectOption(facultyIds[2]);
         await a.getByLabel('Relief from for Examination Room 10-A').fill('10:00');
         await a.getByLabel('Relief until for Examination Room 10-A').fill('10:20');
