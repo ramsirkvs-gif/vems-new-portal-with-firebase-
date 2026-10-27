@@ -742,6 +742,7 @@
         ];
         let seatingRooms = {};
         let seatingPlans = {};
+        let invigilationPlans = {};
         let editingSeatingRoomLayout = false;
         let seatingRoomLayoutDrafts = {};
         let suppressSavedSeatingPreview = false;
@@ -3346,9 +3347,68 @@
             const modal=document.createElement('div'); modal.id='seating-pdf-preview'; modal.className='fixed inset-0 z-[100] bg-slate-950/80 p-3 md:p-6 flex flex-col'; modal.innerHTML=`<div class="max-w-5xl w-full mx-auto bg-indigo-950 text-white rounded-t-xl p-3 flex justify-between items-center"><b>${escapeHtml(title)}</b><div class="flex gap-2"><button onclick="document.querySelector('#seating-pdf-preview iframe').contentWindow.print()" class="bg-emerald-600 px-4 py-2 rounded text-xs font-bold">Print / Save PDF</button><button onclick="document.getElementById('seating-pdf-preview').remove()" class="bg-red-600 px-4 py-2 rounded text-xs font-bold">Close</button></div></div><iframe class="max-w-5xl w-full mx-auto flex-1 bg-white rounded-b-xl"></iframe>`; document.body.appendChild(modal); modal.querySelector('iframe').srcdoc=html;
         }
 
+        function invigilationFacultyOptions(selected='') {
+            return `<option value="">Select faculty…</option>${sortFacultyForDisplay().map(teacher=>`<option value="${escapeHtml(String(teacher.id))}" ${String(selected)===String(teacher.id)?'selected':''}>${escapeHtml(teacher.name)} (${escapeHtml(teacher.desig||'Faculty')})</option>`).join('')}`;
+        }
+        function occupiedInvigilationRooms(exam) {
+            const vaultDates=new Set((exam.datesheetSnapshot||[]).map(day=>day.dateStr).filter(Boolean));
+            return Object.entries(seatingPlans[String(exam.id)]||{}).filter(([date])=>vaultDates.has(date)).sort(([a],[b])=>a.localeCompare(b)).flatMap(([date,plan])=>(plan.rooms||[]).map(room=>{
+                const assignments=(plan.assignments||[]).filter(item=>String(item.roomId)===String(room.id));
+                if(!assignments.length)return null;
+                const groups=[...new Set(assignments.map(item=>`Class ${formatClass(item.cls)}-${item.section} · ${item.subject||'Subject'}`))];
+                return{date,room,assignments,groups};
+            }).filter(Boolean));
+        }
+        function invigilationRoomRecord(examId,date,roomId) {
+            const examKey=String(examId),dateKey=String(date),roomKey=String(roomId);
+            invigilationPlans[examKey]||={};
+            invigilationPlans[examKey][dateKey]||={};
+            return invigilationPlans[examKey][dateKey][roomKey]||={invigilators:[''],relieverId:'',reliefFrom:'',reliefTo:''};
+        }
+        function updateInvigilationRoom(examId,date,roomId,field,value,index=-1) {
+            const record=invigilationRoomRecord(examId,date,roomId);
+            if(field==='invigilator')record.invigilators[index]=value;
+            else record[field]=value;
+        }
+        function addRoomInvigilator(examId,date,roomId) {
+            invigilationRoomRecord(examId,date,roomId).invigilators.push('');
+            renderExamCreatorModule();
+        }
+        function removeRoomInvigilator(examId,date,roomId,index) {
+            const record=invigilationRoomRecord(examId,date,roomId);
+            record.invigilators.splice(index,1);
+            if(!record.invigilators.length)record.invigilators=[''];
+            renderExamCreatorModule();
+        }
+        function invigilationDutyWindow(exam,date) {
+            const slots=(exam.datesheetSnapshot||[]).find(day=>day.dateStr===date)?.paperSlots||[];
+            const start=slots.map(slot=>slot.repTime||slot.startTime).filter(Boolean).sort()[0]||'—';
+            const end=slots.map(slot=>slot.overTime||slot.endTime).filter(Boolean).sort().at(-1)||'—';
+            return `${start}–${end}`;
+        }
+        async function saveInvigilationPlan(examId) {
+            const exam=archivedExams.find(item=>String(item.id)===String(examId));if(!exam)return;
+            const occupied=occupiedInvigilationRooms(exam),usedByDate={};
+            for(const item of occupied){
+                const record=invigilationRoomRecord(examId,item.date,item.room.id),selected=(record.invigilators||[]).filter(Boolean);
+                if(!selected.length){alert(`Select at least one invigilator for ${item.room.name} on ${formatDateWithDay(item.date)}.`);return;}
+                const people=[...selected,...(record.relieverId?[record.relieverId]:[])];
+                if(new Set(people).size!==people.length){alert(`The same faculty member is selected more than once for ${item.room.name} on ${formatDateWithDay(item.date)}.`);return;}
+                usedByDate[item.date]||=new Map();
+                for(const teacherId of people){if(usedByDate[item.date].has(teacherId)){const teacher=teachers.find(value=>String(value.id)===String(teacherId));alert(`${teacher?.name||'This faculty member'} is already assigned to ${usedByDate[item.date].get(teacherId)} on ${formatDateWithDay(item.date)}.`);return;}usedByDate[item.date].set(teacherId,item.room.name);}
+                if(record.relieverId&&(!record.reliefFrom||!record.reliefTo)){alert(`Enter both relief times for ${item.room.name}.`);return;}
+                if(record.reliefFrom&&record.reliefTo&&record.reliefFrom>=record.reliefTo){alert(`Relief end time must be later than relief start time for ${item.room.name}.`);return;}
+            }
+            const next={};
+            occupied.forEach(item=>{next[item.date]||={};const record=invigilationRoomRecord(examId,item.date,item.room.id);next[item.date][String(item.room.id)]={...cloneData(record),roomName:item.room.name,studentCount:item.assignments.length,dutyWindow:invigilationDutyWindow(exam,item.date),updatedAt:new Date().toISOString(),updatedBy:authorizedRole};});
+            invigilationPlans={...invigilationPlans,[String(examId)]:next};
+            if(await saveData(['invigilationPlans'])){renderExamCreatorModule();alert('Invigilation duty plan saved for all occupied rooms.');}
+        }
         function renderInvigilationOverview(exam) {
-            const rows = (exam.datesheetSnapshot || []).flatMap(day => (day.paperSlots || []).map((slot, index) => ({ day, slot, teacher: teachers[index % Math.max(teachers.length, 1)] })));
-            return `<div class="bg-white rounded-xl border p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">👩‍🏫 Daywise Invigilation Duty Planner</h3><p class="text-xs text-slate-500">Dates and papers come from Exam Creator; available faculty come from Faculty Manager.</p></div><div class="overflow-x-auto border rounded-xl"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date</th><th class="p-3 text-left">Paper</th><th class="p-3 text-left">Reporting</th><th class="p-3 text-left">Suggested Faculty</th><th class="p-3 text-left">Room</th></tr></thead><tbody class="divide-y">${rows.map(({day,slot,teacher}) => `<tr><td class="p-3 font-bold">${escapeHtml(formatDateWithDay(day.dateStr))}</td><td class="p-3">Class ${escapeHtml(formatClass(slot.cls))} — ${escapeHtml(slot.subject)}</td><td class="p-3">${escapeHtml(slot.repTime || '—')}</td><td class="p-3 font-bold">${escapeHtml(teacher?.name || 'Faculty data required')}</td><td class="p-3 text-amber-700 font-bold">Assign after seating plan</td></tr>`).join('') || '<tr><td colspan="5" class="p-5 text-center text-slate-500">No exam days found.</td></tr>'}</tbody></table></div></div>`;
+            const occupied=occupiedInvigilationRooms(exam),saved=invigilationPlans[String(exam.id)]||{};
+            if(!occupied.length)return `<div class="rounded-xl border bg-white p-6"><h3 class="font-bold text-indigo-950">👩‍🏫 Room-wise Invigilation Duty Planner</h3><div role="alert" class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-5 text-center text-sm font-bold text-amber-800">No saved occupied-room data exists for this Vault. Complete and save its Seating Arrangement first.</div></div>`;
+            const rows=occupied.map(({date,room,assignments,groups})=>{const record=invigilationRoomRecord(exam.id,date,room.id),isSaved=!!saved[date]?.[String(room.id)]?.updatedAt;return`<tr class="align-top" data-invigilation-room="${escapeHtml(String(room.id))}" data-invigilation-date="${escapeHtml(date)}"><td class="p-3"><b>${escapeHtml(formatDateWithDay(date))}</b><div class="mt-1 text-[10px] text-slate-500">Duty: ${escapeHtml(invigilationDutyWindow(exam,date))}</div></td><td class="p-3"><b class="text-indigo-950">${escapeHtml(room.name)}</b><div class="mt-1 text-[10px] text-emerald-700 font-bold">${assignments.length} students</div><div class="mt-1 max-w-xs text-[10px] text-slate-500">${escapeHtml(groups.join(' | '))}</div></td><td class="min-w-[270px] p-3"><div class="space-y-2">${(record.invigilators?.length?record.invigilators:['']).map((teacherId,index)=>`<div class="flex gap-1"><select aria-label="Invigilator ${index+1} for ${escapeHtml(room.name)}" onchange="updateInvigilationRoom(${jsArg(exam.id)},${jsArg(date)},${jsArg(String(room.id))},'invigilator',this.value,${index})" class="min-w-0 flex-1 rounded border bg-white p-2">${invigilationFacultyOptions(teacherId)}</select>${index?`<button type="button" aria-label="Remove invigilator" onclick="removeRoomInvigilator(${jsArg(exam.id)},${jsArg(date)},${jsArg(String(room.id))},${index})" class="rounded bg-red-50 px-2 font-bold text-red-700">×</button>`:''}</div>`).join('')}</div><button type="button" onclick="addRoomInvigilator(${jsArg(exam.id)},${jsArg(date)},${jsArg(String(room.id))})" class="mt-2 rounded bg-indigo-50 px-3 py-1.5 text-[10px] font-bold text-indigo-800">+ Add Invigilator</button></td><td class="min-w-[220px] p-3"><select aria-label="Reliever for ${escapeHtml(room.name)}" onchange="updateInvigilationRoom(${jsArg(exam.id)},${jsArg(date)},${jsArg(String(room.id))},'relieverId',this.value)" class="w-full rounded border bg-white p-2">${invigilationFacultyOptions(record.relieverId)}</select><div class="mt-2 grid grid-cols-2 gap-2"><label class="text-[9px] font-bold text-slate-500">RELIEF FROM<input aria-label="Relief from for ${escapeHtml(room.name)}" type="time" value="${escapeHtml(record.reliefFrom||'')}" onchange="updateInvigilationRoom(${jsArg(exam.id)},${jsArg(date)},${jsArg(String(room.id))},'reliefFrom',this.value)" class="mt-1 w-full rounded border p-2 text-xs"></label><label class="text-[9px] font-bold text-slate-500">RELIEF UNTIL<input aria-label="Relief until for ${escapeHtml(room.name)}" type="time" value="${escapeHtml(record.reliefTo||'')}" onchange="updateInvigilationRoom(${jsArg(exam.id)},${jsArg(date)},${jsArg(String(room.id))},'reliefTo',this.value)" class="mt-1 w-full rounded border p-2 text-xs"></label></div></td><td class="p-3"><span class="rounded px-2 py-1 text-[10px] font-bold ${isSaved?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}">${isSaved?'Saved':'Draft'}</span></td></tr>`;}).join('');
+            return `<div class="rounded-xl border bg-white p-4 md:p-6 space-y-4"><div><h3 class="font-bold text-indigo-950">👩‍🏫 Room-wise Invigilation Duty Planner</h3><p class="text-xs text-slate-500">Only rooms actually occupied in this selected Vault's saved Seating Arrangement are included. Faculty choices come from Faculty Manager.</p></div><div role="alert" class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs font-bold text-blue-900">Workflow lock: dates, rooms and student counts come only from this Vault's saved Seating Arrangement. They cannot be added or changed here.</div><div class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-900">Emergency relief: If relieving is required outside the allotted relief time, contact the Examination Cell immediately.</div><div class="overflow-x-auto rounded-xl border"><table class="w-full text-xs"><thead class="bg-indigo-950 text-white"><tr><th class="p-3 text-left">Date &amp; duty time</th><th class="p-3 text-left">Occupied room</th><th class="p-3 text-left">Invigilator(s)</th><th class="p-3 text-left">Reliever &amp; relief time</th><th class="p-3 text-left">Status</th></tr></thead><tbody class="divide-y">${rows}</tbody></table></div><div class="flex justify-end"><button type="button" onclick="saveInvigilationPlan(${jsArg(exam.id)})" class="rounded bg-emerald-700 px-5 py-2.5 text-sm font-extrabold text-white">💾 Save Invigilation Plan</button></div></div>`;
         }
 
         function renderInventoryOverview(exam) {

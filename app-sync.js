@@ -3,7 +3,7 @@
 const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examCoreTeam', 'archivedExams',
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings',
     'dateSheetInstructions', 'dateSheetSettings', 'holidayCalendar', 'publishedSubjectDirectories', 'publicPortalBoards', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
-sharedNames.push('seatingRooms', 'seatingPlans');
+sharedNames.push('seatingRooms', 'seatingPlans', 'invigilationPlans');
 const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList', 'publishedSubjectDirectories'];
 // Login identifiers only. Firebase stores and verifies each role's passcode.
 // Dedicated portal accounts are independent of the administrator’s personal account.
@@ -134,7 +134,7 @@ function canEditSharedData(required = 'exam') {
 function sharedValue(name) {
     return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, examCoreTeam, archivedExams,
         examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings,
-        dateSheetInstructions, dateSheetSettings, holidayCalendar, seatingRooms, seatingPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
+        dateSheetInstructions, dateSheetSettings, holidayCalendar, seatingRooms, seatingPlans, invigilationPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
 }
 function samePublishedData(left,right){return JSON.stringify(left)===JSON.stringify(right);}
 function liveFacultyRosterRows(){return facultyPublishedRows();}
@@ -206,6 +206,7 @@ function acceptSharedValue(name, value) {
         case 'publicPortalBoards': publicPortalBoards = value; renderPublicPortalBoards(); break;
         case 'seatingRooms': seatingRooms = value; break;
         case 'seatingPlans': seatingPlans = value; break;
+        case 'invigilationPlans': invigilationPlans = value; break;
         case 'examCirculars': examCirculars = value; break;
         case 'circularSettings': circularSettings = value; break;
         case 'signatureProfiles': signatureProfiles = value; break;

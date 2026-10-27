@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'publicPortalBoards', 'examCoreTeam'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'invigilationPlans', 'publicPortalBoards', 'examCoreTeam'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
@@ -687,6 +687,21 @@ async function main() {
         assert.equal(await a.evaluate(() => seatingPlans['100']?.['2026-11-01']?.assignments.length),2,'the simple automatic arrangement must save all examinees');
         await a.getByRole('button',{name:/Proceed to 6\. Invigilation/}).click();
         assert.equal(await a.evaluate(() => activePreExamSubTab),'invigilation','the completed occupancy report must proceed directly to the linked Invigilation module');
+        assert.equal(await a.locator('[data-invigilation-room]').count(),1,'invigilation must use only rooms actually occupied in the saved seating workflow');
+        assert.doesNotMatch(await a.locator('[data-invigilation-room]').first().innerText(),/Library Annex/,'an unused room from the room layout must not enter invigilation');
+        assert.match(await a.getByRole('alert').first().innerText(),/only from this Vault's saved Seating Arrangement/,'the invigilation workspace must state its Vault workflow lock');
+        await a.evaluate(async()=>{if(teachers.length<3){teachers.push({id:'relief-test-faculty',name:'Relief Test Faculty',desig:'TGT',allotments:[]});await saveData(['teachers']);renderExamCreatorModule();}});
+        const facultyIds=await a.evaluate(() => sortFacultyForDisplay().slice(0,3).map(item=>String(item.id)));
+        assert.ok(facultyIds.length>=3,'the test faculty roster must provide invigilators and a reliever');
+        await a.getByLabel('Invigilator 1 for Classroom 10-A').selectOption(facultyIds[0]);
+        await a.getByRole('button',{name:'+ Add Invigilator'}).click();
+        await a.getByLabel('Invigilator 2 for Classroom 10-A').selectOption(facultyIds[1]);
+        await a.getByLabel('Reliever for Classroom 10-A').selectOption(facultyIds[2]);
+        await a.getByLabel('Relief from for Classroom 10-A').fill('10:00');
+        await a.getByLabel('Relief until for Classroom 10-A').fill('10:20');
+        await a.getByRole('button',{name:/Save Invigilation Plan/}).click();
+        await b.waitForFunction(() => invigilationPlans['100']?.['2026-11-01']);
+        assert.deepEqual(await b.evaluate(() => {const row=Object.values(invigilationPlans['100']['2026-11-01'])[0];return{invigilators:row.invigilators,relieverId:row.relieverId,reliefFrom:row.reliefFrom,reliefTo:row.reliefTo,studentCount:row.studentCount};}),{invigilators:facultyIds.slice(0,2),relieverId:facultyIds[2],reliefFrom:'10:00',reliefTo:'10:20',studentCount:2},'room invigilators, reliever and relief slot must synchronize from the saved occupied-room plan');
         console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
 
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));
