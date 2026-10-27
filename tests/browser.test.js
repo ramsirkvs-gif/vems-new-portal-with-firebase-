@@ -729,6 +729,8 @@ async function main() {
         await a.evaluate(async()=>{if(teachers.length<3){teachers.push({id:'relief-test-faculty',name:'Relief Test Faculty',desig:'TGT',allotments:[]});await saveData(['teachers']);renderExamCreatorModule();}});
         const facultyIds=await a.evaluate(() => sortFacultyForDisplay().slice(0,3).map(item=>String(item.id)));
         assert.ok(facultyIds.length>=3,'the test faculty roster must provide invigilators and a reliever');
+        assert.deepEqual(await a.evaluate(()=>[reliefSlotsOverlap('11:30','12:00','11:45','12:15'),reliefSlotsOverlap('11:30','12:00','12:00','12:30')]),[true,false],'emergency reuse of one reliever must reject overlapping periods and allow sequential periods');
+        assert.deepEqual(await a.evaluate(id=>{const original=invigilationPlans;invigilationPlans={test:{day:{room1:{invigilators:[],relieverId:id,reliefFrom:'11:30',reliefTo:'12:00'}}}};const relief=invigilationFacultyOptions('','test','day','room2','relieverId',-1).includes(`value="${id}"`),full=invigilationFacultyOptions('','test','day','room2','invigilator',0).includes(`value="${id}"`);invigilationPlans=original;return{relief,full};},facultyIds[0]),{relief:true,full:false},'an existing reliever must remain available for another relief slot but unavailable for full-time invigilation');
         await a.getByLabel('Invigilator 1 for Examination Room 10-A').selectOption(facultyIds[0]);
         assert.equal(await a.getByLabel('Reliever for Examination Room 10-A').locator(`option[value="${facultyIds[0]}"]`).count(),0,'a full-time invigilator must be unavailable for relieving duty on the same day');
         await a.getByRole('button',{name:'+ Add Invigilator'}).click();
