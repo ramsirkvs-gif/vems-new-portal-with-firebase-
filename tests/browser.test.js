@@ -831,6 +831,8 @@ async function main() {
         await a.evaluate(()=>{selectedPreExamVaultId=100;openPreExamFullPageWorkspace(100);switchPreExamSubTab('exam-day-flow');examDayTimelineEditing=true;renderExamCreatorModule();});
         assert.equal(await a.locator('[data-exam-day-event]').count(),11,'advance preparation must provide the complete daywise clock-flow checklist');
         assert.equal(await a.locator('[data-exam-day-event="exam-running"] input:disabled').count(),2,'Vault-aligned exam time and title must remain locked');
+        assert.equal(await a.locator('[data-exam-day-event="invigilator-absence"] input:disabled').count(),0,'normal real-time rows must be directly editable');
+        assert.deepEqual(await a.evaluate(()=>({reading:document.querySelector('[data-exam-day-event="qp-reading"] [data-event-time]').value,start:document.querySelector('[data-exam-day-event="exam-running"] [data-event-time]').value})),{reading:'08:15',start:'08:30'},'QP reading and exam start must use their separate Vault times');
         await a.locator('[data-exam-day-event]').first().locator('[data-event-title]').fill('Invigilator absence reporting');
         await a.getByRole('button',{name:'💾 Save',exact:true}).click();
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.duringExamDays?.['2026-11-01']?.events?.[0]?.title==='Invigilator absence reporting');
