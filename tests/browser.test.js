@@ -895,6 +895,14 @@ async function main() {
         assert.deepEqual(await a.evaluate(()=>[{cls:'12',section:'A',roll:'12102',name:'A'},{cls:'10',section:'B',roll:'10120',name:'B'},{cls:'10',section:'A',roll:'10105',name:'C'}].sort(compareExamAttendanceCandidate).map(item=>`${item.cls}-${item.section}-${item.roll}`)),['10-A-10105','10-B-10120','12-A-12102'],'Exam IC absentee lists must sort by ascending class, section and roll number');
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Roll No\.[\s\S]*Candidate Name[\s\S]*Class \/ Section[\s\S]*Subject[\s\S]*Seat Student One/,'the final on-screen report must show roll, name, class and subject in the requested order');
         assert.match(await a.evaluate(()=>examDayAttendanceReportHtml(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01')),/Roll No\.[\s\S]*Candidate Name[\s\S]*Class \/ Section[\s\S]*Subject[\s\S]*Seat Student One[\s\S]*Class X-A[\s\S]*SCIENCE/,'the printable final report must contain the same ordered absentee details');
+        assert.match(await a.evaluate(()=>examDayClasswiseAttendanceReportHtml(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01')),/CLASSWISE ABSENTEE REPORT — CLASS TEACHERS \/ SAMAGAM[\s\S]*Class X-A[\s\S]*Roll No\.[\s\S]*Seat Student One/,'the CT/Samagam report must regroup submitted absentees classwise');
+        await a.getByRole('button',{name:'📢 Publish Exam Roomwise',exact:true}).click();
+        await a.waitForFunction(()=>publicPortalBoards.examDayAttendance?.mode==='roomwise');
+        await a.getByRole('button',{name:'📢 Publish Classwise for CTs / Samagam',exact:true}).click();
+        await a.waitForFunction(()=>publicPortalBoards.examDayAttendanceClasswise?.mode==='classwise');
+        assert.deepEqual(await a.evaluate(()=>({roomwise:publicPortalBoards.examDayAttendance?.mode,classwise:publicPortalBoards.examDayAttendanceClasswise?.mode})),{roomwise:'roomwise',classwise:'classwise'},'roomwise and classwise reports must publish independently');
+        await a.getByRole('button',{name:'⏹ Stop Roomwise',exact:true}).click();
+        await a.getByRole('button',{name:'⏹ Stop Classwise',exact:true}).click();
         await a.evaluate(()=>{openPreExamFullPageWorkspace(100);switchPreExamSubTab('exam-day-flow');});
         await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).click();
         await a.waitForFunction(()=>!publicPortalBoards.examDayFlow);
