@@ -880,7 +880,8 @@ async function main() {
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Waiting for invigilator submission/);
         await a.getByRole('button',{name:/Publish Sensitive Attendance/}).click();
         await a.evaluate(()=>switchPortalArea('public'));
-        assert.match(await a.locator('#public-exam-day-flow').innerText(),/REAL-TIME DISPLAY FOR EXAM DAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a read-only live public display');
+        assert.match(await a.locator('#public-exam-day-flow').innerText(),/9\. 🕒 REAL-TIME EXAM DISPLAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a compact read-only live public display');
+        assert.deepEqual(await a.locator('#public-operational-board > section').evaluateAll(nodes=>nodes.map(node=>node.id)),['public-exam-notice-board','public-qp-circular-section','public-date-sheet-section','public-qp-receiving-section','public-qp-printing-section','public-seating-section','public-invigilation-section','public-room-inventory-section','public-exam-day-flow','public-sensitive-attendance-section','public-final-attendance-section','public-general-circular-section'],'the public operational displays must remain in the requested S.No. 1–12 order');
         assert.equal(await a.locator('#public-exam-day-flow #exam-day-public-pin').count(),0,'the sensitive attendance control must not appear inside the real-time display');
         assert.equal(await a.locator('#public-attendance-panel #exam-day-public-pin').count(),1,'the PIN-protected attendance control must appear under Section 3 Seating Arrangement Display');
         assert.equal(await a.locator('#public-attendance-panel #public-attendance-pin').count(),0,'the general seating publication must remain read-only without its legacy attendance control');
@@ -976,7 +977,7 @@ async function main() {
         assert.equal(await a.locator('#public-qp-circular-section').isVisible(),false,'the published circular section belongs to Public View');
         await a.evaluate(()=>switchPortalArea('public'));
         assert.equal(await a.locator('#public-qp-circular-section').isVisible(),true);
-        assert.match(await a.locator('#public-qp-circular-section').innerText(),/4\..*Circulars to Question Paper Setters.*Existing Exam.*KV1\/EXAM\/2026\/01-REVISED/s);
+        assert.match(await a.locator('#public-qp-circular-section').innerText(),/2\..*Office Orders for QP Setters.*Existing Exam.*KV1\/EXAM\/2026\/01-REVISED/s);
         assert.equal(await a.locator('#public-qp-circular-section').getByRole('button',{name:/Share PDF to WhatsApp/}).count(),1,'each published QP-setter circular must offer the same PDF sharing action as other Public View sections');
         const sharedCircularPdf=await a.evaluate(async()=>{const blob=publishedQpSetterCircularPdfBlob('100'),text=new TextDecoder().decode(await blob.arrayBuffer());return{type:blob?.type,size:blob?.size||0,official:text.includes('OFFICE ORDER')&&text.includes('C O N F I D E N T I A L')&&text.includes('ACK. SIGN.')};});
         assert.equal(sharedCircularPdf.type,'application/pdf');assert.ok(sharedCircularPdf.size>500);assert.equal(sharedCircularPdf.official,true);
