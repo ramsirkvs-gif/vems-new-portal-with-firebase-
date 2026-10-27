@@ -652,7 +652,9 @@ async function main() {
         assert.equal((await a.locator('#seating-remaining-room option').allTextContents()).includes('Examination Room 10-A'),false,'an automatically displayed exam-day classroom must not remain in the available examination-room list');
         await classroomCard.locator('.seating-room-columns').fill('6');
         await classroomCard.locator('.seating-room-desks').fill('7');
-        assert.match(await classroomCard.innerText(),/42 desks · 84 seating/,'capacity must update while room dimensions are edited');
+        assert.equal(await classroomCard.locator('.seating-room-extra').inputValue(),'0','each examination room must start with no extra dual desk');
+        await classroomCard.locator('.seating-room-extra').fill('2');
+        assert.match(await classroomCard.innerText(),/42 regular \+ 2 extra = 44 desks · 88 seating/,'each room must calculate its own regular and extra dual-desk capacity');
         await a.evaluate(() => acceptSharedValue('seatingRooms', cloneData(seatingRooms)));
         await a.waitForTimeout(100);
         assert.equal(await a.locator('.seating-room-card').first().locator('.seating-room-name').inputValue(),'Examination Room 10-A','an incoming live seatingRooms refresh must not erase the local room-layout draft');
@@ -663,6 +665,7 @@ async function main() {
         await a.locator('.seating-room-card').nth(1).getByRole('button',{name:'Remove'}).click();
         assert.equal(await a.locator('.seating-room-card').count(),1,'a manually added room must be removable');
         assert.equal(await a.locator('.seating-room-card').first().locator('.seating-room-columns').inputValue(),'6','room edits must survive add and remove renders');
+        assert.equal(await a.locator('.seating-room-card').first().locator('.seating-room-extra').inputValue(),'2','extra dual desks must survive room-layout rerenders');
         await a.fill('#seating-custom-room-name','');
         await a.getByRole('button',{name:'+ Add Room',exact:true}).click();
         assert.equal(await a.locator('.seating-room-card').count(),2,'Add Room must create a room even when the optional name field is blank');
@@ -671,6 +674,7 @@ async function main() {
         await a.getByRole('button',{name:/Save Room Layout/}).click();
         await a.getByRole('button',{name:/Edit Room Layout/}).waitFor();
         assert.equal(await a.evaluate(() => savedSeatingLayoutRooms('100|2026-11-01').length),2,'the saved room layout must belong to the selected vault date');
+        assert.equal(await a.evaluate(() => savedSeatingLayoutRooms('100|2026-11-01')[0].extraDesks),2,'extra dual desks must save inside the concerned examination room only');
         assert.equal(await a.evaluate(() => Object.values(seatingRooms).filter(room=>room.layoutSelections?.['100|2026-11-01']).length),2,'date rooms must be stored under the exam ID and examination date');
         assert.equal(await a.locator('.seating-room-columns').first().isDisabled(),true,'saved room layouts must lock until Edit is selected');
         await a.evaluate(() => renderExamCreatorModule());
@@ -684,6 +688,8 @@ async function main() {
         assert.match(await a.locator('#seating-occupancy-report').innerText(),/2\s*Vault candidates.*2\s*Allotted.*0\s*Students remaining.*1\s*Rooms occupied.*1\s*Rooms unused/s,'the occupancy report must distinguish created rooms from actually occupied rooms and confirm no remaining candidates');
         assert.equal(await a.locator('[data-seating-room-id]').count(),1,'the automatic arrangement must exclude unused saved rooms to minimize invigilation duty');
         assert.match(await a.locator('[data-seating-room-id]').first().locator('.room-seating-summary').innerText(),/Class X-A · SCIENCE · RN 1 to 2 · 2 students/,'each room chart must summarize seated class-section and roll-number range');
+        assert.match(await a.locator('[data-seating-room-id]').first().innerText(),/Extra Dual Desks · 2 desks · 4 seats/,'saved extra desks must render as child seating cells inside that examination room');
+        assert.equal(await a.evaluate(()=>{const candidates=[{studentId:'a',cls:'10',section:'A',subject:'SCIENCE',roll:1},{studentId:'b',cls:'11',section:'A',subject:'ENGLISH',roll:1},{studentId:'c',cls:'12',section:'A',subject:'HINDI',roll:1}],result=allocateTwoPerDesk(candidates,[{id:'room',name:'Examination Room',rows:1,desksPerRow:1,deskCount:2}]);return result.error||Math.max(...result.assignments.map(item=>item.desk));}),2,'automatic allocation must use an extra dual desk before opening another examination room');
         assert.match(await a.locator('#seating-occupancy-report .room-bundle-summary').first().innerText(),/SCIENCE · Class X-A: 2 · Total 2 scripts/,'the occupancy report must provide an invigilator-ready subject bundle total');
         assert.deepEqual(await a.evaluate(()=>roomBundleSummary([{cls:'10',section:'A',subject:'AI'},{cls:'10',section:'A',subject:'AI'},{cls:'10',section:'B',subject:'AI'},{cls:'12',section:'A',subject:'CS'}]).map(item=>({subject:item.subject,total:item.total,parts:item.classParts}))),[{subject:'AI',total:3,parts:['Class X-A: 2','Class X-B: 1']},{subject:'CS',total:1,parts:['Class XII-A: 1']}],'spread RN records must collapse into subject-wise bundles with class-section subtotals');
         assert.equal(await a.locator('#seating-room-quick-select option').count(),2,'the occupancy report must provide All Rooms plus every actually occupied examination room');
