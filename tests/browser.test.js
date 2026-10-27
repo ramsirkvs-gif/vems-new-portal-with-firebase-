@@ -409,6 +409,7 @@ async function main() {
         assert.equal(await a.evaluate(() => getSectionStream('12', 'E')), 'Humanities');
         await a.evaluate(() => previewSubjectDirectoryPDF());
         assert.equal(await a.locator('#subject-directory-preview iframe').count(), 1);
+        assert.match(await a.locator('#subject-directory-preview iframe').getAttribute('src'),/^blob:/,'inside Subject Directory preview must use the same PDF generator as Public Print and WhatsApp');
         await a.evaluate(() => document.getElementById('subject-directory-preview').remove());
         await a.evaluate(() => publishSubjectDirectory());
         await b.waitForFunction(() => publishedSubjectDirectories.current?.sections?.['10-A']?.includes('MATHS'));
