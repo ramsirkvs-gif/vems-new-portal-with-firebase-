@@ -675,6 +675,7 @@ async function main() {
         await a.getByRole('button',{name:/Edit Room Layout/}).waitFor();
         assert.equal(await a.evaluate(() => savedSeatingLayoutRooms('100|2026-11-01').length),2,'the saved room layout must belong to the selected vault date');
         assert.equal(await a.evaluate(() => savedSeatingLayoutRooms('100|2026-11-01')[0].extraDesks),2,'extra dual desks must save inside the concerned examination room only');
+        assert.deepEqual(await a.evaluate(()=>{const original=seatingRooms;seatingRooms={room:{id:'room',name:'Examination Room 10-A',rows:5,desksPerRow:4,extraDesks:3,layoutSelections:{'100|day-1':true,'100|day-2':true},layoutConfigs:{'100|day-1':{rows:5,desksPerRow:4,extraDesks:3},'100|day-2':{rows:5,desksPerRow:4,extraDesks:0}}}};const result=[savedSeatingLayoutRooms('100|day-1')[0].extraDesks,savedSeatingLayoutRooms('100|day-2')[0].extraDesks];seatingRooms=original;return result;}),[3,0],'extra dual desks must be isolated by Vault date even when the physical examination room ID is the same');
         assert.equal(await a.evaluate(() => Object.values(seatingRooms).filter(room=>room.layoutSelections?.['100|2026-11-01']).length),2,'date rooms must be stored under the exam ID and examination date');
         assert.equal(await a.locator('.seating-room-columns').first().isDisabled(),true,'saved room layouts must lock until Edit is selected');
         await a.evaluate(() => renderExamCreatorModule());
