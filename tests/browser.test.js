@@ -834,8 +834,10 @@ async function main() {
         assert.equal(await a.locator('[data-exam-day-event="invigilator-absence"] input:disabled').count(),0,'normal real-time rows must be directly editable');
         assert.deepEqual(await a.evaluate(()=>({reading:document.querySelector('[data-exam-day-event="qp-reading"] [data-event-time]').value,start:document.querySelector('[data-exam-day-event="exam-running"] [data-event-time]').value})),{reading:'08:15',start:'08:30'},'QP reading and exam start must use their separate Vault times');
         await a.locator('[data-exam-day-event]').first().locator('[data-event-title]').fill('Invigilator absence reporting');
+        await a.locator('[data-exam-day-event]').first().locator('[data-event-time]').fill('08:05');
         await a.getByRole('button',{name:'💾 Save',exact:true}).click();
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.duringExamDays?.['2026-11-01']?.events?.[0]?.title==='Invigilator absence reporting');
+        assert.equal(await a.locator('[data-exam-day-event]').first().locator('[data-event-time]').inputValue(),'08:05','an editable timeline time must remain after Save and rerender');
         await a.getByRole('button',{name:'📢 Publish',exact:true}).click();
         await a.waitForFunction(()=>publicPortalBoards.examDayFlow?.date==='2026-11-01');
         await a.evaluate(()=>{isPreExamFullPageOpen=false;const source=archivedExams.find(item=>String(item.id)==='100'),legacy={...cloneData(source),id:'vault-text-id'};legacy.duringExamDays['2026-11-01']={events:legacy.duringExamDays['2026-11-01'].events,welcome:legacy.duringExamDays['2026-11-01'].welcome};archivedExams.push(legacy);openExamVault('vault-text-id');});
