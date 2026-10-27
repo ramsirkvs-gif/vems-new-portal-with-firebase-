@@ -842,9 +842,10 @@ async function main() {
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.duringExamDays?.['2026-11-01']?.events?.[0]?.title==='Invigilator absence reporting');
         await a.getByRole('button',{name:'📢 Publish',exact:true}).click();
         await a.waitForFunction(()=>publicPortalBoards.examDayFlow?.date==='2026-11-01');
-        await a.evaluate(()=>{isPreExamFullPageOpen=false;const source=archivedExams.find(item=>String(item.id)==='100');archivedExams.push({...cloneData(source),id:'vault-text-id'});openExamVault('vault-text-id');});
+        await a.evaluate(()=>{isPreExamFullPageOpen=false;const source=archivedExams.find(item=>String(item.id)==='100'),legacy={...cloneData(source),id:'vault-text-id'};legacy.duringExamDays['2026-11-01']={events:legacy.duringExamDays['2026-11-01'].events,welcome:legacy.duringExamDays['2026-11-01'].welcome};archivedExams.push(legacy);openExamVault('vault-text-id');});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByText('No examination vault is available for this session.').count(),0,'Stage 2 must retain and open a selected Vault with a text ID');
+        assert.equal(await a.getByText(/needs data repair/).count(),0,'Stage 2 must automatically normalize an older Exam-Day Vault record');
         assert.equal(await a.locator('#selected-exam-vault-workspace #lifecycle-stage-workspace').count(),1,'Stage 2 must open inside its selected Vault instead of a detached full page');
         await a.getByRole('button',{name:'✕ Close',exact:true}).click();
         assert.equal(await a.locator('#selected-exam-vault-workspace #lifecycle-stage-workspace').count(),0,'Stage 2 Close must collapse the workflow and remain in the Vault');
