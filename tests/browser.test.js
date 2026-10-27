@@ -741,6 +741,13 @@ async function main() {
         assert.equal(await a.getByLabel('Invigilator 1 for Examination Room 10-A').isDisabled(),true,'a completed day must lock until Edit Day is selected');
         await b.waitForFunction(() => invigilationPlans['100']?.['2026-11-01']);
         assert.deepEqual(await b.evaluate(() => {const row=Object.values(invigilationPlans['100']['2026-11-01'])[0];return{invigilators:row.invigilators,relieverId:row.relieverId,reliefFrom:row.reliefFrom,reliefTo:row.reliefTo,studentCount:row.studentCount};}),{invigilators:facultyIds.slice(0,2),relieverId:facultyIds[2],reliefFrom:'10:00',reliefTo:'10:20',studentCount:2},'room invigilators, reliever and relief slot must synchronize from the saved occupied-room plan');
+        await b.evaluate(()=>{activateArea('principal');switchTab('exam-creator-prin');openPreExamFullPageWorkspace(100);switchPreExamSubTab('seating');selectSeatingDate('2026-11-01');});
+        assert.equal(await b.evaluate(()=>JSON.parse(localStorage.getItem('vems_workspace_state')).seatingDate),'2026-11-01','clicking a Seating day must immediately persist that date');
+        await b.reload();
+        await login(b,'principal2@example.test');
+        await b.locator('#seating-vault-days').waitFor();
+        assert.deepEqual(await b.evaluate(()=>({tab:activePreExamSubTab,date:selectedSeatingDate,vault:selectedPreExamVaultId,open:isPreExamFullPageOpen})),{tab:'seating',date:'2026-11-01',vault:100,open:true},'refresh must reopen the same Vault, Seating area and selected day');
+        assert.equal(await b.locator('#seating-vault-days [data-workflow-date="2026-11-01"]').count(),1,'the restored day must remain addressable in the day belt');
         console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
 
         await a.evaluate(() => switchPreExamSubTab('qp-setters'));

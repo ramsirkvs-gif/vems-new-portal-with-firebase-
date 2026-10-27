@@ -361,7 +361,7 @@ async function logoutSession() {
     if (sharedStore?.pendingCount) { showSyncError('Wait for pending saves before signing out.'); return; }
     if (db) await firebase.auth().signOut();
 }
-function clearStaffState() {
+function clearStaffState({ preserveWorkspace = false } = {}) {
     clearTimeout(renderTimer);
     sharedStore?.stop();
     sharedStore = null;
@@ -370,10 +370,12 @@ function clearStaffState() {
     currentActiveRole = 'public';
     sharedNames.filter(name => name !== 'publishedSubjectDirectories').forEach(name => acceptSharedValue(name, {}));
     Object.keys(editorBaselines).forEach(key => { editorBaselines[key] = null; });
-    activeExamId = null;
-    selectedPreExamVaultId = null;
-    isExamConfigOpen = false;
-    isPreExamFullPageOpen = false;
+    if (!preserveWorkspace) {
+        activeExamId = null;
+        selectedPreExamVaultId = null;
+        isExamConfigOpen = false;
+        isPreExamFullPageOpen = false;
+    }
     datesheetDays = [];
     sectionFormDirty = false;
     lastConfirmedSave = '';
@@ -459,7 +461,7 @@ async function importLegacyBrowserData() {
 function sessionStorePaths(sessionId) { return Object.fromEntries(sharedNames.map(name => [name, name === 'signatureProfiles' ? 'signatureProfiles' : sessionCollectionPath(name, sessionId)])); }
 function resetSessionViews() {
     sharedNames.filter(name => name !== 'publishedSubjectDirectories').forEach(name => acceptSharedValue(name, {}));
-    activeExamId=null; selectedPreExamVaultId=null; isExamConfigOpen=false; isPreExamFullPageOpen=false; datesheetDays=[];
+    datesheetDays=[];
     Object.keys(editorBaselines).forEach(key => { editorBaselines[key]=null; });
 }
 function startSelectedSessionStore() {
@@ -546,9 +548,11 @@ function initializeSharedApp() {
     if (!db) { showSyncError('Firebase could not load. Check access to www.gstatic.com and reload the page.'); showSyncStatus(); return; }
     bindSessionMetadata();
     bindPublicDirectory();
+    let initialAuthStatePending = true;
     firebase.auth().onAuthStateChanged(user => {
         const generation = ++authGeneration;
-        clearStaffState();
+        clearStaffState({ preserveWorkspace: initialAuthStatePending || !!user });
+        initialAuthStatePending = false;
         showSyncError('');
         if (!user) { loadingStaffData = false; showSyncStatus(); return; }
         loadingStaffData = true;
