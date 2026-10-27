@@ -691,6 +691,7 @@ async function main() {
         assert.equal(await a.locator('[data-invigilation-room]').count(),1,'invigilation must use only rooms actually occupied in the saved seating workflow');
         assert.doesNotMatch(await a.locator('[data-invigilation-room]').first().innerText(),/Library Annex/,'an unused room from the room layout must not enter invigilation');
         assert.match(await a.locator('[data-invigilation-room]').first().innerText(),/Students allotted:\s*2/,'invigilation must display the exact student count from the actual occupied-room calculation');
+        assert.match(await a.locator('[data-invigilation-room]').first().innerText(),/Class X-A · SCIENCE · RN 1 to 2 · 2 students/,'each Invigilation room must explain its total with exact class-section, subject, roll range and student count');
         assert.equal(await a.evaluate(()=>actualOccupiedRoomRows({rooms:[{id:'10-B',name:'Classroom 10-B'}],assignments:Array.from({length:40},(_,index)=>({studentId:`student-${index}`,roomId:'10-B',desk:Math.floor(index/2)+1}))})[0].studentCount),40,'a fully occupied 20-desk room must transfer all 40 allotted students to Invigilation');
         assert.match(await a.getByRole('alert').first().innerText(),/only from this Vault's saved Seating Arrangement/,'the invigilation workspace must state its Vault workflow lock');
         await a.evaluate(async()=>{if(teachers.length<3){teachers.push({id:'relief-test-faculty',name:'Relief Test Faculty',desig:'TGT',allotments:[]});await saveData(['teachers']);renderExamCreatorModule();}});
