@@ -741,7 +741,8 @@ async function main() {
         assert.equal(sharedCircularPdf.type,'application/pdf');assert.ok(sharedCircularPdf.size>500);assert.equal(sharedCircularPdf.text,true);
         await a.getByRole('button',{name:/View Circular \/ PDF/}).click();
         await a.locator('#qp-office-order-preview iframe').waitFor();
-        assert.match(await a.locator('#qp-office-order-preview iframe').contentFrame().locator('body').textContent(),/Other Device Name/);
+        assert.match(await a.locator('#qp-office-order-preview iframe').getAttribute('src'),/^blob:/,'public preview must open the exact PDF blob used by sharing');
+        assert.equal(await a.evaluate(async()=>new TextDecoder().decode(await publishedQpSetterCircularPdfBlob('100').arrayBuffer()).includes('Other Device Name')),true);
         await a.evaluate(()=>{closeQpOfficeOrderPreview();switchPortalArea('principal');openPreExamFullPageWorkspace(100);switchPreExamSubTab('qp-setters');});
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await stopPublishingQpOfficeOrder();}finally{window.confirm=old;}});
         await a.waitForFunction(()=>qpOfficeOrders['100']?.status==='DRAFT');
