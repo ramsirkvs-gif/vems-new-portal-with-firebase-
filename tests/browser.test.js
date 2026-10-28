@@ -922,8 +922,11 @@ async function main() {
         const mockFacultyCheckbox=a.locator('#exam-day-step-panel input[type="checkbox"]').first();
         const mockFacultyId=await mockFacultyCheckbox.evaluate(input=>input.closest('label').querySelector('b').textContent);
         await mockFacultyCheckbox.check();
+        assert.equal(await a.evaluate(()=>archivedExams.find(item=>String(item.id)==='100')?.duringExamDays?.['2026-11-01']?.absentFaculty?.length||0),0,'faculty absence ticks must remain a stable draft until Save is pressed');
+        await a.getByRole('button',{name:/Save Absences & Next/}).click();
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.duringExamDays?.['2026-11-01']?.absentFaculty?.length===1);
-        assert.equal(await a.locator('#exam-day-step-panel input[type="checkbox"]').first().isChecked(),true,`Mock Practice must retain a marked absent faculty member (${mockFacultyId})`);
+        await a.getByRole('button',{name:'1. Faculty Absence (Staff)',exact:true}).click();
+        assert.equal(await a.locator('#exam-day-step-panel input[type="checkbox"]').first().isChecked(),true,`Mock Practice must retain a saved absent faculty member (${mockFacultyId})`);
         await a.getByRole('button',{name:'3. Student Absentees with PIN',exact:true}).click();
         await a.evaluate(()=>{publicPortalBoards={...publicPortalBoards,liveDuty:{examId:100,examTitle:'Existing Exam',days:{'2026-11-02':{date:'2026-11-02',rooms:[]}}}};});
         await a.getByRole('button',{name:/Publish with PIN/}).click();
@@ -942,9 +945,11 @@ async function main() {
         await a.waitForFunction(()=>!archivedExams.find(item=>String(item.id)==='100')?.mockPractice&&!publicPortalBoards.examDayAttendance);
         assert.deepEqual(await a.evaluate(()=>{const day=duringExamDayRecord(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01');return{attendance:day.attendance,submitted:day.attendanceSubmitted,mockReport:!!publicPortalBoards.examDayAttendance};}),{attendance:{},submitted:{},mockReport:false},'ending Mock Practice must remove rehearsal absentee submissions and reports before real work');
         await a.getByRole('button',{name:'1. Faculty Absence (Staff)',exact:true}).click();
-        assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*INTERNAL[\s\S]*Saved automatically/,'faculty absence marking must be clearly day-scoped and kept internal');
-        await a.evaluate(async()=>{teachers.push({id:'replacement-test',name:'Replacement Teacher',desig:'PGT-Test',allotments:[]});const id=Object.values(invigilationPlans['100']['2026-11-01'])[0].invigilators[0];await toggleDuringFacultyAbsent(100,'2026-11-01',id,true);});
-        await a.getByRole('button',{name:'Next →'}).click();
+        assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*INTERNAL DRAFT[\s\S]*Save & Next/,'faculty absence marking must be clearly day-scoped, internal, and explicitly saved');
+        const absentDutyId=await a.evaluate(()=>{teachers.push({id:'replacement-test',name:'Replacement Teacher',desig:'PGT-Test',allotments:[]});return String(Object.values(invigilationPlans['100']['2026-11-01'])[0].invigilators[0]);});
+        await a.locator(`[data-faculty-absence="${absentDutyId}"]`).check();
+        await a.getByRole('button',{name:/Save Absences & Next/}).click();
+        await a.getByText(/Invigilation duty update due to absence/).waitFor();
         assert.equal(await a.getByText(/Invigilation duty update due to absence/).count(),1);
         const replacement=a.locator('#exam-day-step-panel select').first();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/ABSENT/,'affected duties must list the absent faculty inline');
