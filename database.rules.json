@@ -48,8 +48,8 @@
         "$exam": {
           "$date": {
             "$room": {
-              ".write": "newData.child('pin').isString() && newData.child('pin').val() === root.child('examDayAttendancePins').child($session).child($exam).child($date).child($room).val()",
-              ".validate": "newData.hasChildren(['pin','absentIds','submittedAt'])"
+              ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) || (newData.child('pin').isString() && newData.child('pin').val() === root.child('examDayAttendancePins').child($session).child($exam).child($date).child($room).val())",
+              ".validate": "!newData.exists() || newData.hasChildren(['pin','absentIds','submittedAt'])"
             }
           }
         }

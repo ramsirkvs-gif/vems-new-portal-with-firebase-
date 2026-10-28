@@ -71,11 +71,11 @@ async function main() {
                 const parts=String(pathName).split('/').filter(Boolean), rootName=parts.shift();
                 const staff=['principal','sec-ic','pri-ic'].includes(data.roles[uid]);
                 const get=(rootValue,pathParts)=>pathParts.reduce((node,key)=>node?.[key],rootValue);
-                if(rootName==='examDayAttendancePins'&&!staff)return{error:'PERMISSION_DENIED'};
-                if(rootName==='examDayAttendanceAccessChecks'||rootName==='examDayAttendanceSubmissions'){
+                if(rootName==='examDayAttendancePins'){if(!staff)return{error:'PERMISSION_DENIED'};}
+                else if(rootName==='examDayAttendanceAccessChecks'||(rootName==='examDayAttendanceSubmissions'&&!staff)){
                     const [session,exam,date,room]=parts;
                     if(String(value?.pin||'')!==String(get(data.examDayAttendancePins,[session,exam,date,room])||''))return{error:'PERMISSION_DENIED'};
-                }else if(rootName!=='examDayAttendancePins')return{error:'PERMISSION_DENIED'};
+                }else if(rootName!=='examDayAttendanceSubmissions')return{error:'PERMISSION_DENIED'};
                 data[rootName]=data[rootName]||{};let node=data[rootName];
                 for(let i=0;i<parts.length-1;i++)node=node[parts[i]]=node[parts[i]]||{};
                 if(parts.length){if(value===null)delete node[parts.at(-1)];else node[parts.at(-1)]=clone(value);}else data[rootName]=clone(value);
@@ -940,10 +940,12 @@ async function main() {
         await a.getByRole('button',{name:'3. Instant Absentee Marker with PIN',exact:true}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Waiting for invigilator submission/);
         assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*Publish with PIN[\s\S]*Stop Publishing/,'the PIN marker must use the common selected-day publication bar');
+        assert.equal(await a.getByRole('button',{name:'🧹 Reset Mock Attendance',exact:true}).count(),1,'the selected exam day must provide a controlled mock-attendance reset');
+        assert.deepEqual(await a.evaluate(()=>{let message='';const oldAlert=window.alert,oldDuty=publicPortalBoards.liveDuty;publicPortalBoards.liveDuty={examId:100,examTitle:'Existing Exam',days:{'2026-11-01':{date:'2026-11-01'}}};window.alert=value=>message=String(value);const allowed=allowSingleMonitoringDay(100,'2026-11-02','PIN-enabled Absentee Marker');window.alert=oldAlert;if(oldDuty)publicPortalBoards.liveDuty=oldDuty;else delete publicPortalBoards.liveDuty;return{allowed,message};}),{allowed:false,message:'SINGLE EXAM-DAY PUBLICATION ONLY\n\nPIN-enabled Absentee Marker for 02/11/2026 (Monday) cannot be published because Invigilation Duty is already live for 01/11/2026 (Sunday).\n\nStop the currently published day first. This prevents invigilators from opening the wrong duty or absentee marker.'},'a second monitoring day must be blocked with a clear date-specific warning');
         await a.getByRole('button',{name:/Publish with PIN/}).click();
         await a.evaluate(()=>switchPortalArea('public'));
         assert.match(await a.locator('#public-exam-day-flow').innerText(),/9\. 🕒 REAL-TIME EXAM DISPLAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a compact read-only live public display');
-        assert.deepEqual(await a.locator('#public-operational-board > section').evaluateAll(nodes=>nodes.map(node=>node.id)),['public-exam-notice-board','public-qp-circular-section','public-date-sheet-section','public-qp-receiving-section','public-qp-printing-section','public-seating-section','public-invigilation-section','public-room-inventory-section','public-exam-day-flow','public-sensitive-attendance-section','public-final-attendance-section','public-general-circular-section','public-after-exam-section'],'the public operational displays must remain in the requested S.No. 1–12 order');
+        assert.deepEqual(await a.locator('#public-operational-board > section').evaluateAll(nodes=>nodes.map(node=>node.id)),['public-exam-notice-board','public-qp-circular-section','public-date-sheet-section','public-qp-receiving-section','public-qp-printing-section','public-seating-section','public-invigilation-section','public-sensitive-attendance-section','public-room-inventory-section','public-exam-day-flow','public-final-attendance-section','public-general-circular-section','public-after-exam-section'],'the dated PIN marker must remain immediately beside the public Invigilation Duty display');
         assert.equal(await a.locator('#public-seating-scroll-window').evaluate(node=>node.classList.contains('max-h-72')&&node.classList.contains('overflow-auto')),true,'public Seating Arrangements must remain in a compact vertical and horizontal scroll window');
         assert.equal(await a.locator('#public-seating-scroll-window thead').evaluate(node=>node.classList.contains('sticky')),true,'the Seating table heading must remain visible while its rows scroll');
         assert.match(await a.locator('#public-seating-scroll-window thead').innerText(),/Column No\.[\s\S]*from gate side[\s\S]*Desk No\./,'public Seating must use the same column-from-gate and desk terminology as Admit Cards');
@@ -951,6 +953,7 @@ async function main() {
         assert.match(await a.locator('#public-room-inventory-section').innerText(),/Received 1\/1[\s\S]*Examination Room 10-A[\s\S]*RECEIVED/,'the independently published baggage board must show the current room handover status');
         assert.equal(await a.locator('#public-exam-day-flow #exam-day-public-pin').count(),0,'the sensitive attendance control must not appear inside the real-time display');
         assert.equal(await a.locator('#public-attendance-panel #exam-day-public-pin').count(),1,'the PIN-protected attendance control must appear under Section 3 Seating Arrangement Display');
+        assert.match(await a.locator('#public-sensitive-attendance-section').innerText(),/Sensitive Absentee Marker with PIN[\s\S]*01\/11\/2026/,'the PIN-enabled public marker must prominently show its active examination date');
         assert.equal(await a.locator('#public-attendance-panel #public-attendance-pin').count(),0,'the general seating publication must remain read-only without its legacy attendance control');
         const roomPin=await a.evaluate(()=>seatingPlans['100']['2026-11-01'].rooms[0].attendancePin);
         await a.locator('#exam-day-public-pin').fill(roomPin);
