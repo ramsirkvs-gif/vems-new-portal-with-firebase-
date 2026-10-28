@@ -727,6 +727,7 @@ async function main() {
         assert.match(await a.locator('tbody').filter({hasText:/READY/}).first().innerText(),/SCIENCE|2|READY/,'Admit Card rows must derive papers and saved seating readiness from the selected Vault');
         await a.locator('button',{hasText:'View / Print'}).first().click();
         const admitBody=a.frameLocator('iframe[title="Admit Card A4 preview"]').locator('body');
+        assert.equal(await a.frameLocator('iframe[title="Admit Card A4 preview"]').locator('header img').count(),2,'the Admit Card must use the saved KVS and PM SHRI logo assets');
         assert.match(await admitBody.innerText(),/ADMIT CARD[\s\S]*EXAMINATION SCHEDULE AND DAYWISE SEATING LOCATION[\s\S]*SCIENCE[\s\S]*Examination Room 10-A/,'the A4 Admit Card must combine candidate, examination and daywise room seating data');
         assert.match(await admitBody.innerText(),/IMPORTANT INSTRUCTIONS[\s\S]*Candidate’s Signature[\s\S]*PRINCIPAL/,'the Admit Card must follow the official CBSE-style instruction and signature structure');
         await a.getByRole('button',{name:'✕ Close',exact:true}).click();
