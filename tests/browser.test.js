@@ -793,6 +793,8 @@ async function main() {
         await a.getByRole('button',{name:/Yes — Assign anyway/}).click();
         await a.waitForFunction(id=>Object.values(invigilationPlans['100']['2026-11-01'])[0].invigilators[0]===id,facultyIds[0]);
         assert.equal(await a.evaluate(()=>Object.values(invigilationPlans['100']['2026-11-01'])[0].coreTeamDutyOverrides['invigilator-0'].teacherId),facultyIds[0],'the explicit override must be recorded with the duty plan');
+        await a.evaluate(()=>{const stale=cloneData(invigilationPlans);Object.values(stale['100']['2026-11-01'])[0].invigilators=[''];acceptSharedValue('invigilationPlans',stale);renderExamCreatorModule();});
+        assert.equal(await a.getByLabel('Invigilator 1 for Examination Room 10-A').inputValue(),facultyIds[0],'a live refresh must not erase the currently edited unsaved invigilator selection');
         assert.equal(await a.getByLabel('Reliever for Examination Room 10-A').locator(`option[value="${facultyIds[0]}"]`).count(),0,'a full-time invigilator must be unavailable for relieving duty on the same day');
         await a.getByRole('button',{name:'+ Add Invigilator'}).click();
         assert.equal(await a.getByLabel('Invigilator 2 for Examination Room 10-A').locator(`option[value="${facultyIds[0]}"]`).count(),0,'a faculty member already on invigilation duty must be unavailable for a second duty slot');

@@ -206,7 +206,20 @@ function acceptSharedValue(name, value) {
         case 'publicPortalBoards': publicPortalBoards = value; renderPublicPortalBoards(); break;
         case 'seatingRooms': seatingRooms = value; break;
         case 'seatingPlans': seatingPlans = value; break;
-        case 'invigilationPlans': invigilationPlans = value; break;
+        case 'invigilationPlans': {
+            const incoming = cloneData(value || {});
+            // Keep the currently edited day as a local draft until its explicit Save succeeds.
+            // A listener refresh for another device/date must not erase a just-selected faculty member.
+            Object.entries(editingInvigilationDates || {}).forEach(([key, editing]) => {
+                if (!editing) return;
+                const separator=key.indexOf('|'),examId=key.slice(0,separator),date=key.slice(separator+1),draft=invigilationPlans?.[examId]?.[date];
+                if (!draft) return;
+                incoming[examId] = incoming[examId] || {};
+                incoming[examId][date] = cloneData(draft);
+            });
+            invigilationPlans = incoming;
+            break;
+        }
         case 'roomInventoryPlans': roomInventoryPlans = value; break;
         case 'examCirculars': examCirculars = value; break;
         case 'circularSettings': circularSettings = value; break;
