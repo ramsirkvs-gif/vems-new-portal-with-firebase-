@@ -959,10 +959,20 @@ async function main() {
         await a.getByRole('button',{name:'⏹ Stop Roomwise',exact:true}).click();
         await a.getByRole('button',{name:'⏹ Stop Classwise',exact:true}).click();
         await a.evaluate(()=>{openPreExamFullPageWorkspace(100);switchPreExamSubTab('exam-day-flow');});
+        await a.evaluate(async()=>{window.confirm=()=>true;await toggleDuringExamPublish(100,'2026-11-02',true);});
+        await a.waitForFunction(()=>Object.keys(publicPortalBoards.examDayFlow?.days||{}).length===2);
+        assert.deepEqual(await a.evaluate(()=>Object.keys(publicPortalBoards.examDayFlow.days).sort()),['2026-11-01','2026-11-02'],'real-time publication must preserve every independently published exam day');
+        await a.evaluate(async()=>toggleDuringExamPublish(100,'2026-11-02',false));
+        await a.waitForFunction(()=>!!publicPortalBoards.examDayFlow?.days?.['2026-11-01']&&!publicPortalBoards.examDayFlow?.days?.['2026-11-02']);
+        assert.equal(await a.evaluate(()=>examDayPublished(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01')),true,'stopping one date must leave the other published exam dates live');
         await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).click();
         await a.waitForFunction(()=>!publicPortalBoards.examDayFlow);
         await a.getByRole('button',{name:'🔙 Exit',exact:true}).click();
         assert.equal(await a.locator('#selected-exam-vault-workspace').count(),1,'Pre-Exam Exit must return to the selected Vault overview');
+        assert.match(await a.evaluate(()=>renderAfterExamWorkspace(archivedExams.find(item=>String(item.id)==='100'))),/Answer-Script Receipt &amp; Bundling|Answer-Script Receipt & Bundling/,'After-Exam must open the five-step operational register');
+        assert.deepEqual(await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),rows=postExamBundleRows(exam,'2026-11-01');return{count:rows.length,fields:rows[0]&&[rows[0].roomName,rows[0].subject,rows[0].received,rows[0].invigilators.length]};}),{count:1,fields:['Examination Room 10-A','SCIENCE',1,2]},'After-Exam receipt rows must carry the saved room, subject, absentee-adjusted script count and invigilator names');
+        assert.match(await a.evaluate(()=>{selectedPostExamStep=3;return renderAfterExamWorkspace(archivedExams.find(item=>String(item.id)==='100'));}),/Evaluated-script return with Samagam marks slip[\s\S]*Evaluated Bundle Returned[\s\S]*Samagam Mark Slip in Hand/,'After-Exam must separately track evaluated bundles and printed Samagam slips');
+        assert.match(await a.evaluate(()=>{selectedPostExamStep=5;return renderAfterExamWorkspace(archivedExams.find(item=>String(item.id)==='100'));}),/Download Complete Vault Record[\s\S]*Freeze All Records/,'After-Exam closure must provide complete export and guarded Vault freezing');
         await a.evaluate(()=>openPreExamFullPageWorkspace(100));
 
         await a.evaluate(()=>switchPreExamSubTab('datesheet-orders'));
