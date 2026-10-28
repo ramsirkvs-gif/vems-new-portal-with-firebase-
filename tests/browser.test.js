@@ -737,6 +737,9 @@ async function main() {
         assert.equal(await a.frameLocator('iframe[title="Published Admit Card A4 preview"]').locator('header img').count(),2,'the published Admit Card must use the saved KVS and PM SHRI logo assets');
         assert.match(await publicAdmitBody.innerText(),/ADMIT CARD[\s\S]*EXAMINATION SCHEDULE AND DAYWISE SEATING LOCATION[\s\S]*SCIENCE[\s\S]*Examination Room 10-A/,'the public result must open the same official A4 Admit Card PDF view');
         assert.match(await publicAdmitBody.innerText(),/REPORTING TIME IS EARLIER[\s\S]*REPORTING[\s\S]*QP READING[\s\S]*EXAM START[\s\S]*Reporting[\s\S]*QP Reading[\s\S]*Exam Time/,'reporting, QP-reading and examination times must remain prominent in the public PDF');
+        assert.match(await publicAdmitBody.innerText(),/KEEP WITH YOU[\s\S]*VIDYALAYA ID CARD/,'the Admit Card must prominently remind the candidate to carry the Vidyalaya ID card');
+        assert.match(await publicAdmitBody.innerText(),/VERIFICATION ID[\s\S]*Column No\.[\s\S]*from gate side[\s\S]*Desk No\./,'the Admit Card must use an honest verification ID and unambiguous column and desk headings');
+        assert.doesNotMatch(await publicAdmitBody.innerText(),/Desk \/ Seat|\d+ \/ [AB]/,'the Admit Card must not expose the confusing internal A/B seat code');
         assert.match(await publicAdmitBody.innerText(),/IMPORTANT INSTRUCTIONS[\s\S]*Candidate’s Signature[\s\S]*PRINCIPAL/,'the public Admit Card must retain the official instructions and signature structure');
         await a.getByRole('button',{name:'✕ Close',exact:true}).click();
         await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).click();
