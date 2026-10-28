@@ -913,6 +913,14 @@ async function main() {
         await a.evaluate(()=>{archivedExams=archivedExams.filter(item=>item.id!=='vault-text-id');openExamVault(100);});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absent Today'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
+        await a.getByRole('button',{name:'🧪 Start Mock Practice for This Day',exact:true}).click();
+        await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPractice?.active===true);
+        await a.getByRole('button',{name:'🧹 End Mock & Reset for Real Exam',exact:true}).waitFor();
+        assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK PRACTICE[\s\S]*End Mock & Reset for Real Exam/,'Stage 2 mock rehearsal must remain unmistakably labelled');
+        await a.evaluate(async()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),day=duringExamDayRecord(exam,'2026-11-01');day.attendance={'practice-room':['practice-student']};day.attendanceSubmitted={'practice-room':{submitted:true}};publicPortalBoards={...publicPortalBoards,examDayAttendance:{examId:100,date:'2026-11-01',mockPractice:true,html:'mock'}};await saveData(['archivedExams','publicPortalBoards']);});
+        await a.getByRole('button',{name:'🧹 End Mock & Reset for Real Exam',exact:true}).click();
+        await a.waitForFunction(()=>!archivedExams.find(item=>String(item.id)==='100')?.mockPractice&&publicPortalBoards.examDayAttendance?.html!=='mock');
+        assert.deepEqual(await a.evaluate(()=>{const day=duringExamDayRecord(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01');return{attendance:day.attendance,submitted:day.attendanceSubmitted,mockReport:publicPortalBoards.examDayAttendance?.html==='mock'};}),{attendance:{},submitted:{},mockReport:false},'ending Mock Practice must remove rehearsal absentee submissions and reports before real work');
         assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*INTERNAL[\s\S]*Saved automatically/,'faculty absence marking must be clearly day-scoped and kept internal');
         await a.evaluate(async()=>{teachers.push({id:'replacement-test',name:'Replacement Teacher',desig:'PGT-Test',allotments:[]});const id=Object.values(invigilationPlans['100']['2026-11-01'])[0].invigilators[0];await toggleDuringFacultyAbsent(100,'2026-11-01',id,true);});
         await a.getByRole('button',{name:'Next →'}).click();

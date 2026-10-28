@@ -178,6 +178,9 @@ function acceptSharedValue(name, value) {
         case 'examCoreTeam': examCoreTeam = value; break;
         case 'archivedExams':
             archivedExams = Object.values(value);
+            if (activeLifecycleExamRecord) {
+                activeLifecycleExamRecord = archivedExams.find(record => String(record.id) === String(activeLifecycleExamRecord.id)) || null;
+            }
             if (activeExamId !== null) {
                 const exam = archivedExams.find(record => record.id === activeExamId);
                 if (exam) {
