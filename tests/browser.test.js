@@ -925,6 +925,7 @@ async function main() {
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.duringExamDays?.['2026-11-01']?.absentFaculty?.length===1);
         assert.equal(await a.locator('#exam-day-step-panel input[type="checkbox"]').first().isChecked(),true,`Mock Practice must retain a marked absent faculty member (${mockFacultyId})`);
         await a.getByRole('button',{name:'3. Student Absentees with PIN',exact:true}).click();
+        await a.evaluate(()=>{publicPortalBoards={...publicPortalBoards,liveDuty:{examId:100,examTitle:'Existing Exam',days:{'2026-11-02':{date:'2026-11-02',rooms:[]}}}};});
         await a.getByRole('button',{name:/Publish with PIN/}).click();
         await a.waitForFunction(()=>publicPortalBoards.examDayFlow?.days?.['2026-11-01']?.mockPractice===true);
         await a.evaluate(()=>switchPortalArea('public'));
