@@ -858,6 +858,7 @@ async function main() {
         await a.evaluate(()=>{archivedExams=archivedExams.filter(item=>item.id!=='vault-text-id');openExamVault(100);});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absent Today'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
+        assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*INTERNAL[\s\S]*Saved automatically/,'faculty absence marking must be clearly day-scoped and kept internal');
         await a.evaluate(async()=>{teachers.push({id:'replacement-test',name:'Replacement Teacher',desig:'PGT-Test',allotments:[]});const id=Object.values(invigilationPlans['100']['2026-11-01'])[0].invigilators[0];await toggleDuringFacultyAbsent(100,'2026-11-01',id,true);});
         await a.getByRole('button',{name:'Next →'}).click();
         assert.equal(await a.getByText(/Invigilation duty update due to absence/).count(),1);
@@ -868,6 +869,7 @@ async function main() {
         if(await a.locator('#core-team-duty-warning').count())await a.locator('[data-core-duty-choice="override"]').click();
         await a.waitForFunction(()=>document.querySelectorAll('#exam-day-step-panel select').length===0);
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Saved Stage 1 duty/,'Step 2 must continue showing every unaffected pre-saved duty');
+        assert.equal(await a.locator('#during-day-action-bar').getByRole('button',{name:'📢 Publish Updated Duty',exact:true}).isEnabled(),true,'the corrected selected-day duty must provide an aligned publish control');
         await a.getByRole('button',{name:/OK & Next/}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Sensitive instant absentee marker with PIN/,'Step 3 must identify the PIN-protected Instant Absentee Marker');
         await a.getByRole('button',{name:'4. Baggage Distribution',exact:true}).click();
@@ -892,7 +894,8 @@ async function main() {
         assert.equal(await a.evaluate(()=>publicPortalBoards.roomInventoryStatus.days['2026-11-01'].rooms.every(item=>item.received)),true,'published Room Inventory status must update automatically after each baggage handover');
         await a.getByRole('button',{name:'3. Instant Absentee Marker with PIN',exact:true}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Waiting for invigilator submission/);
-        await a.getByRole('button',{name:/Publish Sensitive Attendance/}).click();
+        assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*Publish with PIN[\s\S]*Stop Publishing/,'the PIN marker must use the common selected-day publication bar');
+        await a.getByRole('button',{name:/Publish with PIN/}).click();
         await a.evaluate(()=>switchPortalArea('public'));
         assert.match(await a.locator('#public-exam-day-flow').innerText(),/9\. 🕒 REAL-TIME EXAM DISPLAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a compact read-only live public display');
         assert.deepEqual(await a.locator('#public-operational-board > section').evaluateAll(nodes=>nodes.map(node=>node.id)),['public-exam-notice-board','public-qp-circular-section','public-date-sheet-section','public-qp-receiving-section','public-qp-printing-section','public-seating-section','public-invigilation-section','public-room-inventory-section','public-exam-day-flow','public-sensitive-attendance-section','public-final-attendance-section','public-general-circular-section'],'the public operational displays must remain in the requested S.No. 1–12 order');
