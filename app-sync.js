@@ -33,6 +33,7 @@ let selectedAcademicSession = localStorage.getItem('vems_selected_session') || D
 let sessionMetadataSubscriptions = [];
 let publicDirectorySubscription = null;
 let publicBoardsSubscription = null;
+let examDayAttendanceSubscription = null;
 const editorBaselines = { teacher: null, student: null, section: null, assignments: null, exam: null };
 
 function sessionCollectionPath(name, sessionId = selectedAcademicSession) {
@@ -493,6 +494,9 @@ function bindPublicDirectory() {
     const boardsRef=db.ref(sessionCollectionPath('publicPortalBoards',activeSession));
     const boardsListener=snapshot=>{publicVisiblePortalBoards=snapshot.val()||{};renderPublicPortalBoards();};
     publicBoardsSubscription={ref:boardsRef,listener:boardsListener};boardsRef.on('value',boardsListener,()=>{publicVisiblePortalBoards={};renderPublicPortalBoards();});
+    if(examDayAttendanceSubscription)examDayAttendanceSubscription.ref.off('value',examDayAttendanceSubscription.listener);
+    const attendanceRef=db.ref(`examDayAttendanceSubmissions/${activeSession}`),attendanceListener=snapshot=>applyExamDayAttendanceSubmissions(snapshot.val()||{});
+    examDayAttendanceSubscription={ref:attendanceRef,listener:attendanceListener};attendanceRef.on('value',attendanceListener,()=>applyExamDayAttendanceSubmissions({}));
 }
 function bindSessionMetadata() {
     sessionMetadataSubscriptions.forEach(item=>item.ref.off('value',item.listener)); sessionMetadataSubscriptions=[];

@@ -37,6 +37,10 @@
                 },
                 off(_, listener) { for (const [id, next] of listeners) if (next === listener) listeners.delete(id); },
                 push() { return { key: `test-student-${Date.now()}-${sequence++}` }; },
+                async set(value) {
+                    const result = await window.testSet(path, value, user?.uid);
+                    if (result?.error) throw new Error(result.error);
+                },
                 async transaction(update) {
                     for (let attempt = 0; attempt < 10; attempt++) {
                         const before = await window.testRead(path);

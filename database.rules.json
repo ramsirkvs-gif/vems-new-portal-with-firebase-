@@ -16,6 +16,45 @@
       ".read": true,
       ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'principal'"
     },
+    "examDayAttendancePins": {
+      "$session": {
+        "$exam": {
+          "$date": {
+            "$room": {
+              ".read": false,
+              ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')"
+            }
+          }
+        }
+      }
+    },
+    "examDayAttendanceAccessChecks": {
+      "$session": {
+        "$exam": {
+          "$date": {
+            "$room": {
+              "$attempt": {
+                ".read": false,
+                ".write": "newData.child('pin').isString() && newData.child('pin').val() === root.child('examDayAttendancePins').child($session).child($exam).child($date).child($room).val()"
+              }
+            }
+          }
+        }
+      }
+    },
+    "examDayAttendanceSubmissions": {
+      "$session": {
+        ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+        "$exam": {
+          "$date": {
+            "$room": {
+              ".write": "newData.child('pin').isString() && newData.child('pin').val() === root.child('examDayAttendancePins').child($session).child($exam).child($date).child($room).val()",
+              ".validate": "newData.hasChildren(['pin','absentIds','submittedAt'])"
+            }
+          }
+        }
+      }
+    },
     "sessionData": {
       "$session": {
         ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",

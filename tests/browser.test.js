@@ -35,6 +35,12 @@ async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>
         s.page.evaluate(({ id, value }) => window.testDeliver(id, value), { id: s.id, value: clone(data[name] ?? null) })));
 }
+async function notifyTree(name) {
+    await Promise.all(subscriptions.filter(s => (s.path===name||s.path.startsWith(`${name}/`))&&!s.page.isClosed()).map(s => {
+        const pathParts=s.path.split('/').slice(1),value=pathParts.reduce((node,key)=>node?.[key],data[name]);
+        return s.page.evaluate(({id,value})=>window.testDeliver(id,value),{id:s.id,value:clone(value??null)});
+    }));
+}
 async function main() {
     const server = http.createServer((request, response) => {
         const filename = request.url.split('?')[0] === '/' ? 'index.html' : request.url.split('?')[0].slice(1);
@@ -61,6 +67,20 @@ async function main() {
                 await page.evaluate(({ id, value }) => window.testDeliver(id, value), { id, value: clone(value) });
             });
             await page.exposeFunction('testRead', name => ({ value: clone(data[name] ?? null), revision: revisions[name] || 0 }));
+            await page.exposeFunction('testSet', async (pathName, value, uid) => {
+                const parts=String(pathName).split('/').filter(Boolean), rootName=parts.shift();
+                const staff=['principal','sec-ic','pri-ic'].includes(data.roles[uid]);
+                const get=(rootValue,pathParts)=>pathParts.reduce((node,key)=>node?.[key],rootValue);
+                if(rootName==='examDayAttendancePins'&&!staff)return{error:'PERMISSION_DENIED'};
+                if(rootName==='examDayAttendanceAccessChecks'||rootName==='examDayAttendanceSubmissions'){
+                    const [session,exam,date,room]=parts;
+                    if(String(value?.pin||'')!==String(get(data.examDayAttendancePins,[session,exam,date,room])||''))return{error:'PERMISSION_DENIED'};
+                }else if(rootName!=='examDayAttendancePins')return{error:'PERMISSION_DENIED'};
+                data[rootName]=data[rootName]||{};let node=data[rootName];
+                for(let i=0;i<parts.length-1;i++)node=node[parts[i]]=node[parts[i]]||{};
+                if(parts.length){if(value===null)delete node[parts.at(-1)];else node[parts.at(-1)]=clone(value);}else data[rootName]=clone(value);
+                await notifyTree(rootName);return{ok:true};
+            });
             await page.exposeFunction('testCommit', async (name, value, revision, uid) => {
                 if (denyWrites || !allowed(uid, name)) return { error: 'PERMISSION_DENIED' };
                 if (slowWrites) await new Promise(resolve => setTimeout(resolve, 200));
@@ -926,14 +946,17 @@ async function main() {
         assert.deepEqual(await a.locator('#public-operational-board > section').evaluateAll(nodes=>nodes.map(node=>node.id)),['public-exam-notice-board','public-qp-circular-section','public-date-sheet-section','public-qp-receiving-section','public-qp-printing-section','public-seating-section','public-invigilation-section','public-room-inventory-section','public-exam-day-flow','public-sensitive-attendance-section','public-final-attendance-section','public-general-circular-section','public-after-exam-section'],'the public operational displays must remain in the requested S.No. 1–12 order');
         assert.equal(await a.locator('#public-seating-scroll-window').evaluate(node=>node.classList.contains('max-h-72')&&node.classList.contains('overflow-auto')),true,'public Seating Arrangements must remain in a compact vertical and horizontal scroll window');
         assert.equal(await a.locator('#public-seating-scroll-window thead').evaluate(node=>node.classList.contains('sticky')),true,'the Seating table heading must remain visible while its rows scroll');
+        assert.match(await a.locator('#public-seating-scroll-window thead').innerText(),/Column No\.[\s\S]*from gate side[\s\S]*Desk No\./,'public Seating must use the same column-from-gate and desk terminology as Admit Cards');
+        assert.doesNotMatch(await a.locator('#public-seating-scroll-window').innerText(),/Desk \/ Seat|\d+ \/ [AB]/,'student-facing Seating must not expose internal A/B seat codes');
         assert.match(await a.locator('#public-room-inventory-section').innerText(),/Received 1\/1[\s\S]*Examination Room 10-A[\s\S]*RECEIVED/,'the independently published baggage board must show the current room handover status');
         assert.equal(await a.locator('#public-exam-day-flow #exam-day-public-pin').count(),0,'the sensitive attendance control must not appear inside the real-time display');
         assert.equal(await a.locator('#public-attendance-panel #exam-day-public-pin').count(),1,'the PIN-protected attendance control must appear under Section 3 Seating Arrangement Display');
         assert.equal(await a.locator('#public-attendance-panel #public-attendance-pin').count(),0,'the general seating publication must remain read-only without its legacy attendance control');
-        const roomPin=await a.evaluate(()=>publicPortalBoards.examDayFlow.rooms[0].room.attendancePin);
+        const roomPin=await a.evaluate(()=>seatingPlans['100']['2026-11-01'].rooms[0].attendancePin);
         await a.locator('#exam-day-public-pin').fill(roomPin);
         await a.getByRole('button',{name:'Unlock Room Seating'}).click();
-        assert.match(await a.locator('#public-attendance-panel').innerText(),/✈️ Examination Room[\s\S]*WINDOW SIDE[\s\S]*GATE \/ DOOR SIDE[\s\S]*FRONT · BLACKBOARD · INVIGILATOR[\s\S]*COLUMN 1 · DESK 1/,'sensitive attendance must preserve the complete Stage 1 flight seating design and desk geometry');
+        await a.waitForFunction(()=>document.querySelector('#public-attendance-panel')?.textContent.includes('FRONT · BLACKBOARD · INVIGILATOR'));
+        assert.match(await a.locator('#public-attendance-panel').innerText(),/✈️ Examination Room[\s\S]*WINDOW SIDE[\s\S]*GATE \/ DOOR SIDE[\s\S]*FRONT · BLACKBOARD · INVIGILATOR[\s\S]*COLUMN 1 FROM GATE · DESK 1/,'sensitive attendance must preserve the complete Stage 1 flight seating design and desk geometry');
         assert.equal(await a.locator('#public-attendance-panel .sensitive-flight-scroll').count(),1,'the public flight seating diagram must use a mobile-safe horizontal scroll container');
         const attendanceSeat=a.locator('#public-attendance-panel').getByRole('button',{name:/Desk \d+-[AB]/}).first();await attendanceSeat.click();
         assert.match(await attendanceSeat.innerText(),/ABSENT/,'the invigilator must mark an individual half-desk red');
@@ -972,8 +995,8 @@ async function main() {
         assert.match(await a.evaluate(()=>{selectedPostExamStep=1;return renderAfterExamWorkspace(archivedExams.find(item=>String(item.id)==='100'));}),/Bundle Collection Duty[\s\S]*Bundle collection duty[\s\S]*BUNDLE COLLECTOR/,'After-Exam must begin with a day-wise room bundle-collection duty page');
         assert.deepEqual(await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),rows=postExamBundleRows(exam,'2026-11-01');return{count:rows.length,fields:rows[0]&&[rows[0].roomName,rows[0].subject,rows[0].received,rows[0].invigilators.length]};}),{count:1,fields:['Examination Room 10-A','SCIENCE',1,2]},'After-Exam receipt rows must carry the saved room, subject, absentee-adjusted script count and invigilator names');
         assert.deepEqual(await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),absentId=exam.duringExamDays['2026-11-01'].absentFaculty[0],absent=teachers.find(item=>String(item.id)===String(absentId));return{hasCore:postExamCollectionDutyOptions(exam,'2026-11-01').includes('Core Examination Team'),absentExcluded:!postExamCollectionDutyOptions(exam,'2026-11-01').includes(absent?.name||'__missing__')};}),{hasCore:true,absentExcluded:true},'bundle-collection dropdowns must prioritize the Core Team and remove faculty absent on that exam day');
-        assert.match(await a.evaluate(()=>{selectedPostExamStep=2;return renderAfterExamWorkspace(archivedExams.find(item=>String(item.id)==='100'));}),/COMMON COUNTER ACCESS[\s\S]*Set \/ Change PIN[\s\S]*Publish Counter Access[\s\S]*Unlock Counter[\s\S]*Rooms Pending[\s\S]*Bundles Pending/,'receipt and bundling must provide common-PIN multi-counter controls and live progress totals');
-        assert.match(await a.evaluate(()=>{selectedPostExamStep=3;return renderAfterExamWorkspace(archivedExams.find(item=>String(item.id)==='100'));}),/Evaluator issue register[\s\S]*🔒[\s\S]*Complete receipt first/,'the issue register must lock mapped evaluators and block bundles until receipt is complete');
+        assert.match(await a.evaluate(()=>{selectedPostExamStep=2;return renderAfterExamWorkspace(archivedExams.find(item=>String(item.id)==='100'));}),/SAVED COUNTER ACCESS[\s\S]*Core team member[\s\S]*Save Counter[\s\S]*Given PIN[\s\S]*Room Submission Report[\s\S]*Consolidated Class-Section-Subject Bundles/,'receipt and bundling must provide saved individual counter PINs, room status and consolidated bundles');
+        assert.match(await a.evaluate(()=>{selectedPostExamStep=3;return renderAfterExamWorkspace(archivedExams.find(item=>String(item.id)==='100'));}),/Consolidated evaluator issue register[\s\S]*Source Rooms[\s\S]*🔒[\s\S]*AWAITED/,'the issue register must use consolidated bundles, lock mapped evaluators and show readiness from prior receipt flow');
         assert.deepEqual(await a.evaluate(async()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),pdf=afterExamSummaryPdf(exam),pdfHead=new TextDecoder().decode((await pdf.arrayBuffer()).slice(0,4)),zip=createStoredZip([{name:'record.txt',data:'safe'}]),zipHead=Array.from(new Uint8Array((await zip.arrayBuffer()).slice(0,4)));return{pdfHead,zipHead,csv:afterExamCsv(exam).includes('Samagam Slip Received')};}),{pdfHead:'%PDF',zipHead:[80,75,3,4],csv:true},'the complete Vault export must generate a valid PDF, ZIP container and Excel-compatible register');
         await a.evaluate(async()=>togglePostExamPagePublishing(100,'2026-11-01',2,true));
         await a.waitForFunction(()=>!!publicPortalBoards.afterExam?.days?.['2026-11-01']?.pages?.['2']);
