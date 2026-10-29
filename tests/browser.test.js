@@ -915,9 +915,10 @@ async function main() {
         await a.evaluate(()=>{archivedExams=archivedExams.filter(item=>item.id!=='vault-text-id');openExamVault(100);});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absence (Staff)'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
-        await a.getByRole('button',{name:'🧪 Enter Mock Mode · Dark Practice',exact:true}).click();
+        await a.getByRole('button',{name:'🧪 Enter Mock Practice',exact:true}).click();
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPractice?.active===true);
         await a.getByRole('button',{name:'🧹 Exit Mock Mode & Restore Real Data',exact:true}).waitFor();
+        assert.equal(await a.locator('.mock-mode-workspace').count(),1,'active mock practice must apply a real dark display theme to the entire selected-day workspace');
         assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK MODE ACTIVE[\s\S]*Exit Mock Mode & Restore Real Data/,'Stage 2 mock rehearsal must remain unmistakably labelled');
         const mockFacultySelect=a.locator('#during-absent-faculty-select');
         const mockFacultyId=await mockFacultySelect.locator('option').nth(1).getAttribute('value');
