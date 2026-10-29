@@ -917,6 +917,7 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absence (Staff)'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
         assert.equal(await a.getByRole('button',{name:'🧪 Enter Mock Practice',exact:true}).getAttribute('type'),'button','Mock Practice entry must never submit its surrounding form');
         await a.getByRole('button',{name:'🧪 Enter Mock Practice',exact:true}).click();
+        await a.getByText(/STARTING MOCK MODE|MOCK MODE ACTIVE/).first().waitFor();
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPractice?.active===true);
         await a.getByRole('button',{name:'🧹 Exit Mock Mode & Clear All Mock Data',exact:true}).waitFor();
         assert.equal(await a.locator('#lifecycle-stage-workspace.mock-mode-workspace').count(),1,'active mock practice must apply a real dark display theme to the entire Stage 2 workspace');
