@@ -923,8 +923,14 @@ async function main() {
         const mockFacultyId=await mockFacultySelect.locator('option').nth(1).getAttribute('value');
         await mockFacultySelect.selectOption(mockFacultyId);
         await a.getByRole('button',{name:/Add Absent & Save/}).click();
-        await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.duringExamDays?.['2026-11-01']?.absentFaculty?.length===1);
+        await a.getByText('SAVED ABSENT FACULTY · 1',{exact:true}).waitFor();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/SAVED ABSENT FACULTY · 1/,`Mock Practice must retain a separately saved absent faculty member (${mockFacultyId})`);
+        await a.getByRole('button',{name:/Mark Present & Save/}).click();
+        await a.getByText('SAVED ABSENT FACULTY · 0',{exact:true}).waitFor();
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/SAVED ABSENT FACULTY · 0/,'Mark Present must remove a wrongly entered absence and save the correction');
+        await a.locator('#during-absent-faculty-select').selectOption(mockFacultyId);
+        await a.getByRole('button',{name:/Add Absent & Save/}).click();
+        await a.getByText('SAVED ABSENT FACULTY · 1',{exact:true}).waitFor();
         await a.getByRole('button',{name:'3. Student Absentees with PIN',exact:true}).click();
         await a.evaluate(()=>{publicPortalBoards={...publicPortalBoards,liveDuty:{examId:100,examTitle:'Existing Exam',days:{'2026-11-02':{date:'2026-11-02',rooms:[]}}}};});
         await a.getByRole('button',{name:/Publish with PIN/}).click();
