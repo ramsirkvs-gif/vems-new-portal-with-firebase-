@@ -942,6 +942,10 @@ async function main() {
         await a.getByRole('button',{name:'🧹 End Mock & Reset for Real Exam',exact:true}).click();
         await a.waitForFunction(()=>!archivedExams.find(item=>String(item.id)==='100')?.mockPractice&&!publicPortalBoards.examDayAttendance);
         assert.deepEqual(await a.evaluate(()=>{const day=duringExamDayRecord(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01');return{attendance:day.attendance,submitted:day.attendanceSubmitted,mockReport:!!publicPortalBoards.examDayAttendance};}),{attendance:{},submitted:{},mockReport:false},'ending Mock Practice must remove rehearsal absentee submissions and reports before real work');
+        await a.evaluate(()=>switchPortalArea('public'));
+        assert.equal(await a.locator('#public-attendance-submission-receipt').count(),0,'ending Mock Practice must immediately remove the old submitted receipt from Public View');
+        assert.equal(await a.getByRole('button',{name:'Checking PIN…'}).count(),0,'ending Mock Practice must clear any pending public PIN lookup state');
+        await a.evaluate(()=>switchPortalArea('principal'));
         await a.getByRole('button',{name:'1. Faculty Absence (Staff)',exact:true}).click();
         assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*INTERNAL[\s\S]*saved separately/,'faculty absence marking must be clearly day-scoped, internal, and separately saved');
         const absentDutyId=await a.evaluate(()=>{teachers.push({id:'replacement-test',name:'Replacement Teacher',desig:'PGT-Test',allotments:[]});return String(Object.values(invigilationPlans['100']['2026-11-01'])[0].invigilators[0]);});
