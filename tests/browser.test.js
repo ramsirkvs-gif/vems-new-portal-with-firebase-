@@ -917,9 +917,11 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absence (Staff)'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
         await a.getByRole('button',{name:'🧪 Enter Mock Practice',exact:true}).click();
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPractice?.active===true);
-        await a.getByRole('button',{name:'🧹 Exit Mock Mode & Restore Real Data',exact:true}).waitFor();
-        assert.equal(await a.locator('.mock-mode-workspace').count(),1,'active mock practice must apply a real dark display theme to the entire selected-day workspace');
-        assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK MODE ACTIVE[\s\S]*Exit Mock Mode & Restore Real Data/,'Stage 2 mock rehearsal must remain unmistakably labelled');
+        await a.getByRole('button',{name:'🧹 Exit Mock Mode & Clear All Mock Data',exact:true}).waitFor();
+        assert.equal(await a.locator('#lifecycle-stage-workspace.mock-mode-workspace').count(),1,'active mock practice must apply a real dark display theme to the entire Stage 2 workspace');
+        assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK MODE ACTIVE[\s\S]*Exit Mock Mode & Clear All Mock Data/,'Stage 2 mock rehearsal must remain unmistakably labelled');
+        await a.evaluate(()=>{selectedDuringExamDate='2026-11-02';renderExamCreatorModule();});
+        assert.deepEqual(await a.evaluate(()=>({date:selectedDuringExamDate,dark:document.querySelector('#lifecycle-stage-workspace')?.classList.contains('mock-mode-workspace'),exit:document.querySelector('#lifecycle-stage-workspace')?.textContent.includes('Exit Mock Mode & Clear All Mock Data')})),{date:'2026-11-01',dark:true,exit:true},'an active mock must always reopen its own day with the full dark workspace and visible clear-and-exit action');
         const mockFacultySelect=a.locator('#during-absent-faculty-select');
         const mockFacultyId=await mockFacultySelect.locator('option').nth(1).getAttribute('value');
         await mockFacultySelect.selectOption(mockFacultyId);
@@ -947,8 +949,8 @@ async function main() {
         await a.getByRole('button',{name:'Submit Absentees to Examination Cell'}).click();
         await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.submitted));
         await a.evaluate(async()=>{switchPortalArea('principal');openLifecycleStage('during');await publishExamDayAttendanceReport(100,'2026-11-01','roomwise',true);});
-        await a.getByRole('button',{name:'🧹 Exit Mock Mode & Restore Real Data',exact:true}).waitFor();
-        await a.getByRole('button',{name:'🧹 Exit Mock Mode & Restore Real Data',exact:true}).click();
+        await a.getByRole('button',{name:'🧹 Exit Mock Mode & Clear All Mock Data',exact:true}).waitFor();
+        await a.getByRole('button',{name:'🧹 Exit Mock Mode & Clear All Mock Data',exact:true}).click();
         await a.waitForFunction(()=>!archivedExams.find(item=>String(item.id)==='100')?.mockPractice&&!publicPortalBoards.examDayAttendance);
         assert.deepEqual(await a.evaluate(()=>{const day=duringExamDayRecord(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01');return{attendance:day.attendance,submitted:day.attendanceSubmitted,mockReport:!!publicPortalBoards.examDayAttendance};}),{attendance:{},submitted:{},mockReport:false},'ending Mock Practice must remove rehearsal absentee submissions and reports before real work');
         assert.equal(await a.evaluate(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPracticeDays?.['2026-11-01']?.status),'cleared-awaiting-freeze','clearing must finish before the separate permanent freeze action');
