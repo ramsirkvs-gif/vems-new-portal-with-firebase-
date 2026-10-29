@@ -380,14 +380,24 @@ async function logoutSession() {
         pendingLoginRole=null;
         loadingStaffData=false;
         if(db&&firebase.auth().currentUser)await firebase.auth().signOut();
-        clearStaffState();
+        try{clearStaffState();}catch(cleanupError){
+            authorizedRole=null;currentActiveRole='public';loadingStaffData=false;resetPrivateSharedValues();activateArea('public');
+        }
         closeLoginModal();
         showSyncError('');
     }catch(error){
+        loadingStaffData=false;
         showSyncError(`Logout failed: ${error.message||error}. Check the connection and try again.`);
     }finally{
         if(button){button.disabled=false;button.textContent='Logout';button.classList.toggle('hidden',!authorizedRole);}
     }
+}
+function resetPrivateSharedValues() {
+    studentRecords={};students=[];sectionConfigs={};teachers=[];classTeacherAssignments={};examCoreTeam={};archivedExams=[];
+    examOptionsList=defaultExamOptionsList;qpSubmissionsTracker={};qpPrintingTracker={};qpSubmissionDeadlines={};qpOfficeOrders={};qpOfficeOrderSettings={};
+    dateSheetInstructions={};dateSheetSettings={};holidayCalendar={};publishedSubjectDirectories={};publicPortalBoards={};
+    seatingRooms={};seatingPlans={};invigilationPlans={};roomInventoryPlans={};examCirculars={};circularSettings={};signatureProfiles={};documentApprovals={};
+    activeLifecycleExamRecord=null;datesheetDays=[];
 }
 function clearStaffState({ preserveWorkspace = false } = {}) {
     clearTimeout(renderTimer);
@@ -396,7 +406,7 @@ function clearStaffState({ preserveWorkspace = false } = {}) {
     if (roleSubscription) { roleSubscription.ref.off('value', roleSubscription.listener); roleSubscription = null; }
     authorizedRole = null;
     currentActiveRole = 'public';
-    sharedNames.filter(name => name !== 'publishedSubjectDirectories').forEach(name => acceptSharedValue(name, {}));
+    resetPrivateSharedValues();
     Object.keys(editorBaselines).forEach(key => { editorBaselines[key] = null; });
     if (!preserveWorkspace) {
         activeExamId = null;
@@ -488,9 +498,9 @@ async function importLegacyBrowserData() {
 
 function sessionStorePaths(sessionId) { return Object.fromEntries(sharedNames.map(name => [name, name === 'signatureProfiles' ? 'signatureProfiles' : sessionCollectionPath(name, sessionId)])); }
 function resetSessionViews() {
-    sharedNames.filter(name => name !== 'publishedSubjectDirectories').forEach(name => acceptSharedValue(name, {}));
-    datesheetDays=[];
+    resetPrivateSharedValues();
     Object.keys(editorBaselines).forEach(key => { editorBaselines[key]=null; });
+    scheduleSharedRender();
 }
 function startSelectedSessionStore() {
     if (!authorizedRole) return;
