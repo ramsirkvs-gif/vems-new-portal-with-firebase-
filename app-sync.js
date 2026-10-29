@@ -18,6 +18,7 @@ let authorizedRole = null;
 let roleSubscription = null;
 let pendingLoginRole = null;
 let renderTimer = null;
+let pendingLiveWorkspaceRefresh = false;
 let authGeneration = 0;
 let sharedError = '';
 let loadingStaffData = false;
@@ -281,7 +282,15 @@ function scheduleSharedRender() {
 }
 function refreshSharedViews() {
     // Do not replace an input while somebody is typing. Refresh after they leave it.
-    if (document.activeElement?.matches('input, select, textarea')) return;
+    if (document.activeElement?.matches('input, select, textarea')) {
+        pendingLiveWorkspaceRefresh = true;
+        let notice=document.getElementById('live-update-pending-notice');
+        if(!notice){notice=document.createElement('div');notice.id='live-update-pending-notice';notice.className='fixed bottom-4 right-4 z-[180] rounded-lg bg-emerald-800 px-4 py-3 text-xs font-bold text-white shadow-xl';document.body.appendChild(notice);}
+        notice.textContent='Live update received from another device — finish this field to display it.';
+        return;
+    }
+    pendingLiveWorkspaceRefresh = false;
+    document.getElementById('live-update-pending-notice')?.remove();
     renderMasterSubjectDirectory();
     if (currentActiveTab === 'config' && !sectionFormDirty) initCfgSections();
     updateStudentTableHeaders();
@@ -289,6 +298,7 @@ function refreshSharedViews() {
     renderTeachers();
     renderFacultyDisplayOrder();
     renderExamCoreTeam();
+    if(typeof renderProOrderManager==='function')renderProOrderManager();
     if (!editorBaselines.assignments) renderClassTeacherCoordinationTable();
     if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) renderExamCreatorModule();
     populateLegacyExamOptions();
@@ -300,6 +310,7 @@ function refreshSharedViews() {
 document.addEventListener('focusout', event => {
     if (event.target.closest('#settings-signature-profiles, #public-notice-manager, #circular-editor, #exam-vault-editor, #faculty-order-manager') || event.target.id?.startsWith('circular-signature-')) return;
     scheduleSharedRender();
+    if(pendingLiveWorkspaceRefresh)setTimeout(scheduleSharedRender,0);
 });
 document.addEventListener('input', event => {
     if (event.target.matches('.cfg-sub-input')) sectionFormDirty = true;
