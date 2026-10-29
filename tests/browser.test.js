@@ -1280,7 +1280,7 @@ async function main() {
         const secondary = await pageFor();
         await login(secondary, 'secondary@example.test', 'sec-ic');
         assert.equal(await secondary.locator('#area-principal').isVisible(), false);
-        assert.deepEqual(await secondary.locator('#area-sec-ic [data-master-tab]').allTextContents(), ['⚙️ Subject Mapping','👨‍🎓 Students','👩‍🏫 Faculty','🗓️ Holidays','📣 PRO Live Orders','🗂️ Exam Records'], 'the Secondary IC workspace must show a belt for every view-only master section');
+        assert.deepEqual(await secondary.locator('#area-sec-ic [data-master-tab]').allTextContents(), ['⚙️ Subject Mapping','👨‍🎓 Students','👩‍🏫 Faculty','🗓️ Holidays','📣 PDS Live Display','🗂️ Exam Records'], 'the Secondary IC workspace must show a belt for every view-only master section');
         assert.equal(await secondary.evaluate(() => saveTeacherDirect({ preventDefault() {} })), false);
         await secondary.locator('#area-sec-ic [data-master-tab="teachers"]').click();
         assert.equal(await secondary.locator('#area-principal').isVisible(), true, 'both Exam ICs must be able to open the master-data view');
