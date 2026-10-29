@@ -953,6 +953,7 @@ async function main() {
         assert.equal(await a.evaluate(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPracticeDays?.['2026-11-01']?.status),'cleared-frozen','each exam date must retain a permanent cleared-and-frozen mock status');
         assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK CLEARED & FROZEN/,'the selected day must visibly show that mock data was cleared and frozen');
         assert.ok(await a.evaluate(()=>Date.parse(publicPortalBoards.examDayAttendanceResets?.['100']?.['2026-11-01'])>0),'the public board must retain a day-specific reset cutoff that blocks older submissions');
+        assert.deepEqual(await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100');return{oldMock:examDaySubmissionValid(exam,'2026-11-01',{submitted:true,submittedAt:'2026-10-27T14:22:02.000Z',submittedBy:'Room Invigilator'}),manual:examDaySubmissionValid(exam,'2026-11-01',{submitted:true,manual:true,submittedAt:new Date().toISOString(),submittedBy:'Exam IC Manual'})};}),{oldMock:false,manual:true},'an earlier mock submission must be rejected while an Exam IC manual record remains valid');
         await a.evaluate(()=>switchPortalArea('public'));
         assert.equal(await a.locator('#public-attendance-submission-receipt').count(),0,'ending Mock Practice must immediately remove the old submitted receipt from Public View');
         assert.equal(await a.getByRole('button',{name:'Checking PIN…'}).count(),0,'ending Mock Practice must clear any pending public PIN lookup state');
