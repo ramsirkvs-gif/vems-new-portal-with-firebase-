@@ -933,7 +933,7 @@ async function main() {
         await a.locator('#during-absent-faculty-select').selectOption(mockFacultyId);
         await a.getByRole('button',{name:/Add Absent & Save/}).click();
         await a.getByText('SAVED ABSENT FACULTY · 1',{exact:true}).waitFor();
-        await a.getByRole('button',{name:'3. Student Absentees with PIN',exact:true}).click();
+        await a.getByRole('button',{name:'3. PIN Generation & Sensitive Attendance',exact:true}).click();
         await a.evaluate(()=>{publicPortalBoards={...publicPortalBoards,liveDuty:{examId:100,examTitle:'Existing Exam',days:{'2026-11-02':{date:'2026-11-02',rooms:[]}}}};});
         await a.getByRole('button',{name:/Publish with PIN/}).click();
         await a.waitForFunction(()=>publicPortalBoards.examDayFlow?.days?.['2026-11-01']?.mockPractice===true);
@@ -996,7 +996,7 @@ async function main() {
         await a.waitForFunction(()=>document.querySelector('#exam-day-step-panel')?.textContent.includes('Exam IC — Roomwise attendance report'));
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Exam IC — Roomwise attendance report/,'completed baggage distribution must continue to the final report');
         assert.equal(await a.evaluate(()=>publicPortalBoards.roomInventoryStatus.days['2026-11-01'].rooms.every(item=>item.received)),true,'published Room Inventory status must update automatically after each baggage handover');
-        await a.getByRole('button',{name:'3. Student Absentees with PIN',exact:true}).click();
+        await a.getByRole('button',{name:'3. PIN Generation & Sensitive Attendance',exact:true}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Waiting for invigilator submission/);
         assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*Publish with PIN[\s\S]*Stop Publishing/,'the PIN marker must use the common selected-day publication bar');
         assert.equal(await a.getByRole('button',{name:'🧹 Clear All Attendance',exact:true}).count(),1,'the selected exam day must provide a controlled day-attendance reset');
@@ -1024,10 +1024,10 @@ async function main() {
         assert.match(await attendanceSeat.innerText(),/ABSENT/,'the invigilator must mark an individual half-desk red');
         await a.getByRole('button',{name:'Submit Absentees to Examination Cell'}).click();
         await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.submitted));
-        assert.match(await a.locator('#public-attendance-submission-receipt').innerText(),/Attendance submitted to the Examination Cell[\s\S]*Present \d+ · Absent 1[\s\S]*Stage 2 → 5\. Exam IC Attendance Report/,'the invigilator must receive a persistent submission receipt and exact final-report location');
+        assert.match(await a.locator('#public-attendance-submission-receipt').innerText(),/Attendance submitted to the Examination Cell[\s\S]*Present \d+ · Absent 1[\s\S]*Stage 2 → 5\. Final Attendance Report/,'the invigilator must receive a persistent submission receipt and exact final-report location');
         await a.evaluate(()=>{switchPortalArea('principal');openLifecycleStage('during');});
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Attendance received[\s\S]*Seat Student One/,'Exam IC must see full candidate details only after invigilator submission');
-        await a.getByRole('button',{name:'5. Exam IC Attendance Report'}).click();
+        await a.getByRole('button',{name:'5. Final Attendance Report'}).click();
         assert.equal(await a.locator('[data-attendance-report-actions]').count(),2,'roomwise and classwise reports must have separate action groups');
         await a.getByRole('button',{name:/Exam IC Review \/ Update/}).first().click();
         assert.equal(await a.locator('[data-manual-attendance-rolls]').count(),1,'manual attendance must open inline below its room without a browser prompt');
