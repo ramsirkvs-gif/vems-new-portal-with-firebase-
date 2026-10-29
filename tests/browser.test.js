@@ -691,6 +691,8 @@ async function main() {
         await a.locator('.seating-room-card').last().locator('.seating-room-name').fill('Library Annex');
         await a.getByRole('button',{name:/Save Room Layout/}).click();
         await a.getByRole('button',{name:/Edit Room Layout/}).waitFor();
+        assert.equal(await a.getByRole('button',{name:'⚡ Generate New Automatic Seating as per Updated Layout',exact:true}).isVisible(),true,'saving an edited layout must show a fixed, clearly labelled regeneration button');
+        assert.equal(await a.locator('#updated-layout-seating-actions').evaluate(element=>getComputedStyle(element).position),'sticky','the updated-layout generation control must remain visible while reviewing the layout');
         await a.locator('#generated-seating-result').waitFor();
         assert.equal(await a.evaluate(() => suggestedSeatingPlan?.plan?.rooms?.find(room=>room.id==='classroom-10-A')?.extraDesks),2,'saving an updated room layout must immediately regenerate automatic seating with the new extra-desk capacity');
         assert.equal(await a.evaluate(() => savedSeatingLayoutRooms('100|2026-11-01').length),2,'the saved room layout must belong to the selected vault date');
@@ -700,7 +702,7 @@ async function main() {
         assert.equal(await a.locator('.seating-room-columns').first().isDisabled(),true,'saved room layouts must lock until Edit is selected');
         await a.evaluate(() => renderExamCreatorModule());
         assert.equal(await a.locator('.seating-room-card').filter({hasText:'Examination Room 10-A'}).locator('.seating-room-columns').inputValue(),'6','saved room dimensions must remain stable after a refresh');
-        await a.getByRole('button',{name:/Generate Automatic Seating Arrangement/}).click();
+        await a.getByRole('button',{name:/Generate New Automatic Seating as per Updated Layout/}).click();
         await a.locator('#generated-seating-result').waitFor();
         assert.match(await a.locator('#generated-seating-result').innerText(),/3\. Automatic Seating Arrangement/);
         assert.doesNotMatch(await a.locator('#generated-seating-result').innerText(),/DIFFERENT STANDARD/i,'the seating chart must identify students by roll and class without the redundant different-standard label');
