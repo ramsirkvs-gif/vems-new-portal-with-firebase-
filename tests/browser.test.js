@@ -922,6 +922,7 @@ async function main() {
         await a.getByRole('button',{name:'🧹 Reset Attendance Practice Data',exact:true}).first().click();
         await a.waitForFunction(()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),day=exam?.duringExamDays?.['2026-11-01'],flow=publicPortalBoards.examDayFlow?.days?.['2026-11-01'];return day&&Object.keys(day.attendance||{}).length===0&&Object.keys(day.attendanceSubmitted||{}).length===0&&flow?.attendanceEnabled===false&&!publicPortalBoards.examDayAttendance&&!publicPortalBoards.examDayAttendanceClasswise;});
         assert.equal(await a.evaluate(()=>!!seatingPlans['100']['2026-11-01']?.rooms?.length&&!!invigilationPlans['100']['2026-11-01']),'true'==='true','attendance reset must preserve seating and invigilation base records');
+        assert.equal(await a.evaluate(()=>archivedExams.find(item=>String(item.id)==='100').mockPracticeDays?.['2026-11-01']?.status),'attendance-practice-reset','successful reset must be recorded even if a later display refresh encounters legacy data');
         await a.evaluate(()=>switchPortalArea('principal'));
         await a.getByRole('button',{name:'1. Faculty Absence (Staff)',exact:true}).click();
         assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*INTERNAL[\s\S]*saved separately/,'faculty absence marking must be clearly day-scoped, internal, and separately saved');
