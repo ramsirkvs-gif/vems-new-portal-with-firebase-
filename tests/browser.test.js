@@ -948,6 +948,9 @@ async function main() {
         await a.getByRole('button',{name:'🧹 End Mock & Reset for Real Exam',exact:true}).click();
         await a.waitForFunction(()=>!archivedExams.find(item=>String(item.id)==='100')?.mockPractice&&!publicPortalBoards.examDayAttendance);
         assert.deepEqual(await a.evaluate(()=>{const day=duringExamDayRecord(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01');return{attendance:day.attendance,submitted:day.attendanceSubmitted,mockReport:!!publicPortalBoards.examDayAttendance};}),{attendance:{},submitted:{},mockReport:false},'ending Mock Practice must remove rehearsal absentee submissions and reports before real work');
+        assert.equal(await a.evaluate(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPracticeDays?.['2026-11-01']?.status),'cleared-frozen','each exam date must retain a permanent cleared-and-frozen mock status');
+        assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK CLEARED & FROZEN/,'the selected day must visibly show that mock data was cleared and frozen');
+        assert.ok(await a.evaluate(()=>Date.parse(publicPortalBoards.examDayAttendanceResets?.['100']?.['2026-11-01'])>0),'the public board must retain a day-specific reset cutoff that blocks older submissions');
         await a.evaluate(()=>switchPortalArea('public'));
         assert.equal(await a.locator('#public-attendance-submission-receipt').count(),0,'ending Mock Practice must immediately remove the old submitted receipt from Public View');
         assert.equal(await a.getByRole('button',{name:'Checking PIN…'}).count(),0,'ending Mock Practice must clear any pending public PIN lookup state');
