@@ -953,7 +953,7 @@ async function main() {
         assert.equal(await a.evaluate(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPracticeDays?.['2026-11-01']?.status),'cleared-frozen','each exam date must retain a permanent cleared-and-frozen mock status');
         assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK CLEARED & FROZEN/,'the selected day must visibly show that mock data was cleared and frozen');
         assert.ok(await a.evaluate(()=>Date.parse(publicPortalBoards.examDayAttendanceResets?.['100']?.['2026-11-01'])>0),'the public board must retain a day-specific reset cutoff that blocks older submissions');
-        assert.deepEqual(await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100');return{oldMock:examDaySubmissionValid(exam,'2026-11-01',{submitted:true,submittedAt:'2026-10-27T14:22:02.000Z',submittedBy:'Room Invigilator'}),manual:examDaySubmissionValid(exam,'2026-11-01',{submitted:true,manual:true,submittedAt:new Date().toISOString(),submittedBy:'Exam IC Manual'})};}),{oldMock:false,manual:true},'an earlier mock submission must be rejected while an Exam IC manual record remains valid');
+        assert.equal(await a.evaluate(()=>examDaySubmissionValid(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01',{submitted:true,submittedAt:'2026-10-27T14:22:02.000Z',submittedBy:'Room Invigilator'})),false,'an earlier mock submission must be rejected');
         await a.evaluate(()=>switchPortalArea('public'));
         assert.equal(await a.locator('#public-attendance-submission-receipt').count(),0,'ending Mock Practice must immediately remove the old submitted receipt from Public View');
         assert.equal(await a.getByRole('button',{name:'Checking PIN…'}).count(),0,'ending Mock Practice must clear any pending public PIN lookup state');
@@ -1029,14 +1029,7 @@ async function main() {
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Attendance received[\s\S]*Seat Student One/,'Exam IC must see full candidate details only after invigilator submission');
         await a.getByRole('button',{name:'5. Final Attendance Report'}).click();
         assert.equal(await a.locator('[data-attendance-report-actions]').count(),2,'roomwise and classwise reports must have separate action groups');
-        await a.getByRole('button',{name:/Exam IC Review \/ Update/}).first().click();
-        assert.equal(await a.locator('[data-manual-attendance-rolls]').count(),1,'manual attendance must open inline below its room without a browser prompt');
-        assert.deepEqual(await a.locator('#exam-day-step-panel').getByRole('button').filter({hasText:/Finalize Update|Finalize Nil|Clear Exam IC Update|Close/}).allTextContents(),['💾 Finalize Update','✓ Finalize Nil','↩ Clear Exam IC Update','Close'],'inline reconciliation must support finalizing, Nil, restoring and reopening corrections');
-        await a.getByRole('button',{name:/Finalize Update/}).click();
-        await a.waitForFunction(()=>Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.source==='Invigilator + Exam IC'));
-        assert.match(await a.locator('#exam-day-step-panel').innerText(),/SOURCE · Invigilator \+ Exam IC/i,'an Exam IC correction must retain the invigilator submission as its audited source');
-        await a.getByRole('button',{name:/Clear Exam IC Update/}).click();
-        await a.waitForFunction(()=>!Object.values(archivedExams.find(item=>String(item.id)==='100').duringExamDays['2026-11-01'].attendanceSubmitted).some(item=>item?.examIcReviewed));
+        assert.equal(await a.getByRole('button',{name:/Exam IC Review \/ Update/}).count(),0,'the final report must be a read-only view of invigilator PIN submissions');
         assert.deepEqual(await a.locator('[data-attendance-report-actions="roomwise"] button').allTextContents(),['👁 Display Roomwise','🖨 Roomwise PDF / Print','📢 Publish Exam Roomwise','⏹ Stop Roomwise'],'roomwise display, PDF, publish and stop controls must remain separate');
         assert.deepEqual(await a.locator('[data-attendance-report-actions="classwise"] button').allTextContents(),['👁 Display Classwise','🖨 Classwise PDF / Print','📢 Publish Classwise for CTs / Samagam','⏹ Stop Classwise'],'classwise display, PDF, publish and stop controls must remain separate');
         assert.deepEqual(await a.evaluate(()=>[{cls:'12',section:'A',roll:'12102',name:'A'},{cls:'10',section:'B',roll:'10120',name:'B'},{cls:'10',section:'A',roll:'10105',name:'C'}].sort(compareExamAttendanceCandidate).map(item=>`${item.cls}-${item.section}-${item.roll}`)),['10-A-10105','10-B-10120','12-A-12102'],'Exam IC absentee lists must sort by ascending class, section and roll number');
