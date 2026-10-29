@@ -922,6 +922,8 @@ async function main() {
         const mockFacultySelect=a.locator('#during-absent-faculty-select');
         const mockFacultyId=await mockFacultySelect.locator('option').nth(1).getAttribute('value');
         await mockFacultySelect.selectOption(mockFacultyId);
+        await a.getByText(/Ready to save:/).waitFor();
+        assert.equal(await a.locator('#during-absent-faculty-select').inputValue(),mockFacultyId,'the selected absent faculty must survive the screen rerender until Save is pressed');
         await a.getByRole('button',{name:/Add Absent & Save/}).click();
         await a.getByText('SAVED ABSENT FACULTY · 1',{exact:true}).waitFor();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/SAVED ABSENT FACULTY · 1/,`Mock Practice must retain a separately saved absent faculty member (${mockFacultyId})`);
