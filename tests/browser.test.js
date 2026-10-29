@@ -1029,6 +1029,10 @@ async function main() {
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Invigilator submitted[\s\S]*Seat Student One/,'Exam IC must see full candidate details only after invigilator submission');
         await a.getByRole('button',{name:'5. Exam IC Attendance Report'}).click();
         assert.equal(await a.locator('[data-attendance-report-actions]').count(),2,'roomwise and classwise reports must have separate action groups');
+        await a.getByRole('button',{name:/Manual Update/}).first().click();
+        assert.equal(await a.locator('[data-manual-attendance-rolls]').count(),1,'manual attendance must open inline below its room without a browser prompt');
+        assert.deepEqual(await a.locator('#exam-day-step-panel').getByRole('button').filter({hasText:/Save Manual|Mark Nil|Clear Entry|Close/}).allTextContents(),['💾 Save Manual','✓ Mark Nil','🧹 Clear Entry','Close'],'inline manual attendance must support saving, Nil, clearing and reopening corrections');
+        await a.getByRole('button',{name:'Close',exact:true}).click();
         assert.deepEqual(await a.locator('[data-attendance-report-actions="roomwise"] button').allTextContents(),['👁 Display Roomwise','🖨 Roomwise PDF / Print','📢 Publish Exam Roomwise','⏹ Stop Roomwise'],'roomwise display, PDF, publish and stop controls must remain separate');
         assert.deepEqual(await a.locator('[data-attendance-report-actions="classwise"] button').allTextContents(),['👁 Display Classwise','🖨 Classwise PDF / Print','📢 Publish Classwise for CTs / Samagam','⏹ Stop Classwise'],'classwise display, PDF, publish and stop controls must remain separate');
         assert.deepEqual(await a.evaluate(()=>[{cls:'12',section:'A',roll:'12102',name:'A'},{cls:'10',section:'B',roll:'10120',name:'B'},{cls:'10',section:'A',roll:'10105',name:'C'}].sort(compareExamAttendanceCandidate).map(item=>`${item.cls}-${item.section}-${item.roll}`)),['10-A-10105','10-B-10120','12-A-12102'],'Exam IC absentee lists must sort by ascending class, section and roll number');
