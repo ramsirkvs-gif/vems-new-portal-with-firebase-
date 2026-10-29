@@ -915,6 +915,7 @@ async function main() {
         await a.evaluate(()=>{archivedExams=archivedExams.filter(item=>item.id!=='vault-text-id');openExamVault(100);});
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absence (Staff)'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
+        assert.equal(await a.getByRole('button',{name:'🧪 Enter Mock Practice',exact:true}).getAttribute('type'),'button','Mock Practice entry must never submit its surrounding form');
         await a.getByRole('button',{name:'🧪 Enter Mock Practice',exact:true}).click();
         await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPractice?.active===true);
         await a.getByRole('button',{name:'🧹 Exit Mock Mode & Clear All Mock Data',exact:true}).waitFor();
