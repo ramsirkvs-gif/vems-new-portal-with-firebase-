@@ -979,10 +979,11 @@ async function main() {
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/My Role in the Exam[\s\S]*Search any faculty member/,'Step 3 must provide the searchable faculty role workspace before PIN generation');
         const roleSelect=a.getByRole('combobox',{name:'Search faculty role'}).last();
         await roleSelect.selectOption({index:1});
-        assert.match(await a.locator('#exam-day-step-panel').innerText(),/FUNDAMENTAL ROLE[\s\S]*FULL VAULT EVALUATION TOTAL/,'the selected faculty must receive a complete daily and fundamental role summary');
+        assert.match(await a.locator('#exam-day-step-panel').innerText(),/TODAY’S INSTANT ROLE[\s\S]*OTHER \/ FUNDAMENTAL RESPONSIBILITIES[\s\S]*FULL VAULT EVALUATION TOTAL/,'the selected faculty must see the instant daily role first and continuing responsibilities below');
         assert.equal(await a.getByRole('button',{name:'🖨 PDF / Print',exact:true}).count(),1,'My Role must provide its own PDF action');
         await a.getByRole('button',{name:'📢 Publish My Roles',exact:true}).click();
         await a.waitForFunction(()=>!!publicPortalBoards.myExamRoles?.rows?.length);
+        assert.deepEqual(await a.evaluate(()=>{const before=publicPortalBoards.myExamRoles.updatedAt||'';const names=refreshPublishedDataForChanges(['invigilationPlans']);const row=publicPortalBoards.myExamRoles.rows[0];return{sync:names.includes('publicPortalBoards'),updated:Boolean(publicPortalBoards.myExamRoles.updatedAt&&publicPortalBoards.myExamRoles.updatedAt!==before),structured:Array.isArray(row.todayRoles)&&Array.isArray(row.fundamentalRoles)};}),{sync:true,updated:true,structured:true},'published faculty roles must rebuild automatically whenever workflow duty assignments change');
         await a.getByRole('button',{name:'5. Baggage Distribution',exact:true}).click();
         assert.equal(await a.getByRole('button',{name:'📢 Publish Status',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own daywise publish control');
         assert.equal(await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own stop control');
