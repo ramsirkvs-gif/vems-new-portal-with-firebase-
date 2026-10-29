@@ -710,6 +710,8 @@ async function main() {
         assert.equal(await a.locator('.seating-room-card').filter({hasText:'Examination Room 10-A'}).locator('.seating-room-columns').inputValue(),'6','saved room dimensions must remain stable after a refresh');
         await a.getByRole('button',{name:/Generate New Automatic Seating as per Updated Layout/}).click();
         await a.locator('#generated-seating-result').waitFor();
+        assert.equal(await a.getByRole('button',{name:'💾 Save Seating Arrangement',exact:true}).isVisible(),true,'regeneration must replace the old Saved display with a new reviewable preview');
+        assert.equal(await a.locator('#generated-seating-result').getByText('✓ Saved',{exact:true}).count(),0,'the old saved-plan badge must not remain after regeneration');
         assert.match(await a.locator('#generated-seating-result').innerText(),/3\. Automatic Seating Arrangement/);
         assert.doesNotMatch(await a.locator('#generated-seating-result').innerText(),/DIFFERENT STANDARD/i,'the seating chart must identify students by roll and class without the redundant different-standard label');
         assert.match(await a.locator('[data-seating-room-id]').first().innerText(),/Subject: SCIENCE/,'every allotted candidate card must display the mapped examination subject');
