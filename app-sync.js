@@ -230,6 +230,17 @@ function acceptSharedValue(name, value) {
     }
     scheduleSharedRender();
 }
+async function saveOperationalData(names){
+    if(!Array.isArray(names)||!names.length)throw new Error('Choose the operational records to save.');
+    if(!canEditSharedData('exam'))return false;
+    const store=sharedStore;
+    try{
+        const desired=names.map(name=>[name,cloneData(sharedValue(name))]);
+        await Promise.all(desired.map(([name,value])=>store.save(name,value,[])));
+        if(store!==sharedStore||!store.active)return false;
+        lastConfirmedSave=new Date().toLocaleTimeString();showSyncError('');store.status();return true;
+    }catch(error){if(store===sharedStore)showSyncError(`Save failed: ${error.message||error}`);return false;}
+}
 async function saveData(names, expected = {}) {
     if (!Array.isArray(names) || !names.length) throw new Error('Choose the records to save.');
     const impacts=publishedImpactsForChanges(names);
