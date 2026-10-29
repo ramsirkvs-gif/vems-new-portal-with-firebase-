@@ -1321,6 +1321,18 @@ async function main() {
         assert.equal(await primary.evaluate(() => canEditSharedData('principal')), false);
         console.log('PASS: primary staff use passcode-only entry and create/save primary exam schedules');
 
+        await primary.evaluate(() => switchPortalArea('public'));
+        assert.equal(await primary.locator('#logout-btn').isVisible(),true,'Logout must remain available when a signed-in staff member views the Public portal');
+        await primary.locator('#logout-btn').click();
+        await primary.waitForFunction(() => authorizedRole===null&&firebase.auth().currentUser===null);
+        assert.equal(await primary.locator('#logout-btn').isVisible(),false,'confirmed logout must close every staff role and return to Public View');
+        await login(primary,null,'pri-ic');
+        await login(primary,null,'sec-ic');
+        assert.equal(await primary.evaluate(()=>authorizedRole),'sec-ic','switching accounts must wait for Firebase to verify the requested role');
+        await login(primary,null,'pri-ic');
+        assert.equal(await primary.evaluate(()=>authorizedRole),'pri-ic','a role must be able to log in again after logout and account switching');
+        console.log('PASS: logout, relogin and verified cross-role switching work on one device');
+
 
         slowWrites = true;
         const saving = secondary.evaluate(() => saveSubmissionDeadline('2026-11-07'));

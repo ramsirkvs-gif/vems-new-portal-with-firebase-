@@ -848,7 +848,7 @@
             document.getElementById('area-principal').classList.toggle('hidden', area !== 'principal');
             document.getElementById('area-sec-ic').classList.toggle('hidden', area !== 'sec-ic');
             document.getElementById('area-pri-ic').classList.toggle('hidden', area !== 'pri-ic');
-            document.getElementById('logout-btn').classList.toggle('hidden', area === 'public');
+            document.getElementById('logout-btn').classList.toggle('hidden', !authorizedRole);
             const badge = document.getElementById('active-role-badge');
             
             if (area === 'public') {
@@ -4360,6 +4360,6 @@
         window.addEventListener('beforeunload',saveWorkspacePositionNow);
         window.addEventListener('pagehide',saveWorkspacePositionNow);
     </script>
-    <script src="app-sync.js?v=20261028-mock-student-absence"></script>
+    <script src="app-sync.js?v=20261029-role-session-fix"></script>
 </body>
 </html>

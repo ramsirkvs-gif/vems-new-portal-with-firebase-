@@ -353,7 +353,7 @@ async function handleLogin(event) {
         await firebase.auth().signInWithEmailAndPassword(roleAccounts[role], document.getElementById('login-password').value);
         document.getElementById('login-password').value = '';
         // Reauthenticating the same account need not trigger onAuthStateChanged again.
-        if (authorizedRole && sharedStore && (authorizedRole === role || authorizedRole === 'principal')) {
+        if (authorizedRole === role && sharedStore && firebase.auth().currentUser) {
             loadingStaffData = false;
             pendingLoginRole = null;
             currentActiveRole = role;
@@ -364,6 +364,7 @@ async function handleLogin(event) {
         // On an account change, the role listener verifies permissions before opening the workspace.
     } catch (error) {
         loadingStaffData = false;
+        pendingLoginRole = null;
         errorElement.textContent = error.code?.startsWith('auth/')
             ? (error.code === 'auth/network-request-failed' ? 'Unable to reach the sign-in service. Check your internet connection and try again.' : 'Passcode not accepted. Check the selected role and try again.')
             : error.message;
@@ -372,8 +373,21 @@ async function handleLogin(event) {
     } finally { submit.disabled = false; }
 }
 async function logoutSession() {
-    if (sharedStore?.pendingCount) { showSyncError('Wait for pending saves before signing out.'); return; }
-    if (db) await firebase.auth().signOut();
+    if (sharedStore?.pendingCount) { showSyncError('A save is still being confirmed. Wait for the green connected status, then press Logout again.'); return; }
+    const button=document.getElementById('logout-btn');
+    if(button){button.disabled=true;button.textContent='Signing out…';}
+    try{
+        pendingLoginRole=null;
+        loadingStaffData=false;
+        if(db&&firebase.auth().currentUser)await firebase.auth().signOut();
+        clearStaffState();
+        closeLoginModal();
+        showSyncError('');
+    }catch(error){
+        showSyncError(`Logout failed: ${error.message||error}. Check the connection and try again.`);
+    }finally{
+        if(button){button.disabled=false;button.textContent='Logout';button.classList.toggle('hidden',!authorizedRole);}
+    }
 }
 function clearStaffState({ preserveWorkspace = false } = {}) {
     clearTimeout(renderTimer);
