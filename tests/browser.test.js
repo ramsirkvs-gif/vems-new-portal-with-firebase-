@@ -951,7 +951,10 @@ async function main() {
         await a.getByRole('button',{name:'🧹 Exit Mock Mode & Restore Real Data',exact:true}).click();
         await a.waitForFunction(()=>!archivedExams.find(item=>String(item.id)==='100')?.mockPractice&&!publicPortalBoards.examDayAttendance);
         assert.deepEqual(await a.evaluate(()=>{const day=duringExamDayRecord(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01');return{attendance:day.attendance,submitted:day.attendanceSubmitted,mockReport:!!publicPortalBoards.examDayAttendance};}),{attendance:{},submitted:{},mockReport:false},'ending Mock Practice must remove rehearsal absentee submissions and reports before real work');
-        assert.equal(await a.evaluate(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPracticeDays?.['2026-11-01']?.status),'cleared-frozen','each exam date must retain a permanent cleared-and-frozen mock status');
+        assert.equal(await a.evaluate(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPracticeDays?.['2026-11-01']?.status),'cleared-awaiting-freeze','clearing must finish before the separate permanent freeze action');
+        assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK DATA CLEARED[\s\S]*Freeze Cleared Mock Day/,'a cleared mock day must show an explicit freeze option');
+        await a.getByRole('button',{name:'🔒 Freeze Cleared Mock Day',exact:true}).click();
+        await a.waitForFunction(()=>archivedExams.find(item=>String(item.id)==='100')?.mockPracticeDays?.['2026-11-01']?.status==='cleared-frozen');
         assert.match(await a.locator('#lifecycle-stage-workspace').innerText(),/MOCK CLEARED & FROZEN/,'the selected day must visibly show that mock data was cleared and frozen');
         assert.ok(await a.evaluate(()=>Date.parse(publicPortalBoards.examDayAttendanceResets?.['100']?.['2026-11-01'])>0),'the public board must retain a day-specific reset cutoff that blocks older submissions');
         assert.equal(await a.evaluate(()=>examDaySubmissionValid(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01',{submitted:true,submittedAt:'2026-10-27T14:22:02.000Z',submittedBy:'Room Invigilator'})),false,'an earlier mock submission must be rejected');
@@ -980,6 +983,7 @@ async function main() {
         const roleSelect=a.getByRole('combobox',{name:'Search faculty role'}).last();
         await roleSelect.selectOption({index:1});
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/TODAY’S INSTANT ROLE[\s\S]*OTHER \/ FUNDAMENTAL RESPONSIBILITIES[\s\S]*FULL VAULT EVALUATION TOTAL/,'the selected faculty must see the instant daily role first and continuing responsibilities below');
+        assert.equal(await a.evaluate(()=>myExamRoleRows(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01').some(row=>row.todayRoles.some(role=>role.includes('COLLECT MY EVALUATION BUNDLE')&&role.includes('exam falls today')))),true,'an evaluator whose paper falls today must see the bundle collection in the upper instant-role section');
         assert.equal(await a.getByRole('button',{name:'🖨 PDF / Print',exact:true}).count(),1,'My Role must provide its own PDF action');
         await a.getByRole('button',{name:'📢 Publish My Roles',exact:true}).click();
         await a.waitForFunction(()=>!!publicPortalBoards.myExamRoles?.rows?.length);
