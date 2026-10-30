@@ -564,23 +564,23 @@ function bindPublicDirectory() {
     if (!db) return;
     if (publicDirectorySubscription) { publicDirectorySubscription.ref.off('value',publicDirectorySubscription.listener); publicDirectorySubscription=null; }
     if (publicBoardsSubscription) { publicBoardsSubscription.ref.off('value',publicBoardsSubscription.listener); publicBoardsSubscription=null; }
+    if(examDayAttendanceSubscription){examDayAttendanceSubscription.ref.off('value',examDayAttendanceSubscription.listener);examDayAttendanceSubscription=null;}
+    const activeSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
     if(authorizedRole){
-        if(selectedAcademicSession===(systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION)){
+        if(selectedAcademicSession===activeSession){
             publicPublishedSubjectDirectories=publishedSubjectDirectories;
             publicVisiblePortalBoards=publicPortalBoards;
         }
+        const attendanceRef=db.ref(`examDayAttendanceSubmissions/${selectedAcademicSession}`),attendanceListener=snapshot=>applyExamDayAttendanceSubmissions(snapshot.val()||{});
+        examDayAttendanceSubscription={ref:attendanceRef,listener:attendanceListener};attendanceRef.on('value',attendanceListener,error=>showSyncError(`Attendance live sync failed: ${error.message}. Sign in again before exam-day attendance work.`));
         return;
     }
-    const activeSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
     const ref=db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession));
     const listener=snapshot=>{publicPublishedSubjectDirectories=snapshot.val()||{};renderPublicSubjectDirectory();renderPublicPortalBoards();};
     publicDirectorySubscription={ref,listener}; ref.on('value',listener,()=>{publicPublishedSubjectDirectories={};renderPublicSubjectDirectory();renderPublicPortalBoards();});
     const boardsRef=db.ref(sessionCollectionPath('publicPortalBoards',activeSession));
     const boardsListener=snapshot=>{publicVisiblePortalBoards=snapshot.val()||{};renderPublicPortalBoards();};
     publicBoardsSubscription={ref:boardsRef,listener:boardsListener};boardsRef.on('value',boardsListener,()=>{publicVisiblePortalBoards={};renderPublicPortalBoards();});
-    if(examDayAttendanceSubscription)examDayAttendanceSubscription.ref.off('value',examDayAttendanceSubscription.listener);
-    const attendanceRef=db.ref(`examDayAttendanceSubmissions/${activeSession}`),attendanceListener=snapshot=>applyExamDayAttendanceSubmissions(snapshot.val()||{});
-    examDayAttendanceSubscription={ref:attendanceRef,listener:attendanceListener};attendanceRef.on('value',attendanceListener,()=>applyExamDayAttendanceSubmissions({}));
 }
 function bindSessionMetadata() {
     sessionMetadataSubscriptions.forEach(item=>item.ref.off('value',item.listener)); sessionMetadataSubscriptions=[];
