@@ -176,8 +176,12 @@ async function main() {
         await a.fill('#exam-notice-text', 'Published notice body');
         await a.getByRole('button', { name: 'Publish New Notice' }).click();
         await a.waitForFunction(() => instantNotices().some(notice => notice.text === 'Published notice body'));
+        await a.waitForFunction(() => instantNotices(publicVisiblePortalBoards).some(notice => notice.text === 'Published notice body'));
+        await a.waitForFunction(() => document.getElementById('notice-manager-status')?.textContent.includes('confirmed in the running Public View'));
         assert.ok(await a.getByText('Published notice body', { exact: true }).count() >= 1, 'a saved notice must remain visible in the publisher list');
         assert.equal(data.publicPortalBoards.notices[0].text, 'Published notice body', 'notice text must be persisted');
+        assert.match(await a.locator('#notice-manager-status').innerText(),/confirmed in the running Public View/);
+        assert.deepEqual(await a.evaluate(()=>instantNotices({notices:{first:{heading:'Object-shaped Firebase notice',displayOrder:0}}}).map(item=>item.heading)),['Object-shaped Firebase notice'],'running notices must accept Firebase object-shaped collections');
         console.log('PASS: public notice publishes and remains visible in the management list');
         await a.fill('#exam-notice-heading', 'Title Only Notice');
         await a.fill('#exam-notice-text', '');
