@@ -273,6 +273,12 @@ async function saveOperationalData(names){
 }
 async function saveData(names, expected = {}) {
     if (!Array.isArray(names) || !names.length) throw new Error('Choose the records to save.');
+    const publishesPublicData=names.includes('publicPortalBoards')||names.includes('publishedSubjectDirectories');
+    const activePublicSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
+    if(publishesPublicData&&selectedAcademicSession!==activePublicSession){
+        const message=`Public information was not changed. You are working in session ${selectedAcademicSession}, but Public View is connected to active session ${activePublicSession}. Select or activate ${activePublicSession} before publishing.`;
+        showSyncError(message);alert(message);restoreSharedValues(names);return false;
+    }
     const impacts=publishedImpactsForChanges(names);
     if(impacts.length){const decision=await askPublishedUpdateDecision(impacts);if(decision==='cancel'){restoreSharedValues(names);return false;}if(decision==='stop'){impacts.forEach(item=>item.stop());impacts.forEach(item=>{if(!names.includes(item.collection))names.push(item.collection);});}}
     names=refreshPublishedDataForChanges(names);
@@ -307,6 +313,8 @@ async function saveData(names, expected = {}) {
         lastConfirmedSave = new Date().toLocaleTimeString();
         showSyncError('');
         store.status();
+        if(names.includes('publicPortalBoards')&&selectedAcademicSession===activePublicSession){publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',cloneData(publicPortalBoards));runSharedRenderer('Public portal',renderPublicPortalBoards);}
+        if(names.includes('publishedSubjectDirectories')&&selectedAcademicSession===activePublicSession){publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',cloneData(publishedSubjectDirectories));runSharedRenderer('Public subject directory',renderPublicSubjectDirectory);}
         if (names.includes('archivedExams')) editorBaselines.exam = null;
         return true;
     } catch (error) {
@@ -607,10 +615,10 @@ function bindPublicDirectory() {
         return;
     }
     const ref=db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession));
-    const listener=snapshot=>{publicPublishedSubjectDirectories=snapshot.val()||{};renderPublicSubjectDirectory();renderPublicPortalBoards();};
+    const listener=snapshot=>{publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',snapshot.val()||{});renderPublicSubjectDirectory();renderPublicPortalBoards();};
     publicDirectorySubscription={ref,listener}; ref.on('value',listener,()=>{publicPublishedSubjectDirectories={};renderPublicSubjectDirectory();renderPublicPortalBoards();});
     const boardsRef=db.ref(sessionCollectionPath('publicPortalBoards',activeSession));
-    const boardsListener=snapshot=>{publicVisiblePortalBoards=snapshot.val()||{};renderPublicPortalBoards();};
+    const boardsListener=snapshot=>{publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',snapshot.val()||{});renderPublicPortalBoards();};
     publicBoardsSubscription={ref:boardsRef,listener:boardsListener};boardsRef.on('value',boardsListener,()=>{publicVisiblePortalBoards={};renderPublicPortalBoards();});
 }
 function bindSessionMetadata() {

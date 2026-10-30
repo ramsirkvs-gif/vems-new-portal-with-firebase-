@@ -976,6 +976,10 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:'🖨 PDF / Print',exact:true}).count(),1,'My Role must provide its own PDF action');
         await a.getByRole('button',{name:'📢 Publish My Roles',exact:true}).click();
         await a.waitForFunction(()=>!!publicPortalBoards.myExamRoles?.rows?.length);
+        const publicViewer=await pageFor();
+        await publicViewer.waitForFunction(()=>document.querySelector('#public-my-exam-role-section')&&!document.querySelector('#public-my-exam-role-section').classList.contains('hidden'));
+        assert.match(await publicViewer.locator('#public-my-exam-role-section').innerText(),/My Role in the Exam[\s\S]*TODAY’S INSTANT ROLE[\s\S]*OTHER \/ FUNDAMENTAL RESPONSIBILITIES/,'a separately opened unauthenticated Public View must receive and display published My Roles');
+        await publicViewer.context().close();
         assert.deepEqual(await a.evaluate(()=>{const before=publicPortalBoards.myExamRoles.updatedAt||'';const names=refreshPublishedDataForChanges(['invigilationPlans']);const row=publicPortalBoards.myExamRoles.rows[0];return{sync:names.includes('publicPortalBoards'),updated:Boolean(publicPortalBoards.myExamRoles.updatedAt&&publicPortalBoards.myExamRoles.updatedAt!==before),structured:Array.isArray(row.todayRoles)&&Array.isArray(row.fundamentalRoles)};}),{sync:true,updated:true,structured:true},'published faculty roles must rebuild automatically whenever workflow duty assignments change');
         await a.getByRole('button',{name:'5. Baggage Distribution',exact:true}).click();
         assert.equal(await a.getByRole('button',{name:'📢 Publish Status',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own daywise publish control');
