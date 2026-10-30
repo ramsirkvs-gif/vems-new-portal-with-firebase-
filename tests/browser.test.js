@@ -1203,6 +1203,7 @@ async function main() {
         await a.evaluate(()=>toggleHolidayPublishing());
         await a.waitForFunction(()=>publicPortalBoards.holidays?.rows?.some(row=>row.accountOf==='Test Holiday'));
         assert.equal(await a.evaluate(()=>holidayPublishedRows().some(row=>row.accountOf==='Sunday')&&holidayPublishedRows().some(row=>row.accountOf==='Second Saturday')),true,'weekly holidays must be generated for publishing and all holiday uses');
+        assert.deepEqual(await a.evaluate(()=>publicUpcomingHolidayRows({rows:[{date:'2020-01-01',accountOf:'Past'},{date:'2026-10-30',accountOf:'Today'},{date:'2026-10-01',rangeTo:'2026-10-30',accountOf:'Ongoing Break'},{date:'2026-11-01',accountOf:'Future'}]},'2026-10-30').map(row=>row.accountOf)),['Today','Ongoing Break','Future'],'Public View must hide past holidays while retaining today, future dates, and ongoing breaks');
         assert.equal(await a.locator('#public-holiday-section').evaluate(element=>!element.classList.contains('hidden')),true,'published holidays must render on Public View');
         await a.evaluate(async()=>{const old=window.confirm;window.confirm=()=>true;try{await toggleHolidayCalendarLock();}finally{window.confirm=old;}});
         assert.equal(await a.locator('#holiday-date').isDisabled(),true,'locked holiday calendar must disable feeding');
