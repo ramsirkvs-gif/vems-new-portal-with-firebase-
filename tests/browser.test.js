@@ -71,7 +71,7 @@ async function main() {
                 const parts=String(pathName).split('/').filter(Boolean), rootName=parts.shift();
                 const staff=['principal','sec-ic','pri-ic'].includes(data.roles[uid]);
                 const get=(rootValue,pathParts)=>pathParts.reduce((node,key)=>node?.[key],rootValue);
-                if(rootName==='examDayAttendancePins'){if(!staff)return{error:'PERMISSION_DENIED'};}
+                if(rootName==='publicPortalBoards'&&staff){}else if(rootName==='examDayAttendancePins'){if(!staff)return{error:'PERMISSION_DENIED'};}
                 else if(rootName==='examDayAttendanceAccessChecks'||(rootName==='examDayAttendanceSubmissions'&&!staff)){
                     const [session,exam,date,room]=parts;
                     if(String(value?.pin||'')!==String(get(data.examDayAttendancePins,[session,exam,date,room])||''))return{error:'PERMISSION_DENIED'};
