@@ -764,6 +764,11 @@ async function main() {
         assert.deepEqual(await a.evaluate(()=>Object.keys(publicPortalBoards.seating?.plans||{})),['2026-11-01'],'Seating publication must expose only the selected examination day');
         assert.equal(await a.locator('#public-seating-date').inputValue(),'2026-11-01','the single published seating day must open automatically instead of remaining on a blank date');
         assert.equal(await a.locator('#public-seating-body tr').count()>0,true,'published Day 1 seating must immediately display its candidate rows');
+        const publicSeatingRoll=await a.evaluate(()=>{const plan=publicVisiblePortalBoards.seating.plans['2026-11-01'],assignments=publishedSeatingAssignments(plan),rooms=publishedSeatingRooms(plan);window.__publicSeatingArrays={assignments,rooms};plan.assignments=Object.fromEntries(assignments.map((row,index)=>[`candidate-${index+1}`,row]));plan.rooms=Object.fromEntries(rooms.map((room,index)=>[`room-${index+1}`,room]));renderPublicPortalBoards();return String(assignments[0].roll);});
+        assert.equal(await a.locator('#public-seating-class option').count()>1,true,'classwise Seating selection must remain available after Firebase returns object-shaped records');
+        await a.evaluate(roll=>{document.getElementById('public-seating-search').value=roll;renderPublicPortalBoards();},publicSeatingRoll);
+        assert.equal(await a.locator('#public-seating-body tr').count(),1,'Public Seating must search a candidate by roll number after Firebase reload');
+        await a.evaluate(()=>{const plan=publicVisiblePortalBoards.seating.plans['2026-11-01'];plan.assignments=window.__publicSeatingArrays.assignments;plan.rooms=window.__publicSeatingArrays.rooms;delete window.__publicSeatingArrays;document.getElementById('public-seating-search').value='';renderPublicPortalBoards();});
         assert.match(await a.locator('.workflow-document-actions').innerText(),/DAYWISE[\s\S]*01\/11\/2026/,'the Seating action bar must identify the selected day');
         await a.evaluate(()=>{window.confirm=()=>true;});
         await a.locator('.workflow-document-actions').getByRole('button',{name:'⏹ Stop Publishing',exact:true}).click();
