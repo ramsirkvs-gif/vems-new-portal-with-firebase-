@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VEMS - Vidyalaya Examination Management System (Firebase Master Edition)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Firebase App & Realtime Database CDN SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -273,7 +273,7 @@
                 <b>👁 Read-only master-data view</b>
                 <span class="ml-1">Subject mapping, students, faculty, holidays and examination records are available for reference. Only the Principal can change information in this view.</span>
             </div>
-            
+
             <!-- MODULE 1: SUBJECT MASTER SETUP -->
             <section id="sec-config" class="space-y-6">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
@@ -315,7 +315,7 @@
                             </div>
                             <p class="text-[11px] text-sky-800 mt-2">The new section will appear here immediately. You can then add and save its subjects below.</p>
                         </div>
-                        
+
                         <form onsubmit="saveSectionConfig(event)" class="space-y-4">
                             <p class="text-[11px] text-indigo-700 font-semibold">↕ Drag subjects into the required sequence. On mobile/tablet, use the ▲ and ▼ buttons. This saved sequence controls CSV columns and all subject displays.</p>
                             <div id="cfg-subjects-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"></div>
@@ -340,7 +340,7 @@
                             <button id="subject-publish-toggle" type="button" onclick="toggleSubjectDirectoryPublishing()" class="text-xs bg-emerald-700 text-white px-3 py-2 rounded">📢 Publish to Public View</button>
                         </div>
                     </div>
-                    
+
                     <div class="overflow-x-auto border rounded-lg shadow-sm">
                         <table class="w-full text-xs text-left text-slate-700">
                             <thead class="bg-indigo-900 text-white uppercase font-semibold">
@@ -436,7 +436,7 @@
                                 <div><label class="block text-xs font-bold text-slate-700 mb-1">Employment Category</label><select id="tch-employment-category" class="w-full rounded border bg-white p-2.5 text-xs font-semibold"><option value="UNSET">Not Set</option><option value="PERMANENT">Permanent</option><option value="CONTRACTUAL">Contractual</option><option value="INSTRUCTOR">Instructor</option><option value="OTHER">Other</option></select></div>
                                 <div><label class="block text-xs font-bold text-slate-700 mb-1">Seniority Number</label><input id="tch-seniority-order" type="number" min="1" step="1" placeholder="e.g. 1" class="w-full rounded border bg-white p-2.5 text-xs font-semibold"><p class="mt-1 text-[10px] text-slate-500">Lower number appears first within the same category and post.</p></div>
                             </div>
-                            
+
                             <div class="bg-white p-4 rounded-lg border space-y-3">
                                 <label class="block text-xs font-bold text-slate-800 uppercase">Teaching Allotments & Exam Duties (Class-Wise) — Optional</label>
                                 <div id="teaching-allotments-container" class="space-y-2"></div>
@@ -717,7 +717,7 @@
         const ROMAN_MAP = { '1': 'I', '2': 'II', '3': 'III', '4': 'IV', '5': 'V', '6': 'VI', '7': 'VII', '8': 'VIII', '9': 'IX', '10': 'X', '11': 'XI', '12': 'XII' };
         function formatClass(cls) { return ROMAN_MAP[String(cls)] || `Class ${cls}`; }
         function examinationRoomName(name) { const value=String(name||'').trim(); return /^classroom\s+/i.test(value)?value.replace(/^classroom\s+/i,'Examination Room '):/^exam(?:ination)? room\s+/i.test(value)?value.replace(/^exam(?:ination)? room\s+/i,'Examination Room '):value; }
-        
+
         const savedWorkspaceState=(()=>{try{return JSON.parse(localStorage.getItem('vems_workspace_state')||'{}')}catch{return{}}})();
         let currentActiveRole = 'public';
         let currentActiveTab = savedWorkspaceState.mainTab||localStorage.getItem('vems_active_tab') || 'config';
@@ -730,7 +730,7 @@
         ['11-A', '11-B', '12-A', '12-B'].forEach(key => { defaultSectionConfigs[key] = ['PHYSICS', 'CHEMISTRY', 'ENGLISH', 'MATHS', 'BIOLOGY', 'C.S', 'HINDI CORE', 'AI']; });
         ['11-C', '12-C'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'ECONOMICS', 'B.STD.', 'ACCOUNTANCY', 'MATHS', 'HINDI', 'IP', 'AI']; });
         ['11-D', '11-E', '12-D', '12-E'].forEach(key => { defaultSectionConfigs[key] = ['ENGLISH', 'HISTORY', 'GEOGRAPHY', 'POL SCI', 'ECONOMICS', 'IP', 'HINDI', 'AI']; });
-        
+
         let sectionConfigs = {};
         let publishedSubjectDirectories = {};
         let publicPublishedSubjectDirectories = {};
@@ -823,7 +823,7 @@
             { id: 'Weekly Test', label: 'Weekly Test' },
             { id: 'Slip Test', label: 'Slip Test' }
         ];
-        
+
         let examOptionsList = defaultExamOptionsList;
         let mainHeaderConfig = {
             name: 'Half Yearly Examination',
@@ -841,7 +841,7 @@
             if (!activeExamId) activeExamId = newRecordId();
             const existingIndex = archivedExams.findIndex(ex => ex.id === activeExamId);
             const existingRecord = existingIndex !== -1 ? archivedExams[existingIndex] : null;
-            
+
             const examRecord = {
                 ...(existingRecord || {}),
                 id: activeExamId,
@@ -870,7 +870,7 @@
             document.getElementById('area-pri-ic').classList.toggle('hidden', area !== 'pri-ic');
             document.getElementById('logout-btn').classList.toggle('hidden', !authorizedRole);
             const badge = document.getElementById('active-role-badge');
-            
+
             if (area === 'public') {
                 badge.textContent = "📢 Public Mode";
                 badge.className = "bg-emerald-600 text-white px-3 py-1 rounded-full font-medium";
@@ -888,7 +888,7 @@
                 badge.textContent = "🧸 Primary IC Active";
                 badge.className = "bg-amber-600 text-white px-3 py-1 rounded-full font-medium";
             }
-            
+
             document.getElementById('btn-icon-public').className = area === 'public' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
             document.getElementById('btn-icon-prin').className = area === 'principal' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
             document.getElementById('btn-icon-sec').className = area === 'sec-ic' ? 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-emerald-600 text-white shadow' : 'flex items-center gap-1 text-xs px-2.5 py-1 rounded font-medium bg-indigo-900 text-indigo-200 hover:bg-indigo-800';
@@ -977,14 +977,14 @@
             document.getElementById('sec-holidays').classList.toggle('hidden', tab !== 'holidays');
             document.getElementById('sec-exam-creator-prin').classList.toggle('hidden', tab !== 'exam-creator-prin');
             document.getElementById('sec-settings').classList.toggle('hidden', tab !== 'settings');
-            
+
             document.getElementById('tab-btn-config').className = tab === 'config' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-students').className = tab === 'students' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-teachers').className = tab === 'teachers' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-holidays').className = tab === 'holidays' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-exam-creator-prin').className = tab === 'exam-creator-prin' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
             document.getElementById('tab-btn-settings').className = tab === 'settings' ? 'py-2.5 px-4 text-indigo-600 border-b-2 border-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap' : 'py-2.5 px-4 hover:text-indigo-600 transition flex items-center gap-1.5 whitespace-nowrap';
-            
+
             if(tab === 'config') initCfgSections();
             if(tab === 'students') initSelectors();
             if(tab === 'teachers') { editorBaselines.assignments = null; initTeacherFormSelectors(); renderTeachers(); renderFacultyDisplayOrder(); renderExamCoreTeam(); renderClassTeacherCoordinationTable(); seedFinalFacultyRosterOnce().then(()=>seedClassTeacherAssignments2026Once()); }
@@ -1136,7 +1136,7 @@
         // =========================================================================
         // MODULE 1: SUBJECT SETUP & MASTER DIRECTORY
         // =========================================================================
-        function initCfgSections() { 
+        function initCfgSections() {
             const clsSel = document.getElementById('cfg-class');
             if(!clsSel) return;
             let currentCls = clsSel.value || localStorage.getItem('vems_cfg_class') || '11';
@@ -1144,7 +1144,7 @@
             getAllUniqueClasses().forEach(cls => {
                 clsSel.innerHTML += `<option value="${escapeHtml(cls)}" ${cls === currentCls ? 'selected' : ''}>Class ${escapeHtml(formatClass(cls))}</option>`;
             });
-            updateCfgSections(); 
+            updateCfgSections();
             document.getElementById('subject-mapping-empty-session')?.classList.toggle('hidden',Object.keys(sectionConfigs).length>0);
         }
 
@@ -1255,7 +1255,7 @@
                     if (subs.length === 0) return;
                     let classSecTitle = `Class ${formatClass(cls)} - Sec ${sec}`;
                     let subsText = subs.join(' ');
-                    
+
                     if (searchTerm && !classSecTitle.toLowerCase().includes(searchTerm) && !subsText.toLowerCase().includes(searchTerm)) {
                         return;
                     }
@@ -1427,7 +1427,7 @@
             filtered.forEach((s, idx) => {
                 const active=isStudentActive(s);
                 let rowHtml = `<td class="px-2 py-3 text-center font-bold text-slate-500">${escapeHtml(s.sno || (idx + 1))}</td><td class="px-2 py-3 font-bold">${escapeHtml(s.roll)}</td><td class="px-3 py-3 font-semibold">${escapeHtml(s.name)}${active?'':`<br><span class="text-[10px] text-red-700 font-bold">INACTIVE — ${escapeHtml(s.deactivationReason||'Reason not recorded')}</span>`}</td>`;
-                activeSubs.forEach((_, subIdx) => { 
+                activeSubs.forEach((_, subIdx) => {
                     let subVal = sanitizeText(s.subjects ? s.subjects[subIdx] : '-');
                     rowHtml += `<td class="px-2 py-3 text-slate-700">${escapeHtml(subVal)}</td>`;
                 });
@@ -1503,7 +1503,7 @@
         }
 
         function downloadCSVTemplate() {
-            const cls = document.getElementById('filter-class').value; 
+            const cls = document.getElementById('filter-class').value;
             const sec = document.getElementById('filter-section').value;
             const subs = sectionConfigs[`${cls}-${sec}`] || [];
             let csv = `SNo,RollNo,StudentName,` + subs.join(',') + `\n1,101,Sample Student,` + subs.map(() => '-').join(',') + `\n`;
@@ -1512,7 +1512,7 @@
         }
 
         function downloadClassCSV() {
-            const cls = document.getElementById('filter-class').value; 
+            const cls = document.getElementById('filter-class').value;
             const sec = document.getElementById('filter-section').value;
             const subs = sectionConfigs[`${cls}-${sec}`] || [];
             const filtered = students.filter(s => String(s.class) === String(cls) && String(s.section) === String(sec));
@@ -1559,11 +1559,11 @@
 
         function uploadCSV(event) {
             const file = event.target.files[0]; if (!file) return;
-            const cls = document.getElementById('filter-class').value; 
+            const cls = document.getElementById('filter-class').value;
             const sec = document.getElementById('filter-section').value;
             const expectedSubs = sectionConfigs[`${cls}-${sec}`] || [];
             const reader = new FileReader();
-            
+
             reader.onload = async function(e) {
                 const text = decodeCsvBuffer(e.target.result).replace(/^\uFEFF/,'').replace(/\r/g, '');
                 const lines = text.split('\n');
@@ -1587,7 +1587,7 @@
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if(!line) continue;
-                    
+
                     const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                     if (cols.length >= 3) {
                         const expectedSno = parsedRows.length + 1;
@@ -1637,7 +1637,7 @@
                         });
                     }
                 }
-                
+
                 if (parsedRows.length === 0) {
                     alert("⚠️ No valid student rows detected in the CSV file.");
                     event.target.value = '';
@@ -1702,18 +1702,18 @@
             if(!mathsChoice.valid){alert(`❌ Mathematics choice error for Roll No ${enteredRoll}.\n\n${mathsChoice.reason}`);return;}
             const compulsory=validateCompulsorySubjects(cls,sectionConfigs[`${cls}-${sec}`]||[],studentSubjects);
             if(!compulsory.valid){alert(`❌ Compulsory subject missing for Roll No ${enteredRoll}.\n\nRequired subject: ${compulsory.missing.join(', ')}\n\nEvery student must take the configured compulsory subject(s).`);return;}
-            
+
             const studentRef = id ? db.ref(`students/${cls}/${sec}/${id}`) : db.ref(`students/${cls}/${sec}`).push();
             const stuId = id || studentRef.key;
-            
+
             const previousStudent=id ? studentRecords?.[cls]?.[sec]?.[id] : null;
-            const stuData = { 
-                id: stuId, 
-                sno: parseInt(document.getElementById('stu-sno').value), 
+            const stuData = {
+                id: stuId,
+                sno: parseInt(document.getElementById('stu-sno').value),
                 roll: enteredRoll,
-                name: document.getElementById('stu-name').value, 
-                class: cls, 
-                section: sec, 
+                name: document.getElementById('stu-name').value,
+                class: cls,
+                section: sec,
                 subjects: studentSubjects,
                 active: previousStudent?.active !== false,
                 ...(previousStudent?.active===false ? {deactivationReason:previousStudent.deactivationReason||'Other',deactivationNote:previousStudent.deactivationNote||'',deactivatedOn:previousStudent.deactivatedOn||''} : {})
@@ -1962,7 +1962,7 @@
             document.getElementById('tch-desig-input').value = t.desig;
             document.getElementById('tch-employment-category').value=t.employmentCategory||'UNSET';
             document.getElementById('tch-seniority-order').value=t.seniorityOrder||'';
-            
+
             const container = document.getElementById('teaching-allotments-container');
             container.innerHTML = '';
             if(t.allotments && t.allotments.length > 0) {
@@ -1984,11 +1984,11 @@
         }
 
         function renderTeachers() {
-            const tbody = document.getElementById('teacher-table-body'); 
+            const tbody = document.getElementById('teacher-table-body');
             if(!tbody) return;
             refreshFacultyDesignationSuggestions();
             tbody.innerHTML = '';
-            
+
             const searchTerm = (document.getElementById('faculty-search-input')?.value || '').trim().toLowerCase();
             const filteredTeachers = sortFacultyForDisplay().filter(t => {
                 if(!searchTerm) return true;
@@ -2127,7 +2127,7 @@
             const tbody = document.getElementById('ct-coordination-tbody');
             if(!tbody) return;
             tbody.innerHTML = '';
-            
+
             let classesList = getAllUniqueClasses();
             classesList.forEach(cls => {
                 let sections = getAllSectionsForClass(cls);
@@ -2469,7 +2469,7 @@
             let availableSubs = getUniqueSubjectsForClass(defaultCls);
             let defaultSub = availableSubs.length > 0 ? availableSubs[0] : 'ENGLISH';
             let slotId = Date.now() + Math.floor(Math.random() * 1000);
-            
+
             const template=examMasterTimingSlot()||{};
             dayObj.paperSlots.push({
                 slotId: slotId,
@@ -3090,7 +3090,7 @@
             const currentExam = archivedExams.find(ex => ex.id === selectedPreExamVaultId) || { title: 'Examination' };
             const printWin = window.open('', '_blank', 'width=900,height=700');
             const subjectsList = getExamSubjectsListForVault(selectedPreExamVaultId);
-            
+
             let tableRowsHtml = subjectsList.map((q, idx) => {
                 let count = students.filter(student => isStudentActive(student) && String(student.class) === String(q.cls)
                     && (!q.sections?.length || q.sections.includes(String(student.section))) && studentTakesSubject(student,q.subject)).length;
@@ -4084,11 +4084,11 @@
             {title:'Seating Arrangement',id:'public-seating-section',live:b=>publicDisplayItemIsLive('seating',b.seating)},
             {title:'Student Admit Cards',id:'public-admit-card-window',live:b=>publicDisplayItemIsLive('admitCards',b.admitCards)},
             {title:'Roll Number Directory',id:'public-roll-directory-section',live:b=>publicDisplayItemIsLive('rollDirectory',b.rollDirectory)},
-            {title:'Real-Time Exam-Day Display',id:'public-exam-day-flow',live:b=>publicDisplayItemIsLive('examDayFlow',b.examDayFlow)},
             {title:'Invigilation and Relieving Duty',id:'public-invigilation-section',live:b=>publicDisplayItemIsLive('liveDuty',b.liveDuty)},
             {title:'PIN-Sensitive Absentee Attendance',id:'public-sensitive-attendance-section',live:b=>Object.values(examDayFlowDays(b.examDayFlow)).some(day=>day?.attendanceEnabled===true)},
             {title:'Final Roomwise Attendance Report',report:'roomwise',live:b=>!!b.examDayAttendance},
             {title:'Final Classwise Attendance Report',report:'classwise',live:b=>!!b.examDayAttendanceClasswise},
+            {title:'Real-Time Exam-Day Display',id:'public-exam-day-flow',live:b=>publicDisplayItemIsLive('examDayFlow',b.examDayFlow)},
             {title:'Room Inventory and Baggage Status',id:'public-room-inventory-section',live:b=>publicDisplayItemIsLive('roomInventoryStatus',b.roomInventoryStatus)},
             {title:'Bundle Collection Duty',id:'public-after-exam-section',live:b=>Object.values(b.afterExam?.days||{}).some(day=>!!day?.pages?.['1'])},
             {title:'QP Receiving Status',id:'public-qp-receiving-section',live:b=>publicDisplayItemIsLive('qpReceiving',b.qpReceiving)},
@@ -4102,13 +4102,13 @@
         ];
         function removeOldPublicSerials(node){node?.querySelectorAll('h3').forEach(heading=>{const walker=document.createTreeWalker(heading,NodeFilter.SHOW_TEXT);while(walker.nextNode()){const text=walker.currentNode;if(/\b\d+\.\s*/.test(text.nodeValue)){text.nodeValue=text.nodeValue.replace(/\b\d+\.\s*/,'');break;}}});}
         function applyFixedPublicDisplay(boards){const host=document.querySelector('#area-public-display > div');if(!host)return;let fixed=document.getElementById('public-fixed-display');if(!fixed){fixed=document.createElement('div');fixed.id='public-fixed-display';fixed.className='space-y-4';host.prepend(fixed);}document.getElementById('public-operational-board')?.classList.add('hidden');document.getElementById('public-final-attendance-section')?.classList.add('hidden');document.getElementById('public-general-circular-section')?.classList.add('hidden');fixedPublicDisplaySlots.forEach((config,index)=>{let slot=document.getElementById(`public-fixed-display-slot-${index+1}`);if(!slot){slot=document.createElement('section');slot.id=`public-fixed-display-slot-${index+1}`;slot.className='rounded-xl border-2 border-slate-200 bg-slate-50 p-3 shadow-sm';slot.innerHTML=`<h2 data-public-fixed-heading class="mb-3 text-sm font-extrabold text-indigo-950">${index+1}. ${escapeHtml(config.title)}</h2><div data-public-fixed-content></div><div data-public-fixed-empty class="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-center text-xs font-bold text-slate-500">Not published yet</div>`;fixed.appendChild(slot);}const heading=slot.querySelector('[data-public-fixed-heading]');if(heading)heading.textContent=`${index+1}. ${config.title}`;const content=slot.querySelector('[data-public-fixed-content]'),empty=slot.querySelector('[data-public-fixed-empty]'),live=!!config.live(boards);if(config.report){content.innerHTML=live?`<button onclick="viewPublicExamDayAttendanceReport(${jsArg(config.report)})" class="rounded bg-emerald-700 px-4 py-2 text-xs font-bold text-white">👁 View ${escapeHtml(config.title)}</button>`:'';}else{const node=document.getElementById(config.id);if(node&&node.parentElement!==content)content.appendChild(node);if(node){removeOldPublicSerials(node);node.classList.toggle('hidden',!live);}}content.classList.toggle('hidden',!live);empty.classList.toggle('hidden',live);});}
-        function renderPublicPortalBoards(){document.querySelectorAll('.pds-position-badge').forEach(node=>node.remove());const boards=visiblePortalBoards();queueMicrotask(()=>applyFixedPublicDisplay(visiblePortalBoards()));renderPublicOperationalBoard(boards);renderPublicExamDayFlow(boards);const notices=instantNotices(boards),noticeBoard=document.getElementById('public-exam-notice-board');if(noticeBoard){const totalLength=notices.reduce((sum,item)=>sum+String(item.heading||'').length+String(item.text||'').length,0),duration=Math.max(14,Math.min(60,Math.ceil(totalLength/7)));document.getElementById('public-urgent-notice').innerHTML=notices.length?`<div class="notice-vertical-window" aria-label="Published examination notices, newest first; hover to pause"><div class="notice-vertical-content space-y-3" style="--notice-duration:${duration}s">${notices.map((notice,index)=>`<article class="${index?'border-t border-red-200 pt-3':''}"><div class="flex items-center gap-2">${index===0?'<span class="rounded-full bg-red-700 px-2 py-0.5 text-[9px] font-bold text-white">LATEST</span>':''}<div class="font-extrabold text-red-950 ${notice.priority==='Urgent'?'animate-pulse':''}">${escapeHtml(notice.heading)}</div></div>${notice.text?`<p class="mt-1 text-red-900">${escapeHtml(notice.text)}</p>`:''}<p class="mt-2 text-[11px] text-red-700">${escapeHtml(notice.priority)} · Published ${escapeHtml(new Date(notice.publishedAt).toLocaleString('en-IN'))}</p></article>`).join('')}</div></div>`:'No instant examination notice has been published.';}
+        function renderPublicPortalBoards(){document.querySelectorAll('.pds-position-badge').forEach(node=>node.remove());const boards=visiblePortalBoards();queueMicrotask(()=>applyFixedPublicDisplay(visiblePortalBoards()));const notices=instantNotices(boards),noticeBoard=document.getElementById('public-exam-notice-board');if(noticeBoard){const totalLength=notices.reduce((sum,item)=>sum+String(item.heading||'').length+String(item.text||'').length,0),duration=Math.max(14,Math.min(60,Math.ceil(totalLength/7)));document.getElementById('public-urgent-notice').innerHTML=notices.length?`<div class="notice-vertical-window" aria-label="Published examination notices, newest first; hover to pause"><div class="notice-vertical-content space-y-3" style="--notice-duration:${duration}s">${notices.map((notice,index)=>`<article class="${index?'border-t border-red-200 pt-3':''}"><div class="flex items-center gap-2">${index===0?'<span class="rounded-full bg-red-700 px-2 py-0.5 text-[9px] font-bold text-white">LATEST</span>':''}<div class="font-extrabold text-red-950 ${notice.priority==='Urgent'?'animate-pulse':''}">${escapeHtml(notice.heading)}</div></div>${notice.text?`<p class="mt-1 text-red-900">${escapeHtml(notice.text)}</p>`:''}<p class="mt-2 text-[11px] text-red-700">${escapeHtml(notice.priority)} · Published ${escapeHtml(new Date(notice.publishedAt).toLocaleString('en-IN'))}</p></article>`).join('')}</div></div>`:'No instant examination notice has been published.';}
             const publicCore=boards.coreTeam,coreSection=document.getElementById('public-core-team-section'),coreBelt=document.getElementById('public-core-team-belt');if(coreSection)coreSection.classList.toggle('hidden',!publicCore?.rows?.length);if(coreBelt)coreBelt.innerHTML=(publicCore?.rows||[]).sort((a,b)=>Number(a.order)-Number(b.order)).map((item,index)=>`<article class="min-w-[220px] rounded-lg border border-emerald-200 bg-white p-3 shadow-sm"><div class="flex items-start gap-2"><span class="rounded bg-emerald-100 px-2 py-1 text-[10px] font-extrabold text-emerald-800">${index+1}</span><div><b class="text-xs text-slate-900">${escapeHtml(item.name)}</b><div class="mt-0.5 text-[10px] text-slate-500">${escapeHtml(item.designation||'')}</div><span class="mt-2 inline-block rounded bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-900">${escapeHtml(item.role)}</span></div></div></article>`).join('');
             const publicCt=boards.classTeacherRoster,ctSection=document.getElementById('public-ct-section'),ctBelt=document.getElementById('public-ct-belt');if(ctSection)ctSection.classList.toggle('hidden',!publicCt?.rows?.length);if(ctBelt)ctBelt.innerHTML=(publicCt?.rows||[]).map(item=>`<article class="min-w-[240px] rounded-lg border border-sky-200 bg-white p-3 shadow-sm"><b class="text-xs text-sky-950">Class ${escapeHtml(formatClass(item.classSection.split('-')[0]))}-${escapeHtml(item.classSection.split('-')[1])}</b><div class="mt-2 text-[11px]"><span class="font-bold">CT:</span> ${escapeHtml(item.ct||'—')}</div><div class="mt-1 text-[11px]"><span class="font-bold">Co-CT:</span> ${escapeHtml(item.coCt||'—')}</div></article>`).join('');updateClassTeacherPublishButton();
-            renderPublicInvigilationDuty(boards.liveDuty);renderPublicMyExamRole(boards);
+
             const seating=boards.seating,dates=Object.keys(seating?.plans||{}).sort(),dateSelect=document.getElementById('public-seating-date');if(dateSelect){const selected=dateSelect.value;dateSelect.innerHTML='<option value="">Select exam date</option>'+dates.map(d=>`<option value="${d}">${escapeHtml(formatDateWithDay(d))}</option>`).join('');dateSelect.value=dates.includes(selected)?selected:(dates[0]||'');}const date=dateSelect?.value||'',publishedPlan=seating?.plans?.[date],dateAssignments=publishedSeatingAssignments(publishedPlan),dateRooms=publishedSeatingRooms(publishedPlan),classFilter=document.getElementById('public-seating-class'),subjectFilter=document.getElementById('public-seating-subject');if(classFilter){const selected=classFilter.value,classes=[...new Set(dateAssignments.map(x=>`${x.cls}|${x.section}`))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));classFilter.classList.toggle('hidden',!date);classFilter.innerHTML='<option value="">All scheduled classes</option>'+classes.map(key=>{const [cls,sec]=key.split('|');return `<option value="${escapeHtml(key)}">Class ${escapeHtml(formatClass(cls))}-${escapeHtml(sec)}</option>`;}).join('');classFilter.value=classes.includes(selected)?selected:'';}if(subjectFilter){const selected=subjectFilter.value,subjects=[...new Set(dateAssignments.map(x=>x.subject).filter(Boolean))].sort();subjectFilter.classList.toggle('hidden',!date);subjectFilter.innerHTML='<option value="">All scheduled subjects</option>'+subjects.map(x=>`<option value="${escapeHtml(x)}">${escapeHtml(x)}</option>`).join('');subjectFilter.value=subjects.includes(selected)?selected:'';}const chosenClass=classFilter?.value||'',chosenSubject=subjectFilter?.value||'',term=(document.getElementById('public-seating-search')?.value||'').toLowerCase(),assignments=dateAssignments.filter(x=>(!chosenClass||`${x.cls}|${x.section}`===chosenClass)&&(!chosenSubject||x.subject===chosenSubject)&&`${x.name} ${x.roll}`.toLowerCase().includes(term)),seatBody=document.getElementById('public-seating-body');if(seatBody)seatBody.innerHTML=assignments.length?assignments.map(x=>`<tr class="border-b"><td class="p-2 font-bold">${escapeHtml(x.name)}</td><td class="p-2">${escapeHtml(formatClass(x.cls))}-${escapeHtml(x.section)}</td><td class="p-2">${escapeHtml(x.subject||'—')}</td><td class="p-2">${escapeHtml(x.roll)}</td><td class="p-2">${escapeHtml(examinationRoomName(x.roomName))}</td><td class="p-2 font-bold">${escapeHtml(studentSeatingLocation(dateRooms.find(room=>String(room.id)===String(x.roomId)),x).column)}</td><td class="p-2 font-bold">${escapeHtml(studentSeatingLocation(dateRooms.find(room=>String(room.id)===String(x.roomId)),x).desk)}</td></tr>`).join(''):`<tr><td colspan="6" class="p-4 text-center text-slate-400">${date?'No matching published seating record.':'Select an examination date.'}</td></tr>`;renderPublicAttendancePanel(date);
             const admit=boards.admitCards,admitWindow=document.getElementById('public-admit-card-window'),admitResults=document.getElementById('public-admit-results'),admitClass=document.getElementById('public-admit-class'),admitRows=publishedAdmitCardRows(admit);if(admitWindow)admitWindow.classList.toggle('hidden',!admitRows.length);if(admitRows.length&&admitClass){const prior=admitClass.value,keys=[...new Set(admitRows.map(item=>`${item.class}-${item.section}`))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));admitClass.innerHTML='<option value="">All Classes / Sections</option>'+keys.map(key=>{const[cls,sec]=key.split('-');return`<option value="${escapeHtml(key)}">Class ${escapeHtml(formatClass(cls))}-${escapeHtml(sec)}</option>`;}).join('');admitClass.value=keys.includes(prior)?prior:'';}if(admitResults){const chosen=admitClass?.value||'',search=(document.getElementById('public-admit-search')?.value||'').trim().toLowerCase(),filtered=admitRows.filter(item=>(!chosen||`${item.class}-${item.section}`===chosen)&&(!search||`${item.name} ${item.roll}`.toLowerCase().includes(search)));admitResults.innerHTML=filtered.length?`<table class="w-full min-w-[520px] text-[10px]"><thead class="sticky top-0 bg-cyan-950 text-white"><tr><th class="p-2 text-left">Roll No.</th><th class="p-2 text-left">Student</th><th class="p-2 text-left">Class / Section</th><th class="p-2 text-center">Papers</th><th class="p-2 text-right">Admit Card PDF</th></tr></thead><tbody class="divide-y">${filtered.map(item=>`<tr><td class="p-2 font-bold">${escapeHtml(item.roll)}</td><td class="p-2 font-bold">${escapeHtml(item.name)}</td><td class="p-2">Class ${escapeHtml(formatClass(item.class))}-${escapeHtml(item.section)}</td><td class="p-2 text-center">${item.admitSchedule?.length||0}</td><td class="p-2 text-right"><button onclick="previewPublishedAdmitCard(${jsArg(String(item.id))})" class="rounded bg-indigo-700 px-3 py-1.5 font-bold text-white">👁 PDF / Print</button></td></tr>`).join('')}</tbody></table>`:'<div class="p-4 text-center text-xs text-slate-400">No matching published Admit Card.</div>';}
-            const roll=boards.rollDirectory,rollRows=rollDirectoryRows(roll),classSelect=document.getElementById('public-roll-class');if(classSelect){const selected=classSelect.value,classKeys=Object.keys(rollDirectorySections(roll)).filter(key=>rollDirectoryRows({sections:{[key]:rollDirectorySections(roll)[key]}}).length).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));classSelect.innerHTML='<option value="">All Published Classes</option>'+classKeys.map(key=>{const [cls,sec]=String(key).split('-');return `<option value="${escapeHtml(key)}">Class ${escapeHtml(formatClass(cls))}-${escapeHtml(sec)}</option>`;}).join('');classSelect.value=classKeys.includes(selected)?selected:'';}const classSection=classSelect?.value||'',rollTerm=(document.getElementById('public-roll-search')?.value||'').toLowerCase(),filtered=rollRows.filter(x=>(!classSection||`${x.cls}-${x.section}`===classSection)&&`${x.name} ${x.roll}`.toLowerCase().includes(rollTerm)).sort((a,b)=>`${a.cls}-${a.section}`.localeCompare(`${b.cls}-${b.section}`,undefined,{numeric:true})||String(a.roll).localeCompare(String(b.roll),undefined,{numeric:true})),rollBody=document.getElementById('public-roll-body');if(rollBody)rollBody.innerHTML=filtered.length?filtered.map(x=>`<tr class="border-b"><td class="p-2">Class ${escapeHtml(formatClass(x.cls))}-${escapeHtml(x.section)}</td><td class="p-2 font-bold">${escapeHtml(x.roll)}</td><td class="p-2 font-bold">${escapeHtml(x.name)}</td></tr>`).join(''):'<tr><td colspan="3" class="p-4 text-center text-slate-400">No published roll-directory record found.</td></tr>';updateRollPublishButton();updateFacultyRosterPublishButton();renderPublicQpSetterCirculars();renderPublicHolidayList();renderPublicFacultyRoster();}
+            const roll=boards.rollDirectory,rollRows=rollDirectoryRows(roll),classSelect=document.getElementById('public-roll-class');if(classSelect){const selected=classSelect.value,classKeys=Object.keys(rollDirectorySections(roll)).filter(key=>rollDirectoryRows({sections:{[key]:rollDirectorySections(roll)[key]}}).length).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));classSelect.innerHTML='<option value="">All Published Classes</option>'+classKeys.map(key=>{const [cls,sec]=String(key).split('-');return `<option value="${escapeHtml(key)}">Class ${escapeHtml(formatClass(cls))}-${escapeHtml(sec)}</option>`;}).join('');classSelect.value=classKeys.includes(selected)?selected:'';}const classSection=classSelect?.value||'',rollTerm=(document.getElementById('public-roll-search')?.value||'').toLowerCase(),filtered=rollRows.filter(x=>(!classSection||`${x.cls}-${x.section}`===classSection)&&`${x.name} ${x.roll}`.toLowerCase().includes(rollTerm)).sort((a,b)=>`${a.cls}-${a.section}`.localeCompare(`${b.cls}-${b.section}`,undefined,{numeric:true})||String(a.roll).localeCompare(String(b.roll),undefined,{numeric:true})),rollBody=document.getElementById('public-roll-body');if(rollBody)rollBody.innerHTML=filtered.length?filtered.map(x=>`<tr class="border-b"><td class="p-2">Class ${escapeHtml(formatClass(x.cls))}-${escapeHtml(x.section)}</td><td class="p-2 font-bold">${escapeHtml(x.roll)}</td><td class="p-2 font-bold">${escapeHtml(x.name)}</td></tr>`).join(''):'<tr><td colspan="3" class="p-4 text-center text-slate-400">No published roll-directory record found.</td></tr>';updateRollPublishButton();updateFacultyRosterPublishButton();renderPublicQpSetterCirculars();renderPublicHolidayList();renderPublicFacultyRoster();try{renderPublicOperationalBoard(boards);}catch(error){console.error('Public operational display could not render:',error);}try{renderPublicInvigilationDuty(boards.liveDuty);}catch(error){console.error('Public invigilation display could not render:',error);}try{renderPublicMyExamRole(boards);}catch(error){console.error('Public role display could not render:',error);}try{renderPublicExamDayFlow(boards);}catch(error){console.error('Public real-time display could not render:',error);}}
 
         function selectedPublishedFacultyRows(){const rows=visiblePortalBoards().facultyRoster?.rows||[],chosen=document.getElementById('public-faculty-select')?.value||'',term=(document.getElementById('public-faculty-search')?.value||'').trim().toLowerCase();return rows.filter(row=>(!chosen||row.id===chosen)&&(!term||`${row.name} ${row.desig} ${(row.allotments||[]).map(item=>`${item.cls} ${item.sec} ${item.subject} ${item.qpSetter} ${item.evaluator}`).join(' ')}`.toLowerCase().includes(term)));}
         function publishedFacultyRosterPdfBlob(){
@@ -4243,7 +4243,7 @@
         async function submitPublicExamDayAttendance(){const flow=examDayFlowForDate(visiblePortalBoards().examDayFlow,publicExamDayDate),roomId=document.getElementById('exam-day-public-room')?.value,key=`${flow?.date}|${roomId}`,pin=publicExamDayPinAccess[key];if(!flow||!pin||!publicExamDayAttendanceAccess[key])return;const submittedAt=new Date().toISOString(),submission={submitted:true,submittedAt,submittedBy:flow.mockPractice?'Mock Room Invigilator':'Room Invigilator'},absentIds=cloneData(flow.attendance?.[roomId]||[]);try{if(flow.mockPractice){const exam=archivedExams.find(item=>String(item.id)===String(flow.examId));if(!exam?.mockPractice?.active)throw new Error('Mock Practice is no longer active');const day=duringExamDayRecord(exam,flow.date);day.attendance[String(roomId)]=absentIds;day.attendanceSubmitted[String(roomId)]=submission;const wrapper=publicPortalBoards.examDayFlow;if(wrapper?.days?.[flow.date])wrapper.days[flow.date]={...wrapper.days[flow.date],attendance:cloneData(flow.attendance||{}),attendanceSubmitted:{...(wrapper.days[flow.date].attendanceSubmitted||{}),[roomId]:submission}};if(!await saveExamDayWorkflow(exam,flow.date,['archivedExams','publicPortalBoards']))throw new Error('Mock save failed');}else await db.ref(`examDayAttendanceSubmissions/${selectedAcademicSession}/${flow.examId}/${flow.date}/${roomId}`).set({pin,absentIds,submittedAt,submittedBy:'Room Invigilator'});}catch(error){alert(flow.mockPractice?'Mock attendance was not saved. Remain signed in as Exam IC and try again.':'Attendance was not submitted. Check the room PIN and internet connection, then try again.');return;}flow.attendanceSubmitted=flow.attendanceSubmitted||{};flow.attendanceSubmitted[roomId]=submission;try{renderPublicExamDayFlow();}catch(error){}alert(flow.mockPractice?'✓ Mock room attendance submitted successfully. You may edit the red seats and submit an updated attendance.':'✓ Attendance submitted successfully to the Examination Cell. You may edit the red seats and submit an updated attendance.');}
 
         function sensitiveAttendanceFlightHtml(roomItem,absent,roomId){const room=roomItem.room,assigned=roomItem.assignments||[],cols=Math.max(1,Number(room.desksPerRow)||1),rows=Math.max(1,Number(room.rows)||1),regular=rows*cols,total=Number(room.deskCount)||regular,seatHtml=(student,position,seatIndex,desk)=>student?`<button type="button" aria-label="Desk ${desk}-${position} ${escapeHtml(student.name)}" onclick="togglePublicExamDayAbsent(${jsArg(roomId)},${jsArg(String(student.studentId))})" class="w-full rounded px-1 py-1 text-left text-[9px] ${absent.has(String(student.studentId))?'bg-red-600 text-white ring-2 ring-red-300':'bg-emerald-50 text-emerald-950'}"><span class="text-[7px] font-bold ${absent.has(String(student.studentId))?'text-red-100':'text-slate-500'}">STUDENT ${seatIndex+1}</span><div class="text-sm font-black leading-tight">RN ${escapeHtml(student.roll)}</div><div class="mt-0.5 text-[8px] font-semibold leading-tight">${escapeHtml(student.name)}</div><div class="mt-0.5 text-[7px]">Class ${escapeHtml(formatClass(student.cls))}-${escapeHtml(student.section)}</div><div class="mt-0.5 text-[7px] font-bold">Subject: ${escapeHtml(student.subject||'—')}</div><b class="mt-1 block text-[8px]">${absent.has(String(student.studentId))?'ABSENT':'Present'}</b></button>`:`<div class="rounded bg-slate-50 px-1 py-1 text-[9px] text-slate-400"><span class="text-[7px] font-bold">STUDENT ${seatIndex+1}</span><br>Vacant</div>`;const regularRows=Array.from({length:rows},(_,rowIndex)=>`<div class="sensitive-flight-row grid gap-2" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${Array.from({length:cols},(_,colIndex)=>{const desk=rowIndex*cols+colIndex+1;if(desk>total)return'<div></div>';const seats=assigned.filter(item=>Number(item.desk)===desk);return`<div class="min-h-24 rounded-lg border-2 border-indigo-200 bg-white p-2 shadow-sm" style="${colIndex===Math.ceil(cols/2)?'margin-left:18px;':''}"><div class="mb-1 border-b text-[9px] font-black text-indigo-900">COLUMN ${cols-colIndex} FROM GATE · DESK ${rowIndex+1} · FACE BOARD ↑</div><div class="grid grid-cols-2 gap-1">${['A','B'].map((position,seatIndex)=>seatHtml(seats.find(item=>item.seat===position),position,seatIndex,desk)).join('')}</div></div>`;}).join('')}</div>`).join(''),extraCount=Math.max(0,total-regular),extras=extraCount?`<div class="mt-4 rounded-xl border-2 border-amber-300 bg-amber-50 p-3"><b class="mb-2 block text-xs text-amber-900">➕ Extra Dual Desks · ${extraCount} desk${extraCount===1?'':'s'} · ${extraCount*2} seats</b><div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">${Array.from({length:extraCount},(_,index)=>{const desk=regular+index+1,seats=assigned.filter(item=>Number(item.desk)===desk);return`<div class="rounded-lg border-2 border-amber-300 bg-white p-2"><div class="mb-1 text-[9px] font-black text-amber-900">EXTRA DUAL DESK ${index+1} · DESK ${desk}</div><div class="grid grid-cols-2 gap-1">${['A','B'].map((position,seatIndex)=>seatHtml(seats.find(item=>item.seat===position),position,seatIndex,desk)).join('')}</div></div>`;}).join('')}</div></div>`:'';return`<section class="mt-4 rounded-2xl border-2 border-sky-200 bg-sky-50/40 p-4 shadow-sm"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><h4 class="font-black text-indigo-950">✈️ ${escapeHtml(examinationRoomName(room.name))}</h4><span class="rounded bg-white px-2 py-1 text-[10px] font-bold">${total} desks · ${assigned.length} students</span></div>${roomSeatingSummaryHtml(assigned)}<div class="flex items-end justify-between bg-yellow-50 px-3 py-2 text-[9px] font-bold"><div class="flex flex-col items-center gap-1"><div class="grid h-9 w-12 grid-cols-2 gap-0.5 rounded border-2 border-sky-700 bg-sky-100 p-0.5"><span class="bg-sky-300"></span><span class="bg-sky-300"></span><span class="bg-sky-300"></span><span class="bg-sky-300"></span></div><span>WINDOW SIDE</span></div><div class="flex flex-col items-center gap-1"><div class="relative h-11 w-8 rounded-t border-2 border-amber-900 bg-amber-200"><span class="absolute right-1 top-5 h-1.5 w-1.5 rounded-full bg-amber-900"></span></div><span>GATE / DOOR SIDE</span></div></div><div class="mx-auto mb-4 max-w-sm rounded-t-full bg-indigo-900 py-2 text-center text-[10px] font-extrabold text-white">FRONT · BLACKBOARD · INVIGILATOR — BOTH STUDENTS FACE THIS SIDE</div><div class="mb-1 text-center text-[9px] font-bold text-sky-800">← LEFT BLOCK &nbsp;&nbsp;&nbsp; CENTRE WALKING AISLE &nbsp;&nbsp;&nbsp; RIGHT BLOCK →</div><div class="sensitive-flight-scroll"><div class="space-y-2">${regularRows}</div></div>${extras}<div class="mt-4 border-t-2 border-slate-300 py-1 text-center text-[9px] font-bold text-slate-500">BACK WALL · KEEP WALKING SPACE CLEAR</div></section>`;}
-        function renderPublicExamDayFlow(boards=visiblePortalBoards()){const panel=document.getElementById('public-exam-day-flow'),attendancePanel=document.getElementById('public-attendance-panel'),flow=examDayFlowForDate(boards.examDayFlow,publicExamDayDate);if(flow)publicExamDayDate=flow.date;if(!panel)return;panel.classList.toggle('hidden',!flow);if(!flow){if(attendancePanel){attendancePanel.dataset.sensitive='';attendancePanel.innerHTML='';attendancePanel.classList.add('hidden');}return;}const now=new Date(),minutes=now.getHours()*60+now.getMinutes(),flowRooms=publishedSeatingRows(flow.rooms),timed=publishedSeatingRows(flow.events).map(item=>({...item,minute:item.time?Number(item.time.split(':')[0])*60+Number(item.time.split(':')[1]):-1})),active=[...timed].filter(item=>item.minute<=minutes&&item.minute>=0).sort((a,b)=>b.minute-a.minute)[0],roomId=document.getElementById('exam-day-public-room')?.value||String(flowRooms[0]?.room?.id||''),roomItemSource=flowRooms.find(item=>String(item.room?.id)===String(roomId))||flowRooms[0],roomItem=roomItemSource?{...roomItemSource,assignments:publishedSeatingRows(roomItemSource.assignments)}:null,accessKey=`${flow.date}|${roomId}`,unlocked=!!publicExamDayAttendanceAccess[accessKey],pinChecking=!!publicExamDayPinChecking[accessKey],pinError=publicExamDayPinError[accessKey]||'',resetAt=Date.parse(boards.examDayAttendanceResets?.[String(flow.examId)]?.[flow.date]||'')||0,rawSubmission=flow.attendanceSubmitted?.[roomId],submission=(Date.parse(rawSubmission?.submittedAt||'')||0)>Math.max(resetAt,Date.parse(flow.publishedAt||'')||0)&&(flow.mockPractice||rawSubmission?.manual===true||(Date.parse(rawSubmission?.submittedAt||'')||0)>=(Date.parse(flow.publishedAt||'')||0)||examDaySubmissionDate(rawSubmission?.submittedAt)===flow.date)?rawSubmission:null,absent=new Set(submission||unlocked?flow.attendance?.[roomId]||[]:[]),presentCount=Math.max(0,(roomItem?.assignments?.length||0)-absent.size);panel.innerHTML=`<div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-extrabold text-amber-950">9. 🕒 REAL-TIME EXAM DISPLAY ${flow.mockPractice?'<span class="ml-2 rounded bg-red-700 px-2 py-1 text-[9px] text-white">MOCK PRACTICE</span>':''}</h3><p class="text-xs text-slate-600">${escapeHtml(flow.examTitle)} · ${escapeHtml(formatDateWithDay(flow.date))}</p>${Object.keys(flow.days||{}).length>1?`<select aria-label="Published exam day" onchange="publicExamDayDate=this.value;renderPublicPortalBoards()" class="mt-2 rounded border bg-white p-2 text-xs">${Object.keys(flow.days).sort().map((item,index)=>`<option value="${escapeHtml(item)}" ${item===flow.date?'selected':''}>Day ${index+1} · ${escapeHtml(formatDateWithDay(item))}</option>`).join('')}</select>`:''}</div><div class="flex items-center gap-2 rounded-xl border border-indigo-200 bg-white p-2 shadow-sm"><div data-analog-exam-clock aria-label="Running wall clock" class="relative h-20 w-20 shrink-0 rounded-full border-4 border-slate-800 bg-amber-50 shadow-inner sm:h-24 sm:w-24"><span class="absolute left-1/2 top-0.5 -translate-x-1/2 text-[9px] font-extrabold text-slate-900 sm:text-[10px]">12</span><span class="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-900 sm:text-[10px]">3</span><span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[9px] font-extrabold text-slate-900 sm:text-[10px]">6</span><span class="absolute left-1 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-900 sm:text-[10px]">9</span><span data-clock-hour class="absolute bottom-1/2 left-1/2 h-5 w-1 -translate-x-1/2 rounded bg-slate-900 sm:h-6" style="transform-origin:50% 100%"></span><span data-clock-minute class="absolute bottom-1/2 left-1/2 h-7 w-0.5 -translate-x-1/2 rounded bg-slate-700 sm:h-8" style="transform-origin:50% 100%"></span><span data-clock-second class="absolute bottom-1/2 left-1/2 h-8 w-px -translate-x-1/2 bg-red-600 sm:h-9" style="transform-origin:50% 100%"></span><span class="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-700"></span></div><div><span class="block text-[9px] font-extrabold uppercase text-slate-500">Current time</span><b data-live-exam-clock class="mt-1 block whitespace-nowrap rounded bg-indigo-950 px-3 py-2 text-sm text-white sm:text-base">${escapeHtml(now.toLocaleTimeString('en-IN'))}</b></div></div></div><p class="mt-2 truncate rounded bg-white px-3 py-2 text-xs font-bold text-indigo-950">${escapeHtml(flow.welcome||'')}</p><div class="mt-2 flex gap-2 overflow-x-auto">${timed.map(item=>`<div class="min-w-[170px] rounded border p-2 ${active?.key===item.key?'animate-pulse border-red-500 bg-red-100 text-red-900 ring-2 ring-red-300':item.minute<=minutes?'border-emerald-300 bg-emerald-50 text-emerald-800':'bg-white text-slate-600'}"><b>${escapeHtml(item.time||'—')}</b><span class="ml-2 text-xs font-bold">${escapeHtml(item.title)}</span></div>`).join('')}</div>${flow.attendanceEnabled===true&&flowRooms.length?`<div id="public-sensitive-attendance-content"><div class="mb-3"><h4 class="font-extrabold text-indigo-950">SENSITIVE ROOM ATTENDANCE — INVIGILATOR PIN REQUIRED</h4><p class="text-xs text-slate-500">Select the assigned room, unlock it with the room PIN, then mark only absent candidates.</p></div><div class="mt-2 flex flex-wrap items-end gap-2"><label class="text-[10px] font-bold">ROOM<select id="exam-day-public-room" onchange="renderPublicPortalBoards()" class="mt-1 block rounded border p-2">${flowRooms.map(item=>`<option value="${escapeHtml(String(item.room.id))}" ${String(item.room.id)===String(roomId)?'selected':''}>${escapeHtml(examinationRoomName(item.room.name))}</option>`).join('')}</select></label><label class="text-[10px] font-bold">INVIGILATOR PIN<input id="exam-day-public-pin" type="password" maxlength="3" class="mt-1 block w-28 rounded border p-2"></label><button id="exam-day-pin-unlock" onclick="unlockPublicExamDayAttendance()" ${pinChecking?'disabled':''} class="rounded bg-indigo-800 px-4 py-2 text-xs font-bold text-white disabled:cursor-wait disabled:bg-slate-400">${pinChecking?'Checking PIN…':'Unlock Room Seating'}</button></div>${pinError?`<div role="alert" class="mt-2 rounded bg-red-50 p-2 text-xs font-bold text-red-700">${escapeHtml(pinError)}</div>`:''}${submission?.submitted?`<div id="public-attendance-submission-receipt" class="mt-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 p-4 text-emerald-950"><b class="block text-sm">✓ Attendance submitted to the Examination Cell</b><span class="mt-1 block text-xs">${escapeHtml(examinationRoomName(roomItem?.room?.name||roomId))} · Present ${presentCount} · Absent ${absent.size}</span><span class="mt-1 block text-[10px]">Received ${escapeHtml(new Date(submission.submittedAt).toLocaleString('en-IN'))}. The Exam Cell can view it in Stage 2 → 6. Real-Time Absentees & Final Report.</span></div>`:''}${unlocked&&roomItem?`${sensitiveAttendanceFlightHtml(roomItem,absent,roomId)}<div class="mt-3 rounded-xl border-2 border-red-200 bg-red-50 p-3 text-xs text-red-900"><b class="block">REVIEW BEFORE ${submission?.submitted?'UPDATE':'SUBMIT'} · Absent ${absent.size} · Present ${presentCount}</b><div class="mt-1">${roomItem.assignments.filter(s=>absent.has(String(s.studentId))).map(s=>`${escapeHtml(s.name)} (RN ${escapeHtml(s.roll)})`).join(', ')||'<span class="font-bold text-emerald-700">Nil absentees</span>'}</div><div class="mt-2 text-[10px]">Tap any red student again to mark Present, or tap a green student to mark Absent.</div></div><button onclick="submitPublicExamDayAttendance()" class="mt-3 rounded bg-emerald-700 px-5 py-2 text-xs font-bold text-white">${submission?.submitted?'↻ Update & Resubmit Attendance':'✓ Submit Absentees to Examination Cell'}</button>`:''}</div>`:''}`;queueMicrotask(updateLiveExamClocks);if(attendancePanel){const sensitive=panel.querySelector('#public-sensitive-attendance-content');attendancePanel.innerHTML='';attendancePanel.dataset.sensitive=sensitive?'1':'';attendancePanel.classList.toggle('hidden',!sensitive);if(sensitive)attendancePanel.appendChild(sensitive);}}
+        function renderPublicExamDayFlow(boards=visiblePortalBoards()){const panel=document.getElementById('public-exam-day-flow'),attendancePanel=document.getElementById('public-attendance-panel'),flow=examDayFlowForDate(boards.examDayFlow,publicExamDayDate);if(flow)publicExamDayDate=flow.date;if(!panel)return;panel.classList.toggle('hidden',!flow);if(!flow){if(attendancePanel){attendancePanel.dataset.sensitive='';attendancePanel.innerHTML='';attendancePanel.classList.add('hidden');}return;}const now=new Date(),minutes=now.getHours()*60+now.getMinutes(),flowRooms=publishedSeatingRows(flow.rooms),timed=publishedSeatingRows(flow.events).map(item=>({...item,minute:item.time?Number(item.time.split(':')[0])*60+Number(item.time.split(':')[1]):-1})),active=[...timed].filter(item=>item.minute<=minutes&&item.minute>=0).sort((a,b)=>b.minute-a.minute)[0],roomId=document.getElementById('exam-day-public-room')?.value||String(flowRooms[0]?.room?.id||''),roomItemSource=flowRooms.find(item=>String(item.room?.id)===String(roomId))||flowRooms[0],roomItem=roomItemSource?{...roomItemSource,assignments:publishedSeatingRows(roomItemSource.assignments)}:null,accessKey=`${flow.date}|${roomId}`,unlocked=!!publicExamDayAttendanceAccess[accessKey],pinChecking=!!publicExamDayPinChecking[accessKey],pinError=publicExamDayPinError[accessKey]||'',resetAt=Date.parse(boards.examDayAttendanceResets?.[String(flow.examId)]?.[flow.date]||'')||0,rawSubmission=flow.attendanceSubmitted?.[roomId],submission=(Date.parse(rawSubmission?.submittedAt||'')||0)>Math.max(resetAt,Date.parse(flow.publishedAt||'')||0)&&(flow.mockPractice||rawSubmission?.manual===true||(Date.parse(rawSubmission?.submittedAt||'')||0)>=(Date.parse(flow.publishedAt||'')||0)||examDaySubmissionDate(rawSubmission?.submittedAt)===flow.date)?rawSubmission:null,absent=new Set(submission||unlocked?flow.attendance?.[roomId]||[]:[]),presentCount=Math.max(0,(roomItem?.assignments?.length||0)-absent.size);panel.innerHTML=`<div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-extrabold text-amber-950">9. 🕒 REAL-TIME EXAM DISPLAY ${flow.mockPractice?'<span class="ml-2 rounded bg-red-700 px-2 py-1 text-[9px] text-white">MOCK PRACTICE</span>':''}</h3><p class="text-xs text-slate-600">${escapeHtml(flow.examTitle)} · ${escapeHtml(formatDateWithDay(flow.date))}</p>${Object.keys(flow.days||{}).length>1?`<select aria-label="Published exam day" onchange="publicExamDayDate=this.value;renderPublicPortalBoards()" class="mt-2 rounded border bg-white p-2 text-xs">${Object.keys(flow.days).sort().map((item,index)=>`<option value="${escapeHtml(item)}" ${item===flow.date?'selected':''}>Day ${index+1} · ${escapeHtml(formatDateWithDay(item))}</option>`).join('')}</select>`:''}</div><b data-live-exam-clock class="rounded bg-indigo-950 px-4 py-2 text-xl text-white">${escapeHtml(now.toLocaleTimeString('en-IN'))}</b></div><p class="mt-2 truncate rounded bg-white px-3 py-2 text-xs font-bold text-indigo-950">${escapeHtml(flow.welcome||'')}</p><div class="mt-2 flex gap-2 overflow-x-auto">${timed.map(item=>`<div class="min-w-[170px] rounded border p-2 ${active?.key===item.key?'animate-pulse border-red-500 bg-red-100 text-red-900 ring-2 ring-red-300':item.minute<=minutes?'border-emerald-300 bg-emerald-50 text-emerald-800':'bg-white text-slate-600'}"><b>${escapeHtml(item.time||'—')}</b><span class="ml-2 text-xs font-bold">${escapeHtml(item.title)}</span></div>`).join('')}</div>${flow.attendanceEnabled===true&&flowRooms.length?`<div id="public-sensitive-attendance-content"><div class="mb-3"><h4 class="font-extrabold text-indigo-950">SENSITIVE ROOM ATTENDANCE — INVIGILATOR PIN REQUIRED</h4><p class="text-xs text-slate-500">Select the assigned room, unlock it with the room PIN, then mark only absent candidates.</p></div><div class="mt-2 flex flex-wrap items-end gap-2"><label class="text-[10px] font-bold">ROOM<select id="exam-day-public-room" onchange="renderPublicPortalBoards()" class="mt-1 block rounded border p-2">${flowRooms.map(item=>`<option value="${escapeHtml(String(item.room.id))}" ${String(item.room.id)===String(roomId)?'selected':''}>${escapeHtml(examinationRoomName(item.room.name))}</option>`).join('')}</select></label><label class="text-[10px] font-bold">INVIGILATOR PIN<input id="exam-day-public-pin" type="password" maxlength="3" class="mt-1 block w-28 rounded border p-2"></label><button id="exam-day-pin-unlock" onclick="unlockPublicExamDayAttendance()" ${pinChecking?'disabled':''} class="rounded bg-indigo-800 px-4 py-2 text-xs font-bold text-white disabled:cursor-wait disabled:bg-slate-400">${pinChecking?'Checking PIN…':'Unlock Room Seating'}</button></div>${pinError?`<div role="alert" class="mt-2 rounded bg-red-50 p-2 text-xs font-bold text-red-700">${escapeHtml(pinError)}</div>`:''}${submission?.submitted?`<div id="public-attendance-submission-receipt" class="mt-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 p-4 text-emerald-950"><b class="block text-sm">✓ Attendance submitted to the Examination Cell</b><span class="mt-1 block text-xs">${escapeHtml(examinationRoomName(roomItem?.room?.name||roomId))} · Present ${presentCount} · Absent ${absent.size}</span><span class="mt-1 block text-[10px]">Received ${escapeHtml(new Date(submission.submittedAt).toLocaleString('en-IN'))}. The Exam Cell can view it in Stage 2 → 6. Real-Time Absentees & Final Report.</span></div>`:''}${unlocked&&roomItem?`${sensitiveAttendanceFlightHtml(roomItem,absent,roomId)}<div class="mt-3 rounded-xl border-2 border-red-200 bg-red-50 p-3 text-xs text-red-900"><b class="block">REVIEW BEFORE ${submission?.submitted?'UPDATE':'SUBMIT'} · Absent ${absent.size} · Present ${presentCount}</b><div class="mt-1">${roomItem.assignments.filter(s=>absent.has(String(s.studentId))).map(s=>`${escapeHtml(s.name)} (RN ${escapeHtml(s.roll)})`).join(', ')||'<span class="font-bold text-emerald-700">Nil absentees</span>'}</div><div class="mt-2 text-[10px]">Tap any red student again to mark Present, or tap a green student to mark Absent.</div></div><button onclick="submitPublicExamDayAttendance()" class="mt-3 rounded bg-emerald-700 px-5 py-2 text-xs font-bold text-white">${submission?.submitted?'↻ Update & Resubmit Attendance':'✓ Submit Absentees to Examination Cell'}</button>`:''}</div>`:''}`;if(attendancePanel){const sensitive=panel.querySelector('#public-sensitive-attendance-content');attendancePanel.innerHTML='';attendancePanel.dataset.sensitive=sensitive?'1':'';attendancePanel.classList.toggle('hidden',!sensitive);if(sensitive)attendancePanel.appendChild(sensitive);}}
         function viewPublicExamDayAttendanceReport(mode='roomwise'){const boards=visiblePortalBoards(),report=mode==='classwise'?boards.examDayAttendanceClasswise:boards.examDayAttendance;if(!report)return;const w=window.open('','_blank');w.document.write(report.html);w.document.close();}
         function examDayMockSnapshotValue(value){return value==null?null:cloneData(value);}
         const mockPracticeBoardKeys=['liveDuty','myExamRoles','roomInventoryStatus','examDayFlow','examDayAttendance','examDayAttendanceClasswise','afterExam'];
@@ -4511,9 +4511,7 @@
         }, {passive:true});
         const saveWorkspacePositionNow=()=>{if(privateWorkspaceVisible()){lastWorkspaceScrollY=Math.round(window.scrollY);localStorage.setItem(`vems_scroll_${currentActiveRole}_${currentActiveTab}`,String(lastWorkspaceScrollY));rememberWorkspaceState();}};
         setInterval(()=>{if(privateWorkspaceVisible()&&!workspaceScrollRestoreScheduled&&Math.round(window.scrollY)!==lastWorkspaceScrollY)saveWorkspacePositionNow();},250);
-        function updateLiveExamClocks(){const now=new Date(),seconds=now.getSeconds()+now.getMilliseconds()/1000,minutes=now.getMinutes()+seconds/60,hours=(now.getHours()%12)+minutes/60;document.querySelectorAll('[data-live-exam-clock]').forEach(node=>node.textContent=now.toLocaleTimeString('en-IN'));document.querySelectorAll('[data-analog-exam-clock]').forEach(clock=>{const rotate=(selector,degrees)=>{const hand=clock.querySelector(selector);if(hand)hand.style.transform=`translateX(-50%) rotate(${degrees}deg)`;};rotate('[data-clock-hour]',hours*30);rotate('[data-clock-minute]',minutes*6);rotate('[data-clock-second]',seconds*6);});}
-        updateLiveExamClocks();
-        setInterval(updateLiveExamClocks,1000);
+        setInterval(()=>document.querySelectorAll('[data-live-exam-clock]').forEach(node=>node.textContent=new Date().toLocaleTimeString('en-IN')),1000);
         document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveWorkspacePositionNow();});
         window.addEventListener('beforeunload',saveWorkspacePositionNow);
         window.addEventListener('pagehide',saveWorkspacePositionNow);
