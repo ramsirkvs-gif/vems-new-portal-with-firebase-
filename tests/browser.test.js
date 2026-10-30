@@ -29,7 +29,7 @@ let slowWrites = false;
 const failures = [];
 function allowed(uid, name) {
     const role = data.roles[uid];
-    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'invigilationPlans', 'roomInventoryPlans', 'publicPortalBoards', 'examCoreTeam'].includes(name));
+    return role === 'principal' || (['sec-ic', 'pri-ic'].includes(role) && ['archivedExams', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings', 'dateSheetInstructions', 'dateSheetSettings', 'seatingRooms', 'seatingPlans', 'invigilationPlans', 'roomInventoryPlans', 'publicPortalBoards', 'examCoreTeam', 'circularSettings'].includes(name));
 }
 async function notify(name) {
     await Promise.all(subscriptions.filter(s => s.path === name && !s.page.isClosed()).map(s =>

@@ -166,6 +166,10 @@
     "publicPortalBoards": {
       ".read": "!root.child('systemSettings').child('activeSession').exists() || root.child('systemSettings').child('activeSession').val() === '2026-27'",
       ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic') && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
+    "holidayCalendar": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
     }
   }
 }

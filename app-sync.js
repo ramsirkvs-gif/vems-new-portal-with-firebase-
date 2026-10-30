@@ -2,7 +2,7 @@
 'use strict';
 const sharedNames = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examCoreTeam', 'archivedExams',
     'examOptionsList', 'qpSubmissionsTracker', 'qpPrintingTracker', 'qpSubmissionDeadlines', 'qpOfficeOrders', 'qpOfficeOrderSettings',
-    'dateSheetInstructions', 'dateSheetSettings', 'holidayCalendar', 'publishedSubjectDirectories', 'publicPortalBoards', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
+    'dateSheetInstructions', 'dateSheetSettings', 'publishedSubjectDirectories', 'publicPortalBoards', 'examCirculars', 'circularSettings', 'signatureProfiles', 'documentApprovals'];
 sharedNames.push('seatingRooms', 'seatingPlans', 'invigilationPlans', 'roomInventoryPlans');
 const principalCollections = ['students', 'sectionConfigs', 'teachers', 'classTeacherAssignments', 'examOptionsList', 'publishedSubjectDirectories'];
 // Login identifiers only. Firebase stores and verifies each role's passcode.
@@ -136,7 +136,7 @@ function canEditSharedData(required = 'exam') {
 function sharedValue(name) {
     return ({ students: studentRecords, sectionConfigs, teachers, classTeacherAssignments, examCoreTeam, archivedExams,
         examOptionsList, qpSubmissionsTracker, qpPrintingTracker, qpSubmissionDeadlines, qpOfficeOrders, qpOfficeOrderSettings,
-        dateSheetInstructions, dateSheetSettings, holidayCalendar, seatingRooms, seatingPlans, invigilationPlans, roomInventoryPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
+        dateSheetInstructions, dateSheetSettings, seatingRooms, seatingPlans, invigilationPlans, roomInventoryPlans, publishedSubjectDirectories, publicPortalBoards, examCirculars, circularSettings, signatureProfiles, documentApprovals })[name];
 }
 function samePublishedData(left,right){return JSON.stringify(left)===JSON.stringify(right);}
 function liveFacultyRosterRows(){return facultyPublishedRows();}
@@ -204,7 +204,6 @@ function acceptSharedValue(name, value) {
         case 'qpOfficeOrderSettings': qpOfficeOrderSettings = value; break;
         case 'dateSheetInstructions': dateSheetInstructions = value; break;
         case 'dateSheetSettings': dateSheetSettings = value; break;
-        case 'holidayCalendar': holidayCalendar = value; break;
         case 'publishedSubjectDirectories': publishedSubjectDirectories = value; renderPublicSubjectDirectory(); break;
         case 'publicPortalBoards': publicPortalBoards = value; renderPublicPortalBoards(); break;
         case 'seatingRooms': seatingRooms = value; break;
@@ -225,7 +224,7 @@ function acceptSharedValue(name, value) {
         }
         case 'roomInventoryPlans': roomInventoryPlans = value; break;
         case 'examCirculars': examCirculars = value; break;
-        case 'circularSettings': circularSettings = value; break;
+        case 'circularSettings': circularSettings = value; holidayCalendar = value._holidayCalendar || {}; break;
         case 'signatureProfiles': signatureProfiles = value; break;
         case 'documentApprovals': documentApprovals = value; break;
     }
@@ -247,6 +246,10 @@ async function saveData(names, expected = {}) {
     const impacts=publishedImpactsForChanges(names);
     if(impacts.length){const decision=await askPublishedUpdateDecision(impacts);if(decision==='cancel'){restoreSharedValues(names);return false;}if(decision==='stop'){impacts.forEach(item=>item.stop());impacts.forEach(item=>{if(!names.includes(item.collection))names.push(item.collection);});}}
     names=refreshPublishedDataForChanges(names);
+    if(names.includes('holidayCalendar')){
+        circularSettings={...circularSettings,_holidayCalendar:cloneData(holidayCalendar)};
+        names=[...new Set(names.map(name=>name==='holidayCalendar'?'circularSettings':name))];
+    }
     const required = names.some(name => principalCollections.includes(name)) ? 'principal' : 'exam';
     if (!canEditSharedData(required)) { restoreSharedValues(names); return false; }
     const store = sharedStore;
