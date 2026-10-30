@@ -383,6 +383,14 @@ async function main() {
         await a.waitForFunction(()=>coreTeamRows()[0]?.name==='New Shared Teacher');
         await a.getByRole('button',{name:'📢 Publish Team'}).click();
         await b.waitForFunction(()=>publicPortalBoards.coreTeam?.rows?.[0]?.name==='New Shared Teacher');
+        assert.deepEqual(await a.evaluate(()=>[
+            {name:'Member B',role:'Core Team Member',order:2},
+            {name:'MR. DEVENDRA KUMAR MEENA',role:'Assistant Exam In-charge',order:1},
+            {name:'Exam IC',role:'Exam In-charge',order:5},
+            {name:'MRS. JYOTI VERMA',role:'Assistant Exam In-charge',order:9},
+            {name:'Observer',role:'Observer',order:8},
+            {name:'Member A',role:'Core Team Member',order:1}
+        ].sort(compareCoreTeamDisplay).map(item=>item.name)),['Observer','Exam IC','MRS. JYOTI VERMA','MR. DEVENDRA KUMAR MEENA','Member A','Member B'],'Core Team default display must show Observer, IC, Jyoti, Devendra, then members');
         await a.evaluate(()=>{publicVisiblePortalBoards=cloneData(publicPortalBoards);activateArea('public');renderPublicPortalBoards();});
         assert.deepEqual(await a.locator('#public-core-team-belt article b').allTextContents(),['New Shared Teacher','Support Faculty']);
         await a.evaluate(()=>activateArea('principal'));
