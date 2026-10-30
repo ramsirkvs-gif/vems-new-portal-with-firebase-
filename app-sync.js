@@ -204,8 +204,8 @@ function acceptSharedValue(name, value) {
         case 'qpOfficeOrderSettings': qpOfficeOrderSettings = value; break;
         case 'dateSheetInstructions': dateSheetInstructions = value; break;
         case 'dateSheetSettings': dateSheetSettings = value; break;
-        case 'publishedSubjectDirectories': publishedSubjectDirectories = value; renderPublicSubjectDirectory(); break;
-        case 'publicPortalBoards': publicPortalBoards = value; renderPublicPortalBoards(); break;
+        case 'publishedSubjectDirectories': publishedSubjectDirectories = value; if(selectedAcademicSession===(systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION))publicPublishedSubjectDirectories=value; renderPublicSubjectDirectory(); break;
+        case 'publicPortalBoards': publicPortalBoards = value; if(selectedAcademicSession===(systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION))publicVisiblePortalBoards=value; renderPublicPortalBoards(); break;
         case 'seatingRooms': seatingRooms = value; break;
         case 'seatingPlans': seatingPlans = value; break;
         case 'invigilationPlans': {
@@ -424,6 +424,7 @@ async function logoutSession() {
             authorizedRole=null;currentActiveRole='public';loadingStaffData=false;resetPrivateSharedValues();activateArea('public');
         }
         closeLoginModal();
+        bindPublicDirectory();
         showSyncError('');
     }catch(error){
         loadingStaffData=false;
@@ -561,12 +562,19 @@ async function selectAcademicSession(sessionId) {
 }
 function bindPublicDirectory() {
     if (!db) return;
-    if (publicDirectorySubscription) publicDirectorySubscription.ref.off('value',publicDirectorySubscription.listener);
+    if (publicDirectorySubscription) { publicDirectorySubscription.ref.off('value',publicDirectorySubscription.listener); publicDirectorySubscription=null; }
+    if (publicBoardsSubscription) { publicBoardsSubscription.ref.off('value',publicBoardsSubscription.listener); publicBoardsSubscription=null; }
+    if(authorizedRole){
+        if(selectedAcademicSession===(systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION)){
+            publicPublishedSubjectDirectories=publishedSubjectDirectories;
+            publicVisiblePortalBoards=publicPortalBoards;
+        }
+        return;
+    }
     const activeSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
     const ref=db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession));
     const listener=snapshot=>{publicPublishedSubjectDirectories=snapshot.val()||{};renderPublicSubjectDirectory();renderPublicPortalBoards();};
     publicDirectorySubscription={ref,listener}; ref.on('value',listener,()=>{publicPublishedSubjectDirectories={};renderPublicSubjectDirectory();renderPublicPortalBoards();});
-    if(publicBoardsSubscription)publicBoardsSubscription.ref.off('value',publicBoardsSubscription.listener);
     const boardsRef=db.ref(sessionCollectionPath('publicPortalBoards',activeSession));
     const boardsListener=snapshot=>{publicVisiblePortalBoards=snapshot.val()||{};renderPublicPortalBoards();};
     publicBoardsSubscription={ref:boardsRef,listener:boardsListener};boardsRef.on('value',boardsListener,()=>{publicVisiblePortalBoards={};renderPublicPortalBoards();});
