@@ -168,7 +168,37 @@ async function reconcilePublishedDataNow(){
     const refreshed=refreshPublishedDataForChanges(['sectionConfigs','teachers','students','seatingPlans','invigilationPlans','archivedExams','classTeacherAssignments']),targets=[...new Set(refreshed.filter(name=>name==='publicPortalBoards'||name==='publishedSubjectDirectories'))];
     if(targets.length)await saveData(targets);
 }
+function sharedArray(value){return Array.isArray(value)?value:value&&typeof value==='object'?Object.values(value).filter(Boolean):[];}
+function normalizeSharedUiValue(name,input){
+    const value=cloneData(input||{});
+    if(name==='teachers')Object.values(value).forEach(item=>{item.allotments=sharedArray(item.allotments);});
+    if(name==='archivedExams')Object.values(value).forEach(exam=>{
+        exam.datesheetSnapshot=sharedArray(exam.datesheetSnapshot);
+        exam.datesheetSnapshot.forEach(day=>{day.paperSlots=sharedArray(day.paperSlots);day.paperSlots.forEach(slot=>{slot.selectedSections=sharedArray(slot.selectedSections);});});
+    });
+    if(name==='seatingPlans')Object.values(value).forEach(exams=>Object.values(exams||{}).forEach(plan=>{if(!plan)return;plan.rooms=sharedArray(plan.rooms);plan.assignments=sharedArray(plan.assignments);}));
+    if(name==='invigilationPlans')Object.values(value).forEach(exams=>Object.values(exams||{}).forEach(day=>Object.values(day||{}).forEach(record=>{if(record)record.invigilators=sharedArray(record.invigilators);})));
+    if(name==='publishedSubjectDirectories'&&value.current)value.current.sections=value.current.sections||{};
+    if(name==='circularSettings'){
+        value.subjects=sharedArray(value.subjects);value.customTargets=sharedArray(value.customTargets);
+        if(value._holidayCalendar){value._holidayCalendar.__pending=sharedArray(value._holidayCalendar.__pending);value._holidayCalendar.__breaks=sharedArray(value._holidayCalendar.__breaks);}
+    }
+    if(name==='publicPortalBoards'){
+        ['facultyRoster','coreTeam','classTeacherRoster','myExamRoles','holidays','dateSheet','qpPrinting'].forEach(key=>{if(value[key])value[key].rows=sharedArray(value[key].rows);});
+        if(value.facultyRoster)value.facultyRoster.rows.forEach(row=>{row.allotments=sharedArray(row.allotments);});
+        if(value.myExamRoles)value.myExamRoles.rows.forEach(row=>{row.todayRoles=sharedArray(row.todayRoles);row.fundamentalRoles=sharedArray(row.fundamentalRoles);row.roles=sharedArray(row.roles);});
+        if(value.seating){value.seating.plans=value.seating.plans||{};Object.values(value.seating.plans).forEach(plan=>{if(plan){plan.rooms=sharedArray(plan.rooms);plan.assignments=sharedArray(plan.assignments);}});}
+        if(value.admitCards){value.admitCards.candidates=sharedArray(value.admitCards.candidates);value.admitCards.candidates.forEach(item=>{item.admitSchedule=sharedArray(item.admitSchedule);});}
+        if(value.liveDuty){value.liveDuty.duties=sharedArray(value.liveDuty.duties);value.liveDuty.days=value.liveDuty.days||{};Object.values(value.liveDuty.days).forEach(day=>{if(day)day.rooms=sharedArray(day.rooms);});}
+        if(value.examDayFlow){value.examDayFlow.days=value.examDayFlow.days||{};Object.values(value.examDayFlow.days).forEach(day=>{if(day)day.rooms=sharedArray(day.rooms);});}
+        if(value.rollDirectory){value.rollDirectory.mappedClasses=sharedArray(value.rollDirectory.mappedClasses);value.rollDirectory.sections=value.rollDirectory.sections||{};}
+        if(value.notices)value.notices=sharedArray(value.notices);
+        if(value._displaySequence)value._displaySequence=sharedArray(value._displaySequence);
+    }
+    return value;
+}
 function acceptSharedValue(name, value) {
+    value=normalizeSharedUiValue(name,value);
     switch (name) {
         case 'students':
             studentRecords = value;
@@ -296,6 +326,7 @@ function scheduleSharedRender() {
     clearTimeout(renderTimer);
     renderTimer = setTimeout(refreshSharedViews, 50);
 }
+function runSharedRenderer(label,render){try{render();}catch(error){window.__vemsRenderErrors=window.__vemsRenderErrors||{};window.__vemsRenderErrors[label]=error?.message||String(error);console.error(`${label} display skipped:`,error);}}
 function refreshSharedViews() {
     // Do not replace an input while somebody is typing. Refresh after they leave it.
     if (document.activeElement?.matches('input, select, textarea')) {
@@ -307,21 +338,21 @@ function refreshSharedViews() {
     }
     pendingLiveWorkspaceRefresh = false;
     document.getElementById('live-update-pending-notice')?.remove();
-    renderMasterSubjectDirectory();
-    if (currentActiveTab === 'config' && !sectionFormDirty) initCfgSections();
-    updateStudentTableHeaders();
-    filterStudents();
-    renderTeachers();
-    renderFacultyDisplayOrder();
-    renderExamCoreTeam();
-    if(typeof renderProOrderManager==='function')renderProOrderManager();
-    if (!editorBaselines.assignments) renderClassTeacherCoordinationTable();
-    if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) renderExamCreatorModule();
-    populateLegacyExamOptions();
-    renderSignatureProfiles();
-    if (currentActiveTab === 'holidays') renderHolidayManager();
-    updateSessionChrome();
-    applyExamIcMasterReadOnlyUi();
+    runSharedRenderer('Subject directory',renderMasterSubjectDirectory);
+    if (currentActiveTab === 'config' && !sectionFormDirty) runSharedRenderer('Section configuration',initCfgSections);
+    runSharedRenderer('Student headers',updateStudentTableHeaders);
+    runSharedRenderer('Student records',filterStudents);
+    runSharedRenderer('Faculty records',renderTeachers);
+    runSharedRenderer('Faculty order',renderFacultyDisplayOrder);
+    runSharedRenderer('Core examination team',renderExamCoreTeam);
+    if(typeof renderProOrderManager==='function')runSharedRenderer('Public display sequence',renderProOrderManager);
+    if (!editorBaselines.assignments) runSharedRenderer('Class teacher roster',renderClassTeacherCoordinationTable);
+    if (!qpOfficeOrderFormDirty && !dateSheetFormDirty && !qpReceivingFormDirty) runSharedRenderer('Examination workflow',renderExamCreatorModule);
+    runSharedRenderer('Legacy examination options',populateLegacyExamOptions);
+    runSharedRenderer('Signature profiles',renderSignatureProfiles);
+    if (currentActiveTab === 'holidays') runSharedRenderer('Holiday calendar',renderHolidayManager);
+    runSharedRenderer('Session display',updateSessionChrome);
+    runSharedRenderer('Exam IC access display',applyExamIcMasterReadOnlyUi);
 }
 document.addEventListener('focusout', event => {
     if (event.target.closest('#settings-signature-profiles, #public-notice-manager, #circular-editor, #exam-vault-editor, #faculty-order-manager') || event.target.id?.startsWith('circular-signature-')) return;

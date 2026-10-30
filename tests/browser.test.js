@@ -134,6 +134,12 @@ async function main() {
         assert.equal(await b.locator('#area-principal').isVisible(), false, 'a local role flag cannot grant access');
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
+        assert.deepEqual(await a.evaluate(() => {
+            const exam=normalizeSharedUiValue('archivedExams',{old:{id:'old',datesheetSnapshot:{day:{id:1}}}}).old;
+            const boards=normalizeSharedUiValue('publicPortalBoards',{facultyRoster:{},seating:{plans:{day:{}}},admitCards:{candidates:{one:{id:'one'}}},myExamRoles:{rows:{one:{name:'Legacy'}}}});
+            const plans=normalizeSharedUiValue('seatingPlans',{exam:{day:{}}});
+            return {paperSlots:exam.datesheetSnapshot[0].paperSlots,facultyRows:boards.facultyRoster.rows,seatingAssignments:boards.seating.plans.day.assignments,admitSchedule:boards.admitCards.candidates[0].admitSchedule,roleLines:boards.myExamRoles.rows[0].todayRoles,savedRooms:plans.exam.day.rooms};
+        }),{paperSlots:[],facultyRows:[],seatingAssignments:[],admitSchedule:[],roleLines:[],savedRooms:[]},'legacy and partially saved records must normalize before any renderer uses map');
         await a.evaluate(() => openLoginModal('principal'));
         await a.fill('#login-password', rolePasscodes.principal);
         await a.locator('#login-modal button[type="submit"]').click();
