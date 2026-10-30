@@ -381,6 +381,12 @@ async function main() {
         await a.getByRole('button',{name:'＋ Add Member'}).click();
         await a.evaluate(id=>moveExamCoreTeamMember(id,-1),sharedTeacherId);
         await a.waitForFunction(()=>coreTeamRows()[0]?.name==='New Shared Teacher');
+        await a.selectOption('#core-internal-member',sharedTeacherId);
+        await a.fill('#core-internal-task','Control room coordination');
+        await a.getByRole('button',{name:'💾 Save New Task'}).click();
+        await a.waitForFunction(id=>coreInternalDutiesFor(id).some(item=>item.task==='Control room coordination'),sharedTeacherId);
+        await a.getByRole('button',{name:'📢 Publish Internal Work'}).click();
+        await b.waitForFunction(()=>publicPortalBoards.coreInternalWork?.rows?.some(row=>row.task==='Control room coordination'));
         await a.getByRole('button',{name:'📢 Publish Team'}).click();
         await b.waitForFunction(()=>publicPortalBoards.coreTeam?.rows?.[0]?.name==='New Shared Teacher');
         assert.deepEqual(await a.evaluate(()=>[
@@ -393,9 +399,12 @@ async function main() {
         ].sort(compareCoreTeamDisplay).map(item=>item.name)),['Observer','Exam IC','MRS. JYOTI VERMA','MR. DEVENDRA KUMAR MEENA','Member A','Member B'],'Core Team default display must show Observer, IC, Jyoti, Devendra, then members');
         await a.evaluate(()=>{publicVisiblePortalBoards=cloneData(publicPortalBoards);activateArea('public');renderPublicPortalBoards();});
         assert.deepEqual(await a.locator('#public-core-team-belt article b').allTextContents(),['New Shared Teacher','Support Faculty']);
+        assert.match(await a.locator('#public-core-internal-work-section').innerText(),/New Shared Teacher[\s\S]*Control room coordination/);
         await a.evaluate(()=>activateArea('principal'));
         await a.getByRole('button',{name:'⛔ Stop Publishing Team'}).click();
         await b.waitForFunction(()=>!publicPortalBoards.coreTeam);
+        await a.getByRole('button',{name:'⛔ Stop Publishing Internal Work'}).click();
+        await b.waitForFunction(()=>!publicPortalBoards.coreInternalWork);
         console.log('PASS: core team order publishes as a public belt and can be stopped');
         await a.evaluate(async ({ supportId }) => {
             renderFacultyDisplayOrder();
@@ -1027,9 +1036,9 @@ async function main() {
         await a.getByRole('button',{name:/Publish with PIN/}).click();
         await a.evaluate(()=>switchPortalArea('public'));
         assert.match(await a.locator('#public-exam-day-flow').innerText(),/🕒 REAL-TIME EXAM DISPLAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a compact read-only live public display');
-        await a.waitForFunction(()=>document.querySelectorAll('#public-fixed-display > section').length===20);
-        assert.deepEqual(await a.locator('#public-fixed-display > section > h2').allTextContents(),['1. Public Notices','2. Date Sheet','3. Seating Arrangement','4. Student Admit Cards','5. Roll Number Directory','6. Invigilation and Relieving Duty','7. PIN-Sensitive Absentee Attendance','8. Final Roomwise Attendance Report','9. Final Classwise Attendance Report','10. Real-Time Exam-Day Display','11. Room Inventory and Baggage Status','12. Bundle Collection Duty','13. QP Receiving Status','14. QP Printing Status','15. QP Setter Circulars','16. Subject Mapping Directory','17. Core Examination Team','18. Faculty Roster and Fundamental Duties','19. Class Teacher and Co-Class Teacher Roster','20. Holiday Information'],'Public View must retain the exact fixed top-to-bottom order with newly generated serial numbers');
-        assert.equal(await a.locator('#public-fixed-display [data-public-fixed-empty]').count(),20,'every fixed public slot must contain a permanent unpublished placeholder');
+        await a.waitForFunction(()=>document.querySelectorAll('#public-fixed-display > section').length===21);
+        assert.deepEqual(await a.locator('#public-fixed-display > section > h2').allTextContents(),['1. Public Notices','2. Date Sheet','3. Seating Arrangement','4. Student Admit Cards','5. Roll Number Directory','6. Invigilation and Relieving Duty','7. PIN-Sensitive Absentee Attendance','8. Final Roomwise Attendance Report','9. Final Classwise Attendance Report','10. Real-Time Exam-Day Display','11. Room Inventory and Baggage Status','12. Bundle Collection Duty','13. QP Receiving Status','14. QP Printing Status','15. QP Setter Circulars','16. Subject Mapping Directory','17. Core Examination Team','18. Internal Work Distribution for Core Members','19. Faculty Roster and Fundamental Duties','20. Class Teacher and Co-Class Teacher Roster','21. Holiday Information'],'Public View must retain the exact fixed top-to-bottom order with newly generated serial numbers');
+        assert.equal(await a.locator('#public-fixed-display [data-public-fixed-empty]').count(),21,'every fixed public slot must contain a permanent unpublished placeholder');
         assert.equal(await a.locator('#public-seating-scroll-window').evaluate(node=>node.classList.contains('max-h-72')&&node.classList.contains('overflow-auto')),true,'public Seating Arrangements must remain in a compact vertical and horizontal scroll window');
         assert.equal(await a.locator('#public-seating-scroll-window thead').evaluate(node=>node.classList.contains('sticky')),true,'the Seating table heading must remain visible while its rows scroll');
         assert.match(await a.locator('#public-seating-scroll-window thead').innerText(),/Column No\.[\s\S]*from gate side[\s\S]*Desk No\./,'public Seating must use the same column-from-gate and desk terminology as Admit Cards');
