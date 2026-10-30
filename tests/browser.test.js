@@ -762,6 +762,8 @@ async function main() {
         await a.locator('.workflow-document-actions').getByRole('button',{name:'📢 Publish',exact:true}).click();
         await a.waitForFunction(()=>!!publicPortalBoards.seating?.plans?.['2026-11-01']);
         assert.deepEqual(await a.evaluate(()=>Object.keys(publicPortalBoards.seating?.plans||{})),['2026-11-01'],'Seating publication must expose only the selected examination day');
+        assert.equal(await a.locator('#public-seating-date').inputValue(),'2026-11-01','the single published seating day must open automatically instead of remaining on a blank date');
+        assert.equal(await a.locator('#public-seating-body tr').count()>0,true,'published Day 1 seating must immediately display its candidate rows');
         assert.match(await a.locator('.workflow-document-actions').innerText(),/DAYWISE[\s\S]*01\/11\/2026/,'the Seating action bar must identify the selected day');
         await a.evaluate(()=>{window.confirm=()=>true;});
         await a.locator('.workflow-document-actions').getByRole('button',{name:'⏹ Stop Publishing',exact:true}).click();
