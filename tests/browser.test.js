@@ -136,10 +136,16 @@ async function main() {
         await login(b, 'principal2@example.test');
         assert.deepEqual(await a.evaluate(() => {
             const exam=normalizeSharedUiValue('archivedExams',{old:{id:'old',datesheetSnapshot:{day:{id:1}}}}).old;
-            const boards=normalizeSharedUiValue('publicPortalBoards',{facultyRoster:{},seating:{plans:{day:{}}},admitCards:{candidates:{one:{id:'one'}}},myExamRoles:{rows:{one:{name:'Legacy'}}}});
+            const boards=normalizeSharedUiValue('publicPortalBoards',{
+                facultyRoster:{}, seating:{plans:{day:{}}}, admitCards:{candidates:{one:{id:'one'}}}, myExamRoles:{rows:{one:{name:'Legacy'}}},
+                examDayFlow:{
+                    rooms:{one:{room:{id:'r1'},assignments:{one:{studentId:'s1'}}}}, events:{one:{key:'start'}},
+                    days:{day:{rooms:{one:{room:{id:'r1'},assignments:{one:{studentId:'s1'}}}},events:{one:{key:'start'}}}}
+                }
+            });
             const plans=normalizeSharedUiValue('seatingPlans',{exam:{day:{}}});
-            return {paperSlots:exam.datesheetSnapshot[0].paperSlots,facultyRows:boards.facultyRoster.rows,seatingAssignments:boards.seating.plans.day.assignments,admitSchedule:boards.admitCards.candidates[0].admitSchedule,roleLines:boards.myExamRoles.rows[0].todayRoles,savedRooms:plans.exam.day.rooms};
-        }),{paperSlots:[],facultyRows:[],seatingAssignments:[],admitSchedule:[],roleLines:[],savedRooms:[]},'legacy and partially saved records must normalize before any renderer uses map');
+            return {paperSlots:exam.datesheetSnapshot[0].paperSlots,facultyRows:boards.facultyRoster.rows,seatingAssignments:boards.seating.plans.day.assignments,admitSchedule:boards.admitCards.candidates[0].admitSchedule,roleLines:boards.myExamRoles.rows[0].todayRoles,savedRooms:plans.exam.day.rooms,flowRooms:boards.examDayFlow.rooms.length,flowAssignments:boards.examDayFlow.rooms[0].assignments.length,flowEvents:boards.examDayFlow.events.length,dayRooms:boards.examDayFlow.days.day.rooms.length};
+        }),{paperSlots:[],facultyRows:[],seatingAssignments:[],admitSchedule:[],roleLines:[],savedRooms:[],flowRooms:1,flowAssignments:1,flowEvents:1,dayRooms:1},'legacy and partially saved records must normalize before any renderer uses map');
         await a.evaluate(() => openLoginModal('principal'));
         await a.fill('#login-password', rolePasscodes.principal);
         await a.locator('#login-modal button[type="submit"]').click();
@@ -151,8 +157,12 @@ async function main() {
         assert.equal(await a.locator('#public-urgent-notice').getByText('LATEST',{exact:true}).count(),1);
         assert.doesNotMatch(await a.locator('#public-exam-notice-board').innerText(),/EXAMINATION NOTICE BOARD/);
         assert.equal(await a.locator('.notice-vertical-content').evaluate(element=>getComputedStyle(element).animationName),'notice-rise','published notice content must run from bottom to top');
-        await a.locator('.notice-vertical-window').focus();
-        assert.equal(await a.locator('.notice-vertical-content').evaluate(element=>getComputedStyle(element).animationPlayState),'paused','focusing the notice must pause its movement');
+        await a.locator('.notice-vertical-window').hover();
+        assert.equal(await a.locator('.notice-vertical-content').evaluate(element=>getComputedStyle(element).animationPlayState),'paused','hovering over the notice must pause its movement for reading');
+        await a.mouse.move(0,0);
+        await a.emulateMedia({reducedMotion:'reduce'});
+        assert.equal(await a.locator('.notice-vertical-content').evaluate(element=>getComputedStyle(element).animationName),'notice-rise','the public notice must keep running on mobile/device reduced-motion settings');
+        await a.emulateMedia({reducedMotion:'no-preference'});
         await a.evaluate(()=>{publicPortalBoards=window._noticeTestBoards;delete window._noticeTestBoards;renderPublicPortalBoards();activateArea('principal');});
         assert.equal(await a.locator('header img[alt="KVS logo"]').count(),1);
         assert.equal(await a.locator('header img[alt="PM SHRI logo"]').count(),1);
