@@ -255,7 +255,10 @@ async function saveData(names, expected = {}) {
         // saves must carry the latest Firebase sequence and can never reset it.
         if (names.includes('publicPortalBoards')) {
             const remoteSequence = store.view('publicPortalBoards')?._displaySequence;
-            if (Array.isArray(remoteSequence)) publicPortalBoards = { ...publicPortalBoards, _displaySequence: cloneData(remoteSequence) };
+            if (typeof publicDisplayPublishedKeys === 'function') {
+                const liveKeys = publicDisplayPublishedKeys(publicPortalBoards), saved = Array.isArray(remoteSequence) ? remoteSequence : [];
+                publicPortalBoards = { ...publicPortalBoards, _displaySequence: [...liveKeys.filter(key => !saved.includes(key)), ...saved.filter(key => liveKeys.includes(key))] };
+            } else if (Array.isArray(remoteSequence)) publicPortalBoards = { ...publicPortalBoards, _displaySequence: cloneData(remoteSequence) };
             else if (Object.hasOwn(publicPortalBoards, '_displaySequence')) {
                 const { _displaySequence, ...withoutLocalSequence } = publicPortalBoards;
                 publicPortalBoards = withoutLocalSequence;
