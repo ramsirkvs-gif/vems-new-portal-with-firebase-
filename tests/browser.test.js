@@ -130,7 +130,7 @@ async function main() {
         assert.equal(await b.locator('#mobile-portal-menu').isVisible(),true,'mobile must use one compact portal dropdown');
         assert.deepEqual(await b.locator('#mobile-portal-menu option').allTextContents(),['📢 Public View','🔒 Principal Login','🔒 Secondary IC Login','🔒 Primary IC Login']);
         assert.equal(await b.getByRole('banner').evaluate(element=>element.getBoundingClientRect().height<75),true,'mobile header must stay compact');
-        assert.equal(await b.locator('#public-roll-class').locator('..').locator('.public-export-button').count(),2,'roll-directory PDF and Share actions must remain available when its fixed slot is published');
+        assert.equal(await b.locator('#public-roll-directory-section .public-export-button').count(),2,'roll-directory PDF and Share actions must remain available when its fixed slot is published');
         assert.equal(await b.locator('#area-principal').isVisible(), false, 'a local role flag cannot grant access');
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
