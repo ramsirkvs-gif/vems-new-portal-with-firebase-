@@ -976,6 +976,9 @@ async function main() {
         await a.waitForFunction(()=>document.querySelectorAll('#exam-day-step-panel select').length===0);
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Saved Stage 1 duty/,'Step 2 must continue showing every unaffected pre-saved duty');
         assert.equal(await a.locator('#during-day-action-bar').getByRole('button',{name:'📢 Publish Updated Duty',exact:true}).isEnabled(),true,'the corrected selected-day duty must provide an aligned publish control');
+        await a.locator('#during-day-action-bar').getByRole('button',{name:'📢 Publish Updated Duty',exact:true}).click();
+        await a.waitForFunction(()=>publicPortalBoards.liveDuty?.days?.['2026-11-01']?.dutyVersion==='updated-after-absence');
+        assert.match(await a.locator('#public-live-duty').innerText(),/UPDATED AFTER STAFF ATTENDANCE[\s\S]*Examination Room 10-A/,'the corrected duty must replace the pre-fixed duty in the same Public View slot');
         await a.getByRole('button',{name:/OK & Next/}).click();
         await a.getByRole('button',{name:'4. Baggage Distribution',exact:true}).click();
         assert.equal(await a.getByRole('button',{name:'📢 Publish Status',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own daywise publish control');
