@@ -985,6 +985,7 @@ async function main() {
         assert.equal(await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own stop control');
         await a.getByRole('button',{name:'📢 Publish Status',exact:true}).click();
         await a.waitForFunction(()=>!!publicPortalBoards.roomInventoryStatus?.days?.['2026-11-01']);
+        assert.match(await a.locator('#public-room-inventory-section').innerText(),/Not taken over by invigilator[\s\S]*NOT TAKEN OVER BY INVIGILATOR/,'pending baggage must tell invigilators that the room bag has not been taken over');
         assert.equal(await a.locator('iframe[title="Mini room baggage slip"]').count(),1,'Step 4 must show the selected room baggage slip as a miniature PDF view');
         assert.match(await a.frameLocator('iframe[title="Mini room baggage slip"]').locator('body').innerText(),/INVIGILATOR ATTENDANCE PIN[\s\S]*\d{3}[\s\S]*Sensitive Room Attendance/,'every room baggage slip must carry its invigilator attendance PIN and use instruction');
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Distributed to:/,'each room issue row must identify the receiving invigilator');
@@ -1015,7 +1016,7 @@ async function main() {
         assert.equal(await a.locator('#public-seating-scroll-window thead').evaluate(node=>node.classList.contains('sticky')),true,'the Seating table heading must remain visible while its rows scroll');
         assert.match(await a.locator('#public-seating-scroll-window thead').innerText(),/Column No\.[\s\S]*from gate side[\s\S]*Desk No\./,'public Seating must use the same column-from-gate and desk terminology as Admit Cards');
         assert.doesNotMatch(await a.locator('#public-seating-scroll-window').innerText(),/Desk \/ Seat|\d+ \/ [AB]/,'student-facing Seating must not expose internal A/B seat codes');
-        assert.match(await a.locator('#public-room-inventory-section').innerText(),/Received 1\/1[\s\S]*Examination Room 10-A[\s\S]*RECEIVED/,'the independently published baggage board must show the current room handover status');
+        assert.match(await a.locator('#public-room-inventory-section').innerText(),/Taken over by invigilator 1\/1[\s\S]*Examination Room 10-A[\s\S]*TAKEN OVER BY INVIGILATOR/,'the independently published baggage board must show the current room handover status');
         assert.equal(await a.locator('#public-exam-day-flow #exam-day-public-pin').count(),0,'the sensitive attendance control must not appear inside the real-time display');
         assert.equal(await a.locator('#public-attendance-panel #exam-day-public-pin').count(),1,'the PIN-protected attendance control must appear under Section 3 Seating Arrangement Display');
         assert.match(await a.locator('#public-sensitive-attendance-section').innerText(),/Sensitive Absentee Marker with PIN[\s\S]*01\/11\/2026/,'the PIN-enabled public marker must prominently show its active examination date');
