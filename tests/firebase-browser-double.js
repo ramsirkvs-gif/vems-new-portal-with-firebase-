@@ -36,6 +36,7 @@
                     window.testSubscribe(path, id, user?.uid).catch(error => fail?.(error));
                 },
                 off(_, listener) { for (const [id, next] of listeners) if (next === listener) listeners.delete(id); },
+                async once() { const result=await window.testRead(path); return snapshot(result.value); },
                 push() { return { key: `test-student-${Date.now()}-${sequence++}` }; },
                 async set(value) {
                     const result = await window.testSet(path, value, user?.uid);

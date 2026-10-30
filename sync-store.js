@@ -114,6 +114,13 @@
                 if (typeof console !== 'undefined') console.error(`Shared ${name} display skipped:`, error);
             }
         }
+        replaceRemote(name, value) {
+            if (!this.active || !this.names.includes(name)) return;
+            this.remote[name] = normalize(name, value);
+            this.loaded.add(name);
+            this.emit(name);
+            this.status();
+        }
         start() {
             const listen = (path, next, fail) => {
                 const ref = this.db.ref(path);

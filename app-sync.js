@@ -402,7 +402,9 @@ function switchPortalArea(area) {
     if (area === 'public' || authorizedRole === 'principal' || authorizedRole === area || (area === 'principal' && ['sec-ic', 'pri-ic'].includes(authorizedRole))) {
         currentActiveRole = area;
         activateArea(area);
-        if(area==='public'&&authorizedRole==='principal')reconcilePublishedDataNow();
+        if(area==='public'){
+            refreshActivePublicFeed();
+        }
     } else openLoginModal(area);
 }
 function isExamIcMasterView() { return currentActiveRole === 'principal' && ['sec-ic', 'pri-ic'].includes(authorizedRole); }
@@ -612,7 +614,6 @@ function bindPublicDirectory() {
         }
         const attendanceRef=db.ref(`examDayAttendanceSubmissions/${selectedAcademicSession}`),attendanceListener=snapshot=>applyExamDayAttendanceSubmissions(snapshot.val()||{});
         examDayAttendanceSubscription={ref:attendanceRef,listener:attendanceListener};attendanceRef.on('value',attendanceListener,error=>showSyncError(`Attendance live sync failed: ${error.message}. Sign in again before exam-day attendance work.`));
-        return;
     }
     const ref=db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession));
     const listener=snapshot=>{publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',snapshot.val()||{});renderPublicSubjectDirectory();renderPublicPortalBoards();};
@@ -620,6 +621,29 @@ function bindPublicDirectory() {
     const boardsRef=db.ref(sessionCollectionPath('publicPortalBoards',activeSession));
     const boardsListener=snapshot=>{publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',snapshot.val()||{});renderPublicPortalBoards();};
     publicBoardsSubscription={ref:boardsRef,listener:boardsListener};boardsRef.on('value',boardsListener,()=>{publicVisiblePortalBoards={};renderPublicPortalBoards();});
+}
+async function refreshActivePublicFeed(){
+    if(!db)return false;
+    const activeSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
+    try{
+        const [boardsSnapshot,directorySnapshot]=await Promise.all([
+            db.ref(sessionCollectionPath('publicPortalBoards',activeSession)).once('value'),
+            db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession)).once('value')
+        ]);
+        const confirmedBoards=normalizeSharedUiValue('publicPortalBoards',boardsSnapshot.val()||{});
+        publicVisiblePortalBoards=confirmedBoards;
+        publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',directorySnapshot.val()||{});
+        if(authorizedRole&&selectedAcademicSession===activeSession&&sharedStore?.active){
+            sharedStore.replaceRemote('publicPortalBoards',confirmedBoards);
+        }
+        try{renderPublicSubjectDirectory();renderPublicPortalBoards();}
+        catch(renderError){console.error('Public feed refreshed, but part of the display could not render:',renderError);}
+        return true;
+    }catch(error){
+        console.error('Public View refresh failed:',error);
+        if(authorizedRole)showSyncError(`Public View could not refresh: ${error.message||error}`);
+        return false;
+    }
 }
 function bindSessionMetadata() {
     sessionMetadataSubscriptions.forEach(item=>item.ref.off('value',item.listener)); sessionMetadataSubscriptions=[];
