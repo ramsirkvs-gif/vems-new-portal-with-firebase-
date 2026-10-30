@@ -776,8 +776,11 @@ async function main() {
         await a.getByRole('button',{name:'📢 Publish Admit Cards',exact:true}).click();
         await a.waitForFunction(()=>publicPortalBoards.admitCards?.candidates?.length===2);
         assert.equal(await a.locator('#public-admit-card-window').evaluate(node=>!node.classList.contains('hidden')),true,'published Admit Cards must appear in the compact Public Seating window');
+        assert.equal(await a.locator('#public-admit-results').evaluate(node=>node.classList.contains('h-52')&&node.classList.contains('overflow-y-auto')&&node.classList.contains('overflow-x-auto')),true,'the Public Admit Card list must remain a low-height scrollable window');
+        await a.evaluate(()=>{const rows=publishedAdmitCardRows(publicVisiblePortalBoards.admitCards);publicVisiblePortalBoards.admitCards.candidates=Object.fromEntries(rows.map((row,index)=>[`candidate-${index+1}`,row]));renderPublicPortalBoards();});
+        assert.equal(await a.locator('#public-admit-results tbody tr').count(),2,'Firebase object-shaped Admit Card records must remain visible and searchable after Public View reload');
         await a.locator('#public-admit-class').selectOption('10-A',{force:true});
-        const firstPublishedName=await a.evaluate(()=>publicPortalBoards.admitCards.candidates[0].name);
+        const firstPublishedName=await a.evaluate(()=>publishedAdmitCardRows(publicPortalBoards.admitCards)[0].name);
         await a.evaluate(name=>{document.getElementById('public-admit-search').value=name;renderPublicPortalBoards();},firstPublishedName);
         assert.equal(await a.locator('#public-admit-results tbody tr').count(),1,'the public Admit Card window must filter by class and student name or roll number');
         await a.locator('#public-admit-results button').evaluate(button=>button.click());
