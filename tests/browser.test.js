@@ -942,7 +942,7 @@ async function main() {
         await a.getByRole('button',{name:/Open During-Exam Workspace/}).click();
         assert.equal(await a.getByRole('button',{name:'1. Faculty Absence (Staff)'}).count(),1,'Exam-Day operations must open as the requested guided sequence');
         assert.equal(await a.locator('#lifecycle-stage-workspace.mock-mode-workspace').count(),0,'attendance practice must not darken the full examination workspace');
-        await a.getByRole('button',{name:'4. PIN Generation & Sensitive Attendance',exact:true}).click();
+        await a.getByRole('button',{name:'3. PIN Generation & Sensitive Attendance',exact:true}).click();
         assert.equal(await a.getByRole('button',{name:'🧹 Reset Attendance Data',exact:true}).count(),1,'PIN attendance must provide exactly one clear reset action');
         await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),day=duringExamDayRecord(exam,'2026-11-01');day.attendance={'room-test':['student-test']};day.attendanceSubmitted={'room-test':{submitted:true,submittedAt:new Date().toISOString()}};publicPortalBoards.examDayFlow={examId:100,date:'2026-11-01',days:{'2026-11-01':{date:'2026-11-01',attendanceEnabled:true,attendance:{'room-test':['student-test']},attendanceSubmitted:{'room-test':{submitted:true}}}}};publicPortalBoards.examDayAttendance={examId:100,date:'2026-11-01'};publicPortalBoards.examDayAttendanceClasswise={examId:100,date:'2026-11-01'};});
         await a.getByRole('button',{name:'🧹 Reset Attendance Data',exact:true}).first().click();
@@ -967,16 +967,7 @@ async function main() {
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Saved Stage 1 duty/,'Step 2 must continue showing every unaffected pre-saved duty');
         assert.equal(await a.locator('#during-day-action-bar').getByRole('button',{name:'📢 Publish Updated Duty',exact:true}).isEnabled(),true,'the corrected selected-day duty must provide an aligned publish control');
         await a.getByRole('button',{name:/OK & Next/}).click();
-        assert.match(await a.locator('#exam-day-step-panel').innerText(),/My Role in the Exam[\s\S]*Search any faculty member/,'Step 3 must provide the searchable faculty role workspace before PIN generation');
-        const roleSelect=a.getByRole('combobox',{name:'Search faculty role'}).last();
-        await roleSelect.selectOption({index:1});
-        assert.match(await a.locator('#exam-day-step-panel').innerText(),/TODAY’S INSTANT ROLE[\s\S]*OTHER \/ FUNDAMENTAL RESPONSIBILITIES[\s\S]*FULL VAULT EVALUATION TOTAL/,'the selected faculty must see the instant daily role first and continuing responsibilities below');
-        assert.equal(await a.evaluate(()=>myExamRoleRows(archivedExams.find(item=>String(item.id)==='100'),'2026-11-01').some(row=>row.todayRoles.some(role=>role.includes('COLLECT MY EVALUATION BUNDLE')&&role.includes('exam falls today')))),true,'an evaluator whose paper falls today must see the bundle collection in the upper instant-role section');
-        assert.deepEqual(await a.evaluate(()=>{const exam=archivedExams.find(item=>String(item.id)==='100'),coreRow=myExamRoleRows(exam,'2026-11-01').find(row=>examCoreTeam[row.teacherId]);const evaluationIndex=coreRow.fundamentalRoles.findIndex(role=>role.startsWith('EVALUATION TARGET')),teachingIndex=coreRow.fundamentalRoles.findIndex(role=>role.startsWith('TEACHING SOURCE'));return{coreInstant:coreRow.todayRoles.some(role=>role.includes('CORE EXAMINATION TEAM')&&role.includes('overall conduct')),teachingLast:teachingIndex<0||evaluationIndex<0||teachingIndex>evaluationIndex};}),{coreInstant:true,teachingLast:true},'core-team conduct must be an instant role and teaching-source information must follow exam work');
-        assert.equal(await a.getByRole('button',{name:'🖨 PDF / Print',exact:true}).count(),1,'My Role must provide its own PDF action');
-        await a.evaluate(()=>{archivedExams.find(item=>String(item.id)==='100').mockPractice={active:true,date:'2026-11-01'};});
-        assert.equal(await a.locator('#public-my-exam-role-section').count(),0,'Public My Role section is intentionally removed');
-        await a.getByRole('button',{name:'5. Baggage Distribution',exact:true}).click();
+        await a.getByRole('button',{name:'4. Baggage Distribution',exact:true}).click();
         assert.equal(await a.getByRole('button',{name:'📢 Publish Status',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own daywise publish control');
         assert.equal(await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own stop control');
         await a.getByRole('button',{name:'📢 Publish Status',exact:true}).click();
@@ -996,7 +987,7 @@ async function main() {
         await a.waitForFunction(()=>document.querySelector('#exam-day-step-panel')?.textContent.includes('Exam Cell — Real-Time Absentees & Final Report'));
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Exam Cell — Real-Time Absentees & Final Report/,'completed baggage distribution must continue to the final report');
         assert.equal(await a.evaluate(()=>publicPortalBoards.roomInventoryStatus.days['2026-11-01'].rooms.every(item=>item.received)),true,'published Room Inventory status must update automatically after each baggage handover');
-        await a.getByRole('button',{name:'4. PIN Generation & Sensitive Attendance',exact:true}).click();
+        await a.getByRole('button',{name:'3. PIN Generation & Sensitive Attendance',exact:true}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Waiting for invigilator submission/);
         assert.match(await a.locator('#during-day-action-bar').innerText(),/DAYWISE[\s\S]*Publish with PIN[\s\S]*Stop Publishing/,'the PIN marker must use the common selected-day publication bar');
         assert.equal(await a.getByRole('button',{name:'🧹 Reset Attendance Data',exact:true}).count(),1,'the selected exam day must provide one controlled day-attendance reset');
@@ -1027,7 +1018,7 @@ async function main() {
         assert.match(await a.locator('#public-attendance-submission-receipt').innerText(),/Attendance submitted to the Examination Cell[\s\S]*Present \d+ · Absent 1[\s\S]*Stage 2 → 6\. Real-Time Absentees & Final Report/,'the invigilator must receive a persistent submission receipt and exact final-report location');
         await a.evaluate(()=>{switchPortalArea('principal');openLifecycleStage('during');});
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Attendance received/,'the PIN page must show that the room submission was received');
-        await a.getByRole('button',{name:'6. Real-Time Absentees & Final Report'}).click();
+        await a.getByRole('button',{name:'5. Real-Time Absentees & Final Report'}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Real-Time Absentee Receiving Board[\s\S]*Seat Student One/,'the merged final-report page must show full candidate details after invigilator submission');
         assert.equal(await a.locator('[data-attendance-report-actions]').count(),2,'roomwise and classwise reports must have separate action groups');
         assert.equal(await a.getByRole('button',{name:/Exam IC Review \/ Update/}).count(),0,'the final report must be a read-only view of invigilator PIN submissions');
