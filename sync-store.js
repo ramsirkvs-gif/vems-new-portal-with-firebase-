@@ -103,7 +103,17 @@
         view(name) {
             return (this.pending[name] || []).reduce((data, operation) => apply(data, operation.patch), copy(this.remote[name] || {}));
         }
-        emit(name) { if (this.active && this.loaded.has(name)) this.onValue(name, this.view(name)); }
+        emit(name) {
+            if (!this.active || !this.loaded.has(name)) return;
+            try { this.onValue(name, this.view(name)); }
+            catch (error) {
+                // A legacy/malformed record can break one UI renderer. It must never be
+                // reported as a Firebase permission failure or make every collection
+                // read-only. Later collection events can still complete the screen.
+                this.lastRenderError = { name, message: error?.message || String(error) };
+                if (typeof console !== 'undefined') console.error(`Shared ${name} display skipped:`, error);
+            }
+        }
         start() {
             const listen = (path, next, fail) => {
                 const ref = this.db.ref(path);

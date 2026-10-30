@@ -129,6 +129,21 @@ test('offline and unloaded clients cannot submit writes', async () => {
     a.store.connected = false;
     assert.throws(() => a.store.save('teachers', []), /offline/);
 });
+test('a UI rendering exception does not turn a valid Firebase connection into an access failure', async () => {
+    const db = new Database({ teachers: [{ id: 1, name: 'Valid data', allotments: [] }] });
+    const statuses = [];
+    const originalError = console.error;
+    console.error = () => {};
+    try {
+        const store = new Store(db, ['teachers'], () => { throw new Error("Cannot read properties of undefined (reading 'map')"); }, state => statuses.push(state));
+        store.start();
+        await tick();
+        assert.equal(store.ready, true);
+        assert.equal(store.error, '');
+        assert.match(store.lastRenderError.message, /reading 'map'/);
+        assert.equal(statuses.at(-1).error, '');
+    } finally { console.error = originalError; }
+});
 test('permission-denied writes reject, restore the server view, and clear pending state', async () => {
     const db = new Database();
     const a = await client(db);

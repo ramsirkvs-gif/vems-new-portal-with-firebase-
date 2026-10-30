@@ -4412,7 +4412,7 @@
                 let dDate = new Date(`${dayObj.dateStr}T12:00:00`);
                 let dateDisplay = isNaN(dDate.getTime()) ? `Day ${dayObj.id}` : formatDateWithDay(dayObj.dateStr);
                 if (!dayObj.paperSlots) dayObj.paperSlots = [];
-                const dayClashes=examDayClashes(dayObj),daySummary=dayObj.paperSlots.map(slot=>`${formatClass(slot.cls)}-${slot.subject}`).join(' · ');
+                const dayClashes=examDayClashes(dayObj),daySummary=(dayObj.paperSlots||[]).map(slot=>`${formatClass(slot.cls)}-${slot.subject}`).join(' · ');
                 let slotsHtml = '';
                 dayObj.paperSlots.forEach((slot, sIdx) => {
                     let availableSubjects = getUniqueSubjectsForClass(slot.cls);
