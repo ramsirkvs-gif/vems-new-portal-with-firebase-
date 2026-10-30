@@ -251,6 +251,16 @@ async function saveData(names, expected = {}) {
     if (!canEditSharedData(required)) { restoreSharedValues(names); return false; }
     const store = sharedStore;
     try {
+        // Public display sequence is independently managed by PDS. Other public-board
+        // saves must carry the latest Firebase sequence and can never reset it.
+        if (names.includes('publicPortalBoards')) {
+            const remoteSequence = store.view('publicPortalBoards')?._displaySequence;
+            if (Array.isArray(remoteSequence)) publicPortalBoards = { ...publicPortalBoards, _displaySequence: cloneData(remoteSequence) };
+            else if (Object.hasOwn(publicPortalBoards, '_displaySequence')) {
+                const { _displaySequence, ...withoutLocalSequence } = publicPortalBoards;
+                publicPortalBoards = withoutLocalSequence;
+            }
+        }
         // Capture each desired value before listener callbacks refresh the UI.
         const desired = names.map(name => [name, cloneData(sharedValue(name))]);
         if (names.includes('archivedExams') && editorBaselines.exam) {
