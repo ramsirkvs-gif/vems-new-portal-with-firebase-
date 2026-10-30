@@ -385,8 +385,13 @@ async function main() {
         await a.fill('#core-internal-task','Control room coordination');
         await a.getByRole('button',{name:'💾 Save New Task'}).click();
         await a.waitForFunction(id=>coreInternalDutiesFor(id).some(item=>item.task==='Control room coordination'),sharedTeacherId);
+        await a.locator('#core-internal-duty-list article').filter({hasText:'Control room coordination'}).getByRole('button',{name:'Edit'}).click();
+        await a.fill('#core-internal-inline-edit','Control room and bell coordination');
+        await a.getByRole('button',{name:'💾 Save Changes'}).click();
+        await a.waitForFunction(id=>coreInternalDutiesFor(id).some(item=>item.task==='Control room and bell coordination'),sharedTeacherId);
+        assert.equal(await a.locator('#core-internal-inline-edit').count(),0,'internal work editing must stay inline and close after Firebase confirms the save');
         await a.getByRole('button',{name:'📢 Publish Internal Work'}).click();
-        await b.waitForFunction(()=>publicPortalBoards.coreInternalWork?.rows?.some(row=>row.task==='Control room coordination'));
+        await b.waitForFunction(()=>publicPortalBoards.coreInternalWork?.rows?.some(row=>row.task==='Control room and bell coordination'));
         await a.getByRole('button',{name:'📢 Publish Team'}).click();
         await b.waitForFunction(()=>publicPortalBoards.coreTeam?.rows?.[0]?.name==='New Shared Teacher');
         assert.deepEqual(await a.evaluate(()=>[
@@ -399,7 +404,7 @@ async function main() {
         ].sort(compareCoreTeamDisplay).map(item=>item.name)),['Observer','Exam IC','MRS. JYOTI VERMA','MR. DEVENDRA KUMAR MEENA','Member A','Member B'],'Core Team default display must show Observer, IC, Jyoti, Devendra, then members');
         await a.evaluate(()=>{publicVisiblePortalBoards=cloneData(publicPortalBoards);activateArea('public');renderPublicPortalBoards();});
         assert.deepEqual(await a.locator('#public-core-team-belt article b').allTextContents(),['New Shared Teacher','Support Faculty']);
-        assert.match(await a.locator('#public-core-internal-work-section').innerText(),/New Shared Teacher[\s\S]*Control room coordination/);
+        assert.match(await a.locator('#public-core-internal-work-section').innerText(),/New Shared Teacher[\s\S]*Control room and bell coordination/);
         await a.evaluate(()=>activateArea('principal'));
         await a.getByRole('button',{name:'⛔ Stop Publishing Team'}).click();
         await b.waitForFunction(()=>!publicPortalBoards.coreTeam);
