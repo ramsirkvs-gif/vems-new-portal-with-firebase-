@@ -137,15 +137,17 @@ async function main() {
         assert.deepEqual(await a.evaluate(() => {
             const exam=normalizeSharedUiValue('archivedExams',{old:{id:'old',datesheetSnapshot:{day:{id:1}}}}).old;
             const boards=normalizeSharedUiValue('publicPortalBoards',{
-                facultyRoster:{}, seating:{plans:{day:{}}}, admitCards:{candidates:{one:{id:'one'}}}, myExamRoles:{rows:{one:{name:'Legacy'}}},
+                facultyRoster:{}, coreInternalWork:{rows:{one:{teacherId:'1',task:'Test duty'}}}, seating:{plans:{day:{}}}, admitCards:{candidates:{one:{id:'one'}}}, myExamRoles:{rows:{one:{name:'Legacy'}}},
                 examDayFlow:{
                     rooms:{one:{room:{id:'r1'},assignments:{one:{studentId:'s1'}}}}, events:{one:{key:'start'}},
                     days:{day:{rooms:{one:{room:{id:'r1'},assignments:{one:{studentId:'s1'}}}},events:{one:{key:'start'}}}}
                 }
             });
             const plans=normalizeSharedUiValue('seatingPlans',{exam:{day:{}}});
-            return {paperSlots:exam.datesheetSnapshot[0].paperSlots,facultyRows:boards.facultyRoster.rows,seatingAssignments:boards.seating.plans.day.assignments,admitSchedule:boards.admitCards.candidates[0].admitSchedule,roleLines:boards.myExamRoles.rows[0].todayRoles,savedRooms:plans.exam.day.rooms,flowRooms:boards.examDayFlow.rooms.length,flowAssignments:boards.examDayFlow.rooms[0].assignments.length,flowEvents:boards.examDayFlow.events.length,dayRooms:boards.examDayFlow.days.day.rooms.length};
-        }),{paperSlots:[],facultyRows:[],seatingAssignments:[],admitSchedule:[],roleLines:[],savedRooms:[],flowRooms:1,flowAssignments:1,flowEvents:1,dayRooms:1},'legacy and partially saved records must normalize before any renderer uses map');
+            writePublicFeedCache('boards','test-session',{notices:[{heading:'Retained notice'}]});
+            const cached=readPublicFeedCache('boards','test-session');localStorage.removeItem(publicFeedCacheKey('boards','test-session'));
+            return {paperSlots:exam.datesheetSnapshot[0].paperSlots,facultyRows:boards.facultyRoster.rows,internalRows:boards.coreInternalWork.rows,seatingAssignments:boards.seating.plans.day.assignments,admitSchedule:boards.admitCards.candidates[0].admitSchedule,roleLines:boards.myExamRoles.rows[0].todayRoles,savedRooms:plans.exam.day.rooms,flowRooms:boards.examDayFlow.rooms.length,flowAssignments:boards.examDayFlow.rooms[0].assignments.length,flowEvents:boards.examDayFlow.events.length,dayRooms:boards.examDayFlow.days.day.rooms.length,cachedHeading:cached.notices[0].heading};
+        }),{paperSlots:[],facultyRows:[],internalRows:[{teacherId:'1',task:'Test duty'}],seatingAssignments:[],admitSchedule:[],roleLines:[],savedRooms:[],flowRooms:1,flowAssignments:1,flowEvents:1,dayRooms:1,cachedHeading:'Retained notice'},'legacy records and the last confirmed public feed must normalize safely');
         await a.evaluate(() => openLoginModal('principal'));
         await a.fill('#login-password', rolePasscodes.principal);
         await a.locator('#login-modal button[type="submit"]').click();

@@ -184,7 +184,7 @@ function normalizeSharedUiValue(name,input){
         if(value._holidayCalendar){value._holidayCalendar.__pending=sharedArray(value._holidayCalendar.__pending);value._holidayCalendar.__breaks=sharedArray(value._holidayCalendar.__breaks);}
     }
     if(name==='publicPortalBoards'){
-        ['facultyRoster','coreTeam','classTeacherRoster','myExamRoles','holidays','dateSheet','qpPrinting'].forEach(key=>{if(value[key])value[key].rows=sharedArray(value[key].rows);});
+        ['facultyRoster','coreTeam','coreInternalWork','classTeacherRoster','myExamRoles','holidays','dateSheet','qpPrinting'].forEach(key=>{if(value[key])value[key].rows=sharedArray(value[key].rows);});
         if(value.facultyRoster)value.facultyRoster.rows.forEach(row=>{row.allotments=sharedArray(row.allotments);});
         if(value.myExamRoles)value.myExamRoles.rows.forEach(row=>{row.todayRoles=sharedArray(row.todayRoles);row.fundamentalRoles=sharedArray(row.fundamentalRoles);row.roles=sharedArray(row.roles);});
         if(value.seating){value.seating.plans=value.seating.plans||{};Object.values(value.seating.plans).forEach(plan=>{if(plan){plan.rooms=sharedArray(plan.rooms);plan.assignments=sharedArray(plan.assignments);}});}
@@ -314,8 +314,8 @@ async function saveData(names, expected = {}) {
         lastConfirmedSave = new Date().toLocaleTimeString();
         showSyncError('');
         store.status();
-        if(names.includes('publicPortalBoards')&&selectedAcademicSession===activePublicSession){publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',cloneData(publicPortalBoards));runSharedRenderer('Public portal',renderPublicPortalBoards);}
-        if(names.includes('publishedSubjectDirectories')&&selectedAcademicSession===activePublicSession){publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',cloneData(publishedSubjectDirectories));runSharedRenderer('Public subject directory',renderPublicSubjectDirectory);}
+        if(names.includes('publicPortalBoards')&&selectedAcademicSession===activePublicSession){publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',cloneData(publicPortalBoards));writePublicFeedCache('boards',activePublicSession,publicVisiblePortalBoards);runSharedRenderer('Public portal',renderPublicPortalBoards);}
+        if(names.includes('publishedSubjectDirectories')&&selectedAcademicSession===activePublicSession){publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',cloneData(publishedSubjectDirectories));writePublicFeedCache('directory',activePublicSession,publicPublishedSubjectDirectories);runSharedRenderer('Public subject directory',renderPublicSubjectDirectory);}
         if (names.includes('archivedExams')) editorBaselines.exam = null;
         return true;
     } catch (error) {
@@ -580,6 +580,9 @@ async function importLegacyBrowserData() {
 }
 
 function sessionStorePaths(sessionId) { return Object.fromEntries(sharedNames.map(name => [name, name === 'signatureProfiles' ? 'signatureProfiles' : sessionCollectionPath(name, sessionId)])); }
+function publicFeedCacheKey(kind,sessionId){return`vems_public_${kind}_${String(sessionId).replace(/[^a-z0-9-]/gi,'_')}`;}
+function readPublicFeedCache(kind,sessionId){try{const saved=JSON.parse(localStorage.getItem(publicFeedCacheKey(kind,sessionId))||'null');return saved?.value&&typeof saved.value==='object'?saved.value:null;}catch{return null;}}
+function writePublicFeedCache(kind,sessionId,value){try{localStorage.setItem(publicFeedCacheKey(kind,sessionId),JSON.stringify({savedAt:new Date().toISOString(),value}));}catch(error){console.warn(`Public ${kind} cache could not be updated:`,error?.message||error);}}
 function resetSessionViews() {
     resetPrivateSharedValues();
     Object.keys(editorBaselines).forEach(key => { editorBaselines[key]=null; });
@@ -608,20 +611,23 @@ function bindPublicDirectory() {
     if (publicBoardsSubscription) { publicBoardsSubscription.ref.off('value',publicBoardsSubscription.listener); publicBoardsSubscription=null; }
     if(examDayAttendanceSubscription){examDayAttendanceSubscription.ref.off('value',examDayAttendanceSubscription.listener);examDayAttendanceSubscription=null;}
     const activeSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
+    const cachedBoards=readPublicFeedCache('boards',activeSession),cachedDirectory=readPublicFeedCache('directory',activeSession);
+    if(cachedBoards&&Object.keys(cachedBoards).length){publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',cachedBoards);renderPublicPortalBoards();}
+    if(cachedDirectory&&Object.keys(cachedDirectory).length){publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',cachedDirectory);renderPublicSubjectDirectory();}
     if(authorizedRole){
         if(selectedAcademicSession===activeSession){
-            publicPublishedSubjectDirectories=publishedSubjectDirectories;
-            publicVisiblePortalBoards=publicPortalBoards;
+            if(Object.keys(publishedSubjectDirectories||{}).length)publicPublishedSubjectDirectories=publishedSubjectDirectories;
+            if(Object.keys(publicPortalBoards||{}).length)publicVisiblePortalBoards=publicPortalBoards;
         }
         const attendanceRef=db.ref(`examDayAttendanceSubmissions/${selectedAcademicSession}`),attendanceListener=snapshot=>applyExamDayAttendanceSubmissions(snapshot.val()||{});
         examDayAttendanceSubscription={ref:attendanceRef,listener:attendanceListener};attendanceRef.on('value',attendanceListener,error=>showSyncError(`Attendance live sync failed: ${error.message}. Sign in again before exam-day attendance work.`));
     }
     const ref=db.ref(sessionCollectionPath('publishedSubjectDirectories',activeSession));
-    const listener=snapshot=>{publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',snapshot.val()||{});renderPublicSubjectDirectory();renderPublicPortalBoards();};
-    publicDirectorySubscription={ref,listener}; ref.on('value',listener,()=>{publicPublishedSubjectDirectories={};renderPublicSubjectDirectory();renderPublicPortalBoards();});
+    const listener=snapshot=>{publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',snapshot.val()||{});writePublicFeedCache('directory',activeSession,publicPublishedSubjectDirectories);renderPublicSubjectDirectory();renderPublicPortalBoards();};
+    publicDirectorySubscription={ref,listener}; ref.on('value',listener,error=>{console.error('Public subject directory live sync failed:',error);if(authorizedRole)showSyncError(`Public directory live update paused: ${error.message||error}. Last confirmed display has been retained.`);});
     const boardsRef=db.ref(sessionCollectionPath('publicPortalBoards',activeSession));
-    const boardsListener=snapshot=>{publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',snapshot.val()||{});renderPublicPortalBoards();};
-    publicBoardsSubscription={ref:boardsRef,listener:boardsListener};boardsRef.on('value',boardsListener,()=>{publicVisiblePortalBoards={};renderPublicPortalBoards();});
+    const boardsListener=snapshot=>{publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',snapshot.val()||{});writePublicFeedCache('boards',activeSession,publicVisiblePortalBoards);renderPublicPortalBoards();};
+    publicBoardsSubscription={ref:boardsRef,listener:boardsListener};boardsRef.on('value',boardsListener,error=>{console.error('Public boards live sync failed:',error);if(authorizedRole)showSyncError(`Public View live update paused: ${error.message||error}. Last confirmed published display has been retained.`);});
 }
 async function refreshActivePublicFeed(){
     if(!db)return false;
@@ -634,6 +640,8 @@ async function refreshActivePublicFeed(){
         const confirmedBoards=normalizeSharedUiValue('publicPortalBoards',boardsSnapshot.val()||{});
         publicVisiblePortalBoards=confirmedBoards;
         publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',directorySnapshot.val()||{});
+        writePublicFeedCache('boards',activeSession,publicVisiblePortalBoards);
+        writePublicFeedCache('directory',activeSession,publicPublishedSubjectDirectories);
         if(authorizedRole&&selectedAcademicSession===activeSession&&sharedStore?.active){
             sharedStore.replaceRemote('publicPortalBoards',confirmedBoards);
         }
