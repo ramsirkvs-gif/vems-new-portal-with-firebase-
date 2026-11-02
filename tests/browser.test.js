@@ -509,6 +509,14 @@ async function main() {
         console.log('PASS: stream rules, Subject Mapping PDF, publish and public directory synchronize');
 
         assert.deepEqual(await a.evaluate(() => rollDirectoryColumnPairs(Array.from({length:6},(_,index)=>({roll:index+1}))).map(pair=>[pair.leftNumber,pair.rightNumber])), [[1,4],[2,5],[3,6]]);
+        await a.evaluate(()=>{window.__priorRollDirectory=cloneData(publicPortalBoards.rollDirectory||null);publicPortalBoards={...publicPortalBoards,rollDirectory:{sections:{'12-A':[{cls:'12',section:'A',roll:'1201',name:'XII A Student'}],'12-B':[{cls:'12',section:'B',roll:'1202',name:'XII B Student'}],'10-A':[{cls:'10',section:'A',roll:'1001',name:'X Student'}]}}};renderPublicPortalBoards();});
+        assert.deepEqual(await a.locator('#public-roll-class option').allTextContents(),['All Published Classes','Class X — All Sections','↳ Class X-A','Class XII — All Sections','↳ Class XII-A','↳ Class XII-B'],'roll dropdown must provide classwise All Sections plus individual published sections');
+        await a.locator('#public-roll-class').selectOption('class:12',{force:true});
+        assert.equal(await a.locator('#public-roll-body tr').count(),2,'Class XII All Sections must show every published XII section');
+        await a.evaluate(()=>{document.getElementById('public-roll-search').value='1202';renderPublicPortalBoards();});
+        assert.match(await a.locator('#public-roll-body').innerText(),/XII B Student/,'roll-number search must work inside the selected Class XII All Sections');
+        assert.equal(await a.evaluate(()=>rollDirectorySelectionMatches({cls:'12',section:'D'},'class:12')&&!rollDirectorySelectionMatches({cls:'11',section:'A'},'class:12')),true);
+        await a.evaluate(()=>{const next={...publicPortalBoards};if(window.__priorRollDirectory)next.rollDirectory=window.__priorRollDirectory;else delete next.rollDirectory;publicPortalBoards=next;delete window.__priorRollDirectory;document.getElementById('public-roll-search').value='';renderPublicPortalBoards();});
         console.log('PASS: roll-directory PDF completes the left column before continuing in the right column');
 
         await a.evaluate(async () => { sectionConfigs['10-B']=['SCIENCE']; await saveData(['sectionConfigs']); });
