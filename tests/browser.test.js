@@ -396,6 +396,7 @@ async function main() {
         await a.fill('#core-internal-inline-edit','Control room and bell coordination');
         await a.getByRole('button',{name:'💾 Save Changes'}).click();
         await a.waitForFunction(id=>coreInternalDutiesFor(id).some(item=>item.task==='Control room and bell coordination'),sharedTeacherId);
+        await a.waitForFunction(()=>!document.getElementById('core-internal-inline-edit'));
         assert.equal(await a.locator('#core-internal-inline-edit').count(),0,'internal work editing must stay inline and close after Firebase confirms the save');
         await a.fill('#core-internal-task','Confidential packet control');
         await a.getByRole('button',{name:'💾 Save New Task'}).click();
@@ -509,8 +510,8 @@ async function main() {
         console.log('PASS: stream rules, Subject Mapping PDF, publish and public directory synchronize');
 
         assert.deepEqual(await a.evaluate(() => rollDirectoryColumnPairs(Array.from({length:6},(_,index)=>({roll:index+1}))).map(pair=>[pair.leftNumber,pair.rightNumber])), [[1,4],[2,5],[3,6]]);
-        await a.evaluate(()=>{window.__priorRollDirectory=cloneData(publicPortalBoards.rollDirectory||null);publicPortalBoards={...publicPortalBoards,rollDirectory:{sections:{'12-A':[{cls:'12',section:'A',roll:'1201',name:'XII A Student'}],'12-B':[{cls:'12',section:'B',roll:'1202',name:'XII B Student'}],'10-A':[{cls:'10',section:'A',roll:'1001',name:'X Student'}]}}};renderPublicPortalBoards();});
-        assert.deepEqual(await a.locator('#public-roll-class option').allTextContents(),['All Published Classes','Class X — All Sections','↳ Class X-A','Class XII — All Sections','↳ Class XII-A','↳ Class XII-B'],'roll dropdown must provide classwise All Sections plus individual published sections');
+        await a.evaluate(()=>{window.__priorRollDirectory=cloneData(publicPortalBoards.rollDirectory||null);publicPortalBoards={...publicPortalBoards,rollDirectory:{sections:{'12-A':[{cls:'12',section:'A',roll:'1201',name:'XII A Student'}],'12-B':[{cls:'12',section:'B',roll:'1202',name:'XII B Student'}],'10-A':[{cls:'10',section:'A',roll:'1001',name:'X Student'}],'undefined-undefined':[{cls:'undefined',section:'undefined',roll:'undefined',name:'Broken Legacy Row'}]}}};renderPublicPortalBoards();});
+        assert.deepEqual(await a.locator('#public-roll-class option').allTextContents(),['All Published Classes','Class X','Class XII'],'roll dropdown must remain simple and classwise without section arrows or malformed values');
         await a.locator('#public-roll-class').selectOption('class:12',{force:true});
         assert.equal(await a.locator('#public-roll-body tr').count(),2,'Class XII All Sections must show every published XII section');
         await a.evaluate(()=>{document.getElementById('public-roll-search').value='1202';renderPublicPortalBoards();});
