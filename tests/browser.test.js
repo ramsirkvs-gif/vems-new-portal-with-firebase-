@@ -511,7 +511,13 @@ async function main() {
 
         assert.deepEqual(await a.evaluate(() => rollDirectoryColumnPairs(Array.from({length:6},(_,index)=>({roll:index+1}))).map(pair=>[pair.leftNumber,pair.rightNumber])), [[1,4],[2,5],[3,6]]);
         await a.evaluate(()=>{window.__priorRollDirectory=cloneData(publicPortalBoards.rollDirectory||null);publicPortalBoards={...publicPortalBoards,rollDirectory:{sections:{'12-A':[{cls:'12',section:'A',roll:'1201',name:'XII A Student'}],'12-B':[{cls:'12',section:'B',roll:'1202',name:'XII B Student'}],'10-A':[{cls:'10',section:'A',roll:'1001',name:'X Student'}],'undefined-undefined':[{cls:'undefined',section:'undefined',roll:'undefined',name:'Broken Legacy Row'}]}}};renderPublicPortalBoards();});
-        assert.deepEqual(await a.locator('#public-roll-class option').allTextContents(),['All Published Classes','Class X','Class XII'],'roll dropdown must remain simple and classwise without section arrows or malformed values');
+        assert.deepEqual(await a.locator('#public-roll-class option').allTextContents(),['All Published Classes','Class X — All Sections','Class X-A','Class XII — All Sections','Class XII-A','Class XII-B'],'roll dropdown must include published classes and sections without malformed values');
+        await a.locator('#public-roll-class').selectOption('12-B',{force:true});
+        assert.match(await a.locator('#public-roll-body').innerText(), /XII B Student/);
+        assert.doesNotMatch(await a.locator('#public-roll-body').innerText(), /XII A Student/);
+        await a.evaluate(()=>renderPublicPortalBoards());
+        assert.equal(await a.locator('#public-roll-class').inputValue(),'12-B','section selection must survive rerender');
+        assert.equal(await a.evaluate(()=>rollDirectoryRows(normalizeSharedUiValue('publicPortalBoards',{rollDirectory:{rows:{one:{cls:'10',section:'D',name:'Legacy Student',roll:'1004'}}}}).rollDirectory).length),1,'legacy published rows must survive public-feed normalization');
         await a.locator('#public-roll-class').selectOption('class:12',{force:true});
         assert.equal(await a.locator('#public-roll-body tr').count(),2,'Class XII All Sections must show every published XII section');
         await a.evaluate(()=>{document.getElementById('public-roll-search').value='1202';renderPublicPortalBoards();});
