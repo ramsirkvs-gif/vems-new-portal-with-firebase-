@@ -154,6 +154,36 @@ async function main() {
         await a.evaluate(async boards=>{publicPortalBoards=boards;await saveData(['publicPortalBoards']);await refreshActivePublicFeed();},priorBoards);
         await b.evaluate(()=>activateArea('principal'));
         console.log('PASS: public student directory stays visible and all-section publishing reaches Public View');
+        await a.evaluate(async()=>{
+            const prior=students,oldConfirm=window.confirm;
+            students=[{id:910,name:'Maths Student',class:'10',section:'A',roll:'1010',subjects:['ENGLISH','MATHS STANDARD','-','SCIENCE']},{id:911,name:'Different Subjects',class:'10',section:'D',roll:'1011',subjects:['ENGLISH','MATHS BASIC','ART']},{id:912,name:'Inactive Subject Student',class:'12',section:'B',roll:'1212',active:false,subjects:['PHYSICS']},{id:913,name:'No Subjects Student',class:'9',section:'A',roll:'9013'}];
+            window.confirm=()=>true;
+            try{await toggleStudentSubjectPublishing();}finally{students=prior;window.confirm=oldConfirm;}
+        });
+        await b.evaluate(()=>switchPortalArea('public'));
+        await b.waitForFunction(()=>document.getElementById('public-student-subject-body').textContent.includes('Maths Student'));
+        assert.equal(await b.locator('#public-student-subject-section').isVisible(),true);
+        assert.match(await b.locator('#public-student-subject-body').innerText(),/MATHS STANDARD, SCIENCE/);
+        assert.doesNotMatch(await b.locator('#public-student-subject-body').innerText(),/Inactive Subject Student|PHYSICS/);
+        assert.match(await b.locator('#public-student-subject-body').innerText(),/Subjects not recorded/);
+        await b.selectOption('#public-student-subject-class','10-D');
+        assert.match(await b.locator('#public-student-subject-body').innerText(),/MATHS BASIC, ART/);
+        assert.doesNotMatch(await b.locator('#public-student-subject-body').innerText(),/Maths Student/);
+        await b.fill('#public-student-subject-search','STANDARD');
+        assert.match(await b.locator('#public-student-subject-body').innerText(),/No matching student/);
+        await b.fill('#public-student-subject-search','1011');
+        assert.match(await b.locator('#public-student-subject-body').innerText(),/Different Subjects/);
+        await a.evaluate(()=>{
+            const prior=students;students=[{id:911,name:'Updated Student',class:'10',section:'D',roll:'1011',subjects:['BIOLOGY']}];
+            try{refreshPublishedDataForChanges(['students']);}finally{students=prior;}
+        });
+        assert.equal(await a.evaluate(()=>publicPortalBoards.studentSubjectDirectory.rows[0].subjects[0]),'BIOLOGY');
+        await a.evaluate(async()=>{const oldConfirm=window.confirm;window.confirm=()=>true;try{await toggleStudentSubjectPublishing();}finally{window.confirm=oldConfirm;}});
+        await b.waitForFunction(()=>document.getElementById('public-student-subject-body').textContent.includes('not published yet'));
+        assert.equal(await b.locator('#public-student-subject-section').isVisible(),true,'studentwise subject directory must keep its public area when unpublished');
+        await b.evaluate(()=>activateArea('principal'));
+        console.log('PASS: studentwise subjects publish, filter, refresh and stop independently of roll directories');
+
         assert.deepEqual(await a.evaluate(() => {
             const exam=normalizeSharedUiValue('archivedExams',{old:{id:'old',datesheetSnapshot:{day:{id:1}}}}).old;
             const boards=normalizeSharedUiValue('publicPortalBoards',{
@@ -1096,7 +1126,7 @@ async function main() {
         await a.evaluate(()=>switchPortalArea('public'));
         assert.match(await a.locator('#public-exam-day-flow').innerText(),/🕒 REAL-TIME EXAM DISPLAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a compact read-only live public display');
         await a.waitForFunction(()=>document.querySelectorAll('#public-fixed-display > section').length===21);
-        assert.deepEqual(await a.locator('#public-fixed-display > section > h2').allTextContents(),['1. Public Notices','2. Date Sheet','3. Seating Arrangement','4. Student Admit Cards','5. Roll Number Directory','6. Invigilation and Relieving Duty','7. PIN-Sensitive Absentee Attendance','8. Final Roomwise Attendance Report','9. Final Classwise Attendance Report','10. Real-Time Exam-Day Display','11. Room Inventory and Baggage Status','12. Bundle Collection Duty','13. QP Receiving Status','14. QP Printing Status','15. QP Setter Circulars','16. Subject Mapping Directory','17. Core Examination Team','18. Internal Work Distribution for Core Members','19. Faculty Roster and Fundamental Duties','20. Class Teacher and Co-Class Teacher Roster','21. Holiday Information'],'Public View must retain the exact fixed top-to-bottom order with newly generated serial numbers');
+        assert.deepEqual(await a.locator('#public-fixed-display > section > h2').allTextContents(),['1. Public Notices', '2. Date Sheet', '3. Seating Arrangement', '4. Student Admit Cards', '5. Studentwise Subject Directory', '6. Class / Section Student Directory', '7. Invigilation and Relieving Duty', '8. PIN-Sensitive Absentee Attendance', '9. Final Roomwise Attendance Report', '10. Final Classwise Attendance Report', '11. Real-Time Exam-Day Display', '12. Room Inventory and Baggage Status', '13. Bundle Collection Duty', '14. QP Receiving Status', '15. QP Printing Status', '16. QP Setter Circulars', '17. Subject Mapping Directory', '18. Core Examination Team', '19. Internal Work Distribution for Core Members', '20. Faculty Roster and Fundamental Duties', '21. Class Teacher and Co-Class Teacher Roster', '22. Holiday Information'],'Public View must retain the exact fixed top-to-bottom order with newly generated serial numbers');
         assert.equal(await a.locator('#public-fixed-display [data-public-fixed-empty]').count(),21,'every fixed public slot must contain a permanent unpublished placeholder');
         assert.equal(await a.locator('#public-seating-scroll-window').evaluate(node=>node.classList.contains('max-h-72')&&node.classList.contains('overflow-auto')),true,'public Seating Arrangements must remain in a compact vertical and horizontal scroll window');
         assert.equal(await a.locator('#public-seating-scroll-window thead').evaluate(node=>node.classList.contains('sticky')),true,'the Seating table heading must remain visible while its rows scroll');

@@ -142,6 +142,7 @@ function samePublishedData(left,right){return JSON.stringify(left)===JSON.string
 function liveFacultyRosterRows(){return facultyPublishedRows();}
 function publishedImpactsForChanges(inputNames){
     const changed=new Set(inputNames),impacts=[];
+    if(changed.has('students')&&publicPortalBoards.studentSubjectDirectory&&!samePublishedData(publicPortalBoards.studentSubjectDirectory.rows,studentSubjectDirectoryRows()))impacts.push({label:'Studentwise Subject Directory',stop(){delete publicPortalBoards.studentSubjectDirectory;},collection:'publicPortalBoards'});
     if(changed.has('sectionConfigs')&&publishedSubjectDirectories.current&&!samePublishedData(publishedSubjectDirectories.current.sections,sectionConfigs))impacts.push({label:'Subject Mapping Classwise',stop(){publishedSubjectDirectories={};},collection:'publishedSubjectDirectories'});
     if((changed.has('teachers')||changed.has('students'))&&publicPortalBoards.facultyRoster&&!samePublishedData(publicPortalBoards.facultyRoster.rows,liveFacultyRosterRows()))impacts.push({label:'Faculty Roster & Exam Duties',stop(){delete publicPortalBoards.facultyRoster;},collection:'publicPortalBoards'});
     if(changed.has('holidayCalendar')&&publicPortalBoards.holidays&&!samePublishedData(publicPortalBoards.holidays.rows,holidayPublishedRows()))impacts.push({label:'Holiday List',stop(){delete publicPortalBoards.holidays;},collection:'publicPortalBoards'});
@@ -154,6 +155,7 @@ function askPublishedUpdateDecision(impacts){
 }
 function refreshPublishedDataForChanges(inputNames){
     const names=[...new Set(inputNames)],changed=new Set(names),now=new Date().toISOString();let boardsChanged=false;
+    if(changed.has('students')&&publicPortalBoards.studentSubjectDirectory){const rows=studentSubjectDirectoryRows();if(!samePublishedData(publicPortalBoards.studentSubjectDirectory.rows,rows)){publicPortalBoards={...publicPortalBoards,studentSubjectDirectory:{...publicPortalBoards.studentSubjectDirectory,rows,publishedAt:now,publishedBy:authorizedRole}};boardsChanged=true;}}
     if(changed.has('sectionConfigs')&&publishedSubjectDirectories.current){const sections=cloneData(sectionConfigs);if(!samePublishedData(publishedSubjectDirectories.current.sections,sections)){publishedSubjectDirectories={current:{...publishedSubjectDirectories.current,sessionId:selectedAcademicSession,publishedAt:now,publishedBy:authorizedRole,sections}};names.push('publishedSubjectDirectories');}}
     if((changed.has('teachers')||changed.has('students'))&&publicPortalBoards.facultyRoster){const rows=liveFacultyRosterRows();if(!samePublishedData(publicPortalBoards.facultyRoster.rows,rows)){publicPortalBoards={...publicPortalBoards,facultyRoster:{...publicPortalBoards.facultyRoster,rows,publishedAt:now,publishedBy:authorizedRole}};boardsChanged=true;}}
     if(changed.has('holidayCalendar')&&publicPortalBoards.holidays){const rows=holidayPublishedRows();if(!samePublishedData(publicPortalBoards.holidays.rows,rows)){publicPortalBoards={...publicPortalBoards,holidays:{...publicPortalBoards.holidays,rows,publishedAt:now,publishedBy:authorizedRole}};boardsChanged=true;}}
@@ -184,7 +186,8 @@ function normalizeSharedUiValue(name,input){
         if(value._holidayCalendar){value._holidayCalendar.__pending=sharedArray(value._holidayCalendar.__pending);value._holidayCalendar.__breaks=sharedArray(value._holidayCalendar.__breaks);}
     }
     if(name==='publicPortalBoards'){
-        ['facultyRoster','coreTeam','coreInternalWork','classTeacherRoster','myExamRoles','holidays','dateSheet','qpPrinting'].forEach(key=>{if(value[key])value[key].rows=sharedArray(value[key].rows);});
+        ['studentSubjectDirectory','facultyRoster','coreTeam','coreInternalWork','classTeacherRoster','myExamRoles','holidays','dateSheet','qpPrinting'].forEach(key=>{if(value[key])value[key].rows=sharedArray(value[key].rows);});
+        if(value.studentSubjectDirectory)value.studentSubjectDirectory.rows.forEach(row=>{row.subjects=sharedArray(row.subjects);});
         if(value.facultyRoster)value.facultyRoster.rows.forEach(row=>{row.allotments=sharedArray(row.allotments);});
         if(value.myExamRoles)value.myExamRoles.rows.forEach(row=>{row.todayRoles=sharedArray(row.todayRoles);row.fundamentalRoles=sharedArray(row.fundamentalRoles);row.roles=sharedArray(row.roles);});
         if(value.seating){value.seating.plans=value.seating.plans||{};Object.values(value.seating.plans).forEach(plan=>{if(plan){plan.rooms=sharedArray(plan.rooms);plan.assignments=sharedArray(plan.assignments);}});}
