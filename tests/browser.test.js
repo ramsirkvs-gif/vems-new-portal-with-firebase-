@@ -173,6 +173,21 @@ async function main() {
         assert.match(await b.locator('#public-student-subject-body').innerText(),/No matching student/);
         await b.fill('#public-student-subject-search','1011');
         assert.match(await b.locator('#public-student-subject-body').innerText(),/Different Subjects/);
+        assert.equal(await b.locator('#public-student-subject-section .public-export-button').count(),2);
+        const subjectPdf=await b.evaluate(async()=>{
+            const originalCreate=URL.createObjectURL,originalOpen=window.open,originalShare=sharePdfFile;let printBlob,shareBlob;
+            URL.createObjectURL=blob=>{printBlob=blob;return'blob:student-subject-pdf';};window.open=()=>null;sharePdfFile=async blob=>{shareBlob=blob;};
+            try{printPublishedStudentSubjects();await sharePublishedStudentSubjects();return {print:await printBlob.text(),share:await shareBlob.text()};}
+            finally{URL.createObjectURL=originalCreate;window.open=originalOpen;sharePdfFile=originalShare;}
+        });
+        assert.equal(subjectPdf.print,subjectPdf.share,'Print and WhatsApp must use identical designed PDF bytes');
+        assert.match(subjectPdf.print,/^%PDF-1.4/);
+        assert.match(subjectPdf.print,/STUDENTWISE SUBJECT DIRECTORY/);
+        assert.match(subjectPdf.print,/Different Subjects/);
+        assert.match(subjectPdf.print,/MATHS BASIC, ART/);
+        assert.doesNotMatch(subjectPdf.print,/Maths Student|Inactive Subject Student/,'PDF must respect the displayed class and search filters');
+        assert.match(subjectPdf.print,/CLASS TEACHER/);
+        console.log('PASS: studentwise subject Print and WhatsApp export the same filtered official PDF');
         await a.evaluate(()=>{
             const prior=students;students=[{id:911,name:'Updated Student',class:'10',section:'D',roll:'1011',subjects:['BIOLOGY']}];
             try{refreshPublishedDataForChanges(['students']);}finally{students=prior;}
