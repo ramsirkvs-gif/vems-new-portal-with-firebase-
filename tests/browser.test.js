@@ -132,8 +132,28 @@ async function main() {
         assert.equal(await b.getByRole('banner').evaluate(element=>element.getBoundingClientRect().height<75),true,'mobile header must stay compact');
         assert.equal(await b.locator('#public-roll-directory-section .public-export-button').count(),2,'roll-directory PDF and Share actions must remain available when its fixed slot is published');
         assert.equal(await b.locator('#area-principal').isVisible(), false, 'a local role flag cannot grant access');
+        await b.waitForFunction(()=>!document.getElementById('public-roll-directory-section').closest('[data-public-fixed-content]').classList.contains('hidden'));
+        assert.equal(await b.locator('#public-roll-directory-section').isVisible(),true,'student directory must keep a dedicated visible public area before publication');
+        assert.match(await b.locator('#public-roll-body').innerText(),/No student rolls are published/);
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
+        const priorBoards=clone(data.publicPortalBoards||{});
+        await a.evaluate(async()=>{
+            const prior=students,oldConfirm=window.confirm;
+            students=[{id:901,name:'Section A Student',class:'10',section:'A',roll:'1001'}, {id:902,name:'Section D Student',class:'10',section:'D',roll:'1002'}, {id:903,name:'Inactive Student',class:'12',section:'B',roll:'1201',active:false,status:'inactive'}];
+            window.confirm=()=>true;
+            try{await publishAllRollDirectories();}finally{students=prior;window.confirm=oldConfirm;}
+        });
+        await b.evaluate(()=>switchPortalArea('public'));
+        await b.waitForFunction(()=>document.getElementById('public-roll-class').querySelector('option[value="10-D"]'));
+        assert.equal(await b.locator('#public-roll-directory-section').isVisible(),true);
+        await b.selectOption('#public-roll-class','10-D');
+        assert.match(await b.locator('#public-roll-body').innerText(),/Section D Student/);
+        assert.doesNotMatch(await b.locator('#public-roll-body').innerText(),/Section A Student|Inactive Student/);
+        assert.equal(await b.evaluate(()=>rollDirectoryRows({sections:{'10-D':{one:{name:'Older Section Student',roll:'1003'}}}})[0].section),'D','published section keys must restore omitted row class/section');
+        await a.evaluate(async boards=>{publicPortalBoards=boards;await saveData(['publicPortalBoards']);await refreshActivePublicFeed();},priorBoards);
+        await b.evaluate(()=>activateArea('principal'));
+        console.log('PASS: public student directory stays visible and all-section publishing reaches Public View');
         assert.deepEqual(await a.evaluate(() => {
             const exam=normalizeSharedUiValue('archivedExams',{old:{id:'old',datesheetSnapshot:{day:{id:1}}}}).old;
             const boards=normalizeSharedUiValue('publicPortalBoards',{
