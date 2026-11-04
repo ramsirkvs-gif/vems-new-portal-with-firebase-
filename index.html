@@ -3847,11 +3847,12 @@
                             <button type="button" onclick="closePreExamFullPageWorkspace()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-3 rounded-xl shadow transition whitespace-nowrap">🔙 Exit</button>
                         </div>
                     </div>
-                    <div class="rounded-xl border bg-white p-2 shadow-xs"><div class="mb-2 flex min-w-max gap-2 px-1 text-[9px] font-extrabold uppercase tracking-wide"><span class="w-[44%] rounded bg-indigo-50 px-3 py-1 text-indigo-800">1–4 · Whole Vault Records</span><span class="w-[56%] rounded bg-amber-50 px-3 py-1 text-amber-800">5–9 · Seating-linked / Select Exam Day</span></div><div class="flex gap-2 overflow-x-auto">
+                    <div class="rounded-xl border bg-white p-2 shadow-xs"><div class="mb-2 flex min-w-max gap-2 px-1 text-[9px] font-extrabold uppercase tracking-wide"><span class="w-[44%] rounded bg-indigo-50 px-3 py-1 text-indigo-800">1–4 · Whole Vault Records</span><span class="w-[56%] rounded bg-amber-50 px-3 py-1 text-amber-800">4A & 5–9 · Seating-linked / Select Exam Day</span></div><div class="flex gap-2 overflow-x-auto">
                         <button type="button" onclick="switchPreExamSubTab('qp-setters')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-setters' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📝 1. Office Order to QP Setters</button>
                         <button type="button" onclick="switchPreExamSubTab('datesheet-orders')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'datesheet-orders' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📅 2. Date Sheet</button>
                         <button type="button" onclick="switchPreExamSubTab('qp-receiving')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-receiving' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📥 3. QP Receiving & Vault</button>
                         <button type="button" onclick="switchPreExamSubTab('qp-printing')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-printing' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🖨️ 4. Printing +5%</button>
+                        <button type="button" onclick="switchPreExamSubTab('qp-arrangement')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'qp-arrangement' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">📑 4A. Printed QP Ready to Arrange</button>
                         <button type="button" onclick="switchPreExamSubTab('seating')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'seating' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🪑 5. Seating</button>
                         <button type="button" onclick="switchPreExamSubTab('admit-cards')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'admit-cards' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">🎫 6. Admit Cards</button>
                         <button type="button" onclick="switchPreExamSubTab('invigilation')" class="flex-1 py-3 px-4 rounded-lg font-bold text-xs transition ${activePreExamSubTab === 'invigilation' ? 'bg-indigo-900 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}">👩‍🏫 7. Invigilation</button>
@@ -4028,7 +4029,7 @@
                             </div>
                         </div>
                     ` : ''}
-                    ${activePreExamSubTab === 'qp-printing' ? renderPrintedQpArrangement(selectedExam) : ''}
+                    ${activePreExamSubTab === 'qp-arrangement' ? renderPrintedQpArrangement(selectedExam) : ''}
                     ${activePreExamSubTab === 'seating' ? workflowActionBar('seating',selectedExam)+renderSeatingOverview(selectedExam) : ''}
                     ${activePreExamSubTab === 'admit-cards' ? renderAdmitCardsOverview(selectedExam) : ''}
                     ${activePreExamSubTab === 'invigilation' ? workflowActionBar('invigilation',selectedExam)+renderInvigilationOverview(selectedExam) : ''}
