@@ -450,6 +450,7 @@ function refreshSharedViews() {
     runSharedRenderer('Legacy examination options',populateLegacyExamOptions);
     runSharedRenderer('Signature profiles',renderSignatureProfiles);
     if (currentActiveTab === 'holidays') runSharedRenderer('Holiday calendar',renderHolidayManager);
+    const qpArrangementDialog=document.getElementById('printed-qp-arrangement-dialog');if(qpArrangementDialog)runSharedRenderer('Printed QP arrangement',()=>refreshPrintedQpArrangement(qpArrangementDialog.dataset.examId,printedQpArrangementDates[qpArrangementDialog.dataset.examId]));
     runSharedRenderer('Session display',updateSessionChrome);
     runSharedRenderer('Exam IC access display',applyExamIcMasterReadOnlyUi);
 }
