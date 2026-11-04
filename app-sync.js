@@ -147,14 +147,90 @@ function publishedImpactsForChanges(inputNames){
     if((changed.has('teachers')||changed.has('students'))&&publicPortalBoards.facultyRoster&&!samePublishedData(publicPortalBoards.facultyRoster.rows,liveFacultyRosterRows()))impacts.push({label:'Faculty Roster & Exam Duties',stop(){delete publicPortalBoards.facultyRoster;},collection:'publicPortalBoards'});
     if(changed.has('holidayCalendar')&&publicPortalBoards.holidays&&!samePublishedData(publicPortalBoards.holidays.rows,holidayPublishedRows()))impacts.push({label:'Holiday List',stop(){delete publicPortalBoards.holidays;},collection:'publicPortalBoards'});
     if((changed.has('students')||changed.has('sectionConfigs'))&&publicPortalBoards.rollDirectory){const oldSections=rollDirectorySections(publicPortalBoards.rollDirectory),affected=Object.keys(oldSections).filter(key=>{const [cls,section]=key.split('-'),rows=students.filter(student=>isStudentActive(student)&&String(student.class)===cls&&String(student.section)===section).map(student=>({name:student.name,roll:student.roll,cls,section}));return !samePublishedData(oldSections[key],rows);});if(affected.length)impacts.push({label:`Roll Director${affected.length===1?'y':'ies'}: ${affected.map(key=>`Class ${formatClass(key.split('-')[0])}-${key.split('-')[1]}`).join(', ')}`,stop(){const sections=rollDirectorySections(publicPortalBoards.rollDirectory);affected.forEach(key=>delete sections[key]);publicPortalBoards={...publicPortalBoards,rollDirectory:{...publicPortalBoards.rollDirectory,sections}};},collection:'publicPortalBoards'});}
+    if(changed.has('students')||changed.has('sectionConfigs')){const keys=['seating','admitCards','examDayFlow','liveDuty','roomInventoryStatus','examDayAttendance','examDayAttendanceClasswise','afterExam','qpPrinting','dateSheet','myExamRoles'].filter(key=>publicPortalBoards[key]);if(keys.length)impacts.push({label:'Subject demand, seating, admit cards and exam-day attendance: update student details and re-confirm attendance if the roster changes',stop(){keys.forEach(key=>delete publicPortalBoards[key]);},collection:'publicPortalBoards'});}
     return impacts;
 }
 function askPublishedUpdateDecision(impacts){
     if(window.__vemsPublicUpdateDecision)return Promise.resolve(window.__vemsPublicUpdateDecision);
     return new Promise(resolve=>{document.getElementById('published-update-warning')?.remove();const modal=document.createElement('div');modal.id='published-update-warning';modal.className='fixed inset-0 z-[200] bg-slate-950/70 p-4 flex items-center justify-center';modal.innerHTML=`<div class="w-full max-w-lg rounded-xl bg-white shadow-2xl overflow-hidden"><div class="bg-amber-500 px-5 py-3 font-bold text-amber-950">⚠️ This information is live on Public View</div><div class="p-5 space-y-4"><p class="text-sm text-slate-700">Saving will make these updates visible immediately:</p><ul class="list-disc pl-6 text-sm font-bold text-slate-900">${impacts.map(item=>`<li>${escapeHtml(item.label)}</li>`).join('')}</ul><div class="grid gap-2 sm:grid-cols-3"><button data-choice="update" class="rounded bg-emerald-700 px-3 py-2 text-xs font-bold text-white">Save & Update Public</button><button data-choice="stop" class="rounded bg-red-700 px-3 py-2 text-xs font-bold text-white">Stop Publishing & Save</button><button data-choice="cancel" class="rounded bg-slate-200 px-3 py-2 text-xs font-bold text-slate-800">Cancel</button></div></div></div>`;modal.querySelectorAll('[data-choice]').forEach(button=>button.onclick=()=>{const choice=button.dataset.choice;modal.remove();resolve(choice);});document.body.appendChild(modal);});
 }
+function synchronizeStudentWorkflow(inputNames,now){
+    const names=[...new Set(inputNames)],changed=new Set(names);
+    if(!['students','sectionConfigs','archivedExams','seatingPlans'].some(name=>changed.has(name)))return names;
+    const add=name=>{if(!names.includes(name))names.push(name);};
+    const sourceChanged=changed.has('students')||changed.has('sectionConfigs')||changed.has('archivedExams')||changed.has('seatingPlans');
+    const changedRosters=new Set();
+    for(const exam of archivedExams){
+        if(exam.afterExamFrozen)continue;
+        if(sourceChanged){const reviews={};for(const day of exam.datesheetSnapshot||[]){const issues=examSubjectMappingIssues(exam,day.dateStr);if(issues.length)reviews[day.dateStr]=issues.join('; ');}if(!samePublishedData(exam.subjectMappingReview||{},reviews)){exam.subjectMappingReview=reviews;add('archivedExams');}}
+        for(const [date,oldPlan] of Object.entries(seatingPlans[String(exam.id)]||{})){
+            if(!sourceChanged||!oldPlan)continue;
+            const source=seatingCandidates(exam,date),byId=new Map(source.candidates.map(student=>[String(student.studentId),student])),seen=new Set();
+            let assignments=(oldPlan.assignments||[]).filter(item=>{const id=String(item.studentId);if(!byId.has(id)||seen.has(id))return false;seen.add(id);return true;}).map(item=>({...item,...byId.get(String(item.studentId))}));
+            let missing=source.candidates.filter(item=>!seen.has(String(item.studentId))),reason=source.error||exam.subjectMappingReview?.[date]||'';
+            const semantic=rows=>JSON.stringify((Array.isArray(rows)?rows:Object.values(rows||{})).map(item=>[String(item.studentId),String(item.cls),String(item.section),String(item.subject),String(item.roomId),item.desk,item.seat]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
+            let plan={...oldPlan,assignments};
+            // Preserve existing seats for identity-only edits and removals. Reallocate automatic plans only when necessary.
+            const conflicts=seatingDeskRuleViolations(plan),oldById=new Map((oldPlan.assignments||[]).map(item=>[String(item.studentId),item])),groupChanged=assignments.some(item=>{const old=oldById.get(String(item.studentId));return old&&['cls','section','subject'].some(key=>String(old[key])!==String(item[key]));}),manualClassChanged=oldPlan.method==='manual'&&assignments.some(item=>{const old=oldById.get(String(item.studentId));return old&&['cls','section'].some(key=>String(old[key])!==String(item[key]));});
+            if(!reason&&manualClassChanged)reason='A student changed class / section in a manual seating plan. Review the class-column assignments.';
+            if(!reason&&(missing.length||conflicts.length||groupChanged)&&oldPlan.method!=='manual'){
+                const allocation=allocateTwoPerDesk(source.candidates,oldPlan.rooms||[]);
+                if(!allocation.error){assignments=allocation.assignments;plan.assignments=assignments;const seated=new Set(assignments.map(item=>String(item.studentId)));missing=source.candidates.filter(item=>!seated.has(String(item.studentId)));}else reason=allocation.error;
+            }
+            if(!reason&&conflicts.length&&oldPlan.method==='manual')reason='A manual desk pairing is no longer valid after the student or subject change.';
+            if(!reason&&missing.length)reason=`${missing.length} eligible student(s) need seats. Review and save the seating arrangement.`;
+            if(reason)plan.rosterReview={reason,unseatedIds:missing.map(item=>String(item.studentId))};else delete plan.rosterReview;
+            const baseline=changed.has('seatingPlans')&&sharedStore?.loaded?.has('seatingPlans')?sharedStore.view('seatingPlans')?.[String(exam.id)]?.[date]:null;
+            const rosterChanged=semantic(baseline?.assignments||oldPlan.assignments||[])!==semantic(assignments);
+            if(!samePublishedData(plan,oldPlan)){plan.updatedAt=now;seatingPlans[String(exam.id)][date]=plan;add('seatingPlans');}
+            if(rosterChanged){
+                changedRosters.add(`${exam.id}|${date}`);
+                const day=duringExamDayRecord(exam,date),idsByRoom={};assignments.forEach(item=>(idsByRoom[String(item.roomId)]||=new Set()).add(String(item.studentId)));
+                Object.keys(day.attendance||{}).forEach(roomId=>{day.attendance[roomId]=(day.attendance[roomId]||[]).filter(id=>idsByRoom[roomId]?.has(String(id)));});
+                day.attendanceSubmitted={};day.attendanceResetAt=now;day.rosterRevision=`${now}-${Math.random().toString(36).slice(2,10)}`;day.rosterChangedMessage='Student / subject roster changed. Confirm room attendance again using the updated lists.';add('archivedExams');
+                if(roomInventoryPlans[String(exam.id)]?.[date]){roomInventoryPlans[String(exam.id)][date]={...roomInventoryPlans[String(exam.id)][date],finalized:false,rosterReviewRequired:true};add('roomInventoryPlans');}
+                if(exam.afterExamRecords?.[date]){exam.afterExamReviewRequired={...(exam.afterExamReviewRequired||{}),[date]:true};add('archivedExams');}
+            }
+        }
+    }
+    let boardsChanged=false;
+    const assignBoard=(key,value)=>{if(!samePublishedData(publicPortalBoards[key],value)){if(value===undefined)delete publicPortalBoards[key];else publicPortalBoards[key]=value;boardsChanged=true;}};
+    const examFor=board=>archivedExams.find(exam=>String(exam.id)===String(board?.examId));
+    const dateBoard=publicPortalBoards.dateSheet,dateExam=examFor(dateBoard);
+    if(dateBoard&&dateExam&&!dateExam.afterExamFrozen&&sourceChanged)assignBoard('dateSheet',Object.keys(dateExam.subjectMappingReview||{}).length?undefined:{...dateBoard,rows:examDatesheetRows(dateExam)});
+    const printing=publicPortalBoards.qpPrinting,printingExam=examFor(printing);
+    if(printing&&printingExam&&!printingExam.afterExamFrozen&&sourceChanged)assignBoard('qpPrinting',{...printing,rows:qpPrintingPublicationRows(printingExam)});
+    const seatBoard=publicPortalBoards.seating,seatExam=examFor(seatBoard);
+    if(seatBoard&&seatExam&&!seatExam.afterExamFrozen&&sourceChanged){const plans={};for(const date of Object.keys(seatBoard.plans||{})){const plan=seatingPlans[String(seatExam.id)]?.[date];if(plan&&!plan.rosterReview)plans[date]=cloneData(plan);}assignBoard('seating',Object.keys(plans).length?{...seatBoard,plans}:undefined);}
+    const admit=publicPortalBoards.admitCards,admitExam=examFor(admit);
+    if(admit&&admitExam&&!admitExam.afterExamFrozen&&sourceChanged)assignBoard('admitCards',{...admit,candidates:admitCardPublicationRows(admitExam)});
+    const flow=publicPortalBoards.examDayFlow,flowExam=examFor(flow);
+    if(flow&&flowExam&&!flowExam.afterExamFrozen){
+        const days=cloneData(examDayFlowDays(flow));
+        for(const [date,published] of Object.entries(days)){
+            const day=duringExamDayRecord(flowExam,date),plan=seatingPlans[String(flowExam.id)]?.[date];
+            days[date]={...published,rooms:occupiedInvigilationRooms(flowExam).filter(item=>item.date===date).map(publicExamDayRoom),attendance:cloneData(day.attendance),attendanceSubmitted:cloneData(day.attendanceSubmitted),rosterRevision:day.rosterRevision||'',rosterWarning:plan?.rosterReview?.reason||''};
+            if(plan?.rosterReview||!days[date].rooms.length)days[date].attendanceEnabled=false;
+        }
+        const selected=days[flow.date]||days[Object.keys(days).sort()[0]];assignBoard('examDayFlow',{...flow,...(selected||{}),days});
+    }
+    const duty=publicPortalBoards.liveDuty,dutyExam=examFor(duty);
+    if(duty&&dutyExam&&!dutyExam.afterExamFrozen){const days={};for(const [date,published] of Object.entries(duty.days||{})){const current=invigilationDayPublication(dutyExam,date),rooms=current.rooms.map(room=>({...room,...(published.rooms||[]).find(saved=>String(saved.roomId)===String(room.roomId)),roomName:room.roomName,studentCount:room.studentCount,bundles:room.bundles})),relievers=rooms.filter(room=>room.reliever&&room.reliever!=='—').map(room=>({name:room.reliever,roomName:room.roomName,from:room.reliefFrom,to:room.reliefTo}));days[date]={...published,rooms,relievers};}assignBoard('liveDuty',{...duty,days});}
+    const inventory=publicPortalBoards.roomInventoryStatus,inventoryExam=examFor(inventory);
+    if(inventory&&inventoryExam&&!inventoryExam.afterExamFrozen){const days={};for(const [date,published] of Object.entries(inventory.days||{})){days[date]={...roomInventoryStatusDay(inventoryExam,date),publishedAt:published.publishedAt};}assignBoard('roomInventoryStatus',{...inventory,days});}
+    for(const [key,mode] of [['examDayAttendance','roomwise'],['examDayAttendanceClasswise','classwise']]){
+        const report=publicPortalBoards[key],exam=examFor(report);if(!report||!exam||exam.afterExamFrozen)continue;
+        if(changedRosters.has(`${exam.id}|${report.date}`))assignBoard(key,undefined);
+        else assignBoard(key,{...report,html:mode==='classwise'?examDayClasswiseAttendanceReportHtml(exam,report.date):examDayAttendanceReportHtml(exam,report.date)});
+    }
+    const after=publicPortalBoards.afterExam;
+    if(after){const days={...after.days};for(const key of changedRosters){const [examId,date]=key.split('|');if(String(after.examId)===examId)delete days[date];}assignBoard('afterExam',Object.keys(days).length?{...after,days}:undefined);}
+    if(boardsChanged)add('publicPortalBoards');
+    if((changed.has('students')||changed.has('sectionConfigs'))&&typeof suggestedSeatingPlan!=='undefined'&&suggestedSeatingPlan){suggestedSeatingPlan=null;sessionStorage.removeItem('vems_seating_suggestion');}
+    return names;
+}
 function refreshPublishedDataForChanges(inputNames){
-    const names=[...new Set(inputNames)],changed=new Set(names),now=new Date().toISOString();let boardsChanged=false;
+    const now=new Date().toISOString(),names=synchronizeStudentWorkflow(inputNames,now),changed=new Set(names);let boardsChanged=false;
     if(changed.has('students')&&publicPortalBoards.studentSubjectDirectory){const rows=studentSubjectDirectoryRows();if(!samePublishedData(publicPortalBoards.studentSubjectDirectory.rows,rows)){publicPortalBoards={...publicPortalBoards,studentSubjectDirectory:{...publicPortalBoards.studentSubjectDirectory,rows,publishedAt:now,publishedBy:authorizedRole}};boardsChanged=true;}}
     if(changed.has('sectionConfigs')&&publishedSubjectDirectories.current){const sections=cloneData(sectionConfigs);if(!samePublishedData(publishedSubjectDirectories.current.sections,sections)){publishedSubjectDirectories={current:{...publishedSubjectDirectories.current,sessionId:selectedAcademicSession,publishedAt:now,publishedBy:authorizedRole,sections}};names.push('publishedSubjectDirectories');}}
     if((changed.has('teachers')||changed.has('students'))&&publicPortalBoards.facultyRoster){const rows=liveFacultyRosterRows();if(!samePublishedData(publicPortalBoards.facultyRoster.rows,rows)){publicPortalBoards={...publicPortalBoards,facultyRoster:{...publicPortalBoards.facultyRoster,rows,publishedAt:now,publishedBy:authorizedRole}};boardsChanged=true;}}
@@ -166,8 +242,10 @@ function refreshPublishedDataForChanges(inputNames){
     return names;
 }
 async function reconcilePublishedDataNow(){
-    if(authorizedRole!=='principal'||!sharedStore?.active||!sharedStore.ready||sharedStore.pendingCount)return;
-    const refreshed=refreshPublishedDataForChanges(['sectionConfigs','teachers','students','seatingPlans','invigilationPlans','archivedExams','classTeacherAssignments']),targets=[...new Set(refreshed.filter(name=>name==='publicPortalBoards'||name==='publishedSubjectDirectories'))];
+    if(authorizedRole!=='principal'||!sharedStore?.active||!sharedStore.ready||sharedStore.pendingCount||isSelectedSessionFrozen()||selectedAcademicSession!==(systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION))return;
+    const dependent=['publicPortalBoards','publishedSubjectDirectories','seatingPlans','archivedExams','roomInventoryPlans'],before=Object.fromEntries(dependent.map(name=>[name,JSON.stringify(sharedValue(name))]));
+    refreshPublishedDataForChanges(['sectionConfigs','teachers','students','seatingPlans','invigilationPlans','archivedExams','classTeacherAssignments']);
+    const targets=dependent.filter(name=>before[name]!==JSON.stringify(sharedValue(name)));
     if(targets.length)await saveData(targets);
 }
 function sharedArray(value){return Array.isArray(value)?value:value&&typeof value==='object'?Object.values(value).filter(Boolean):[];}
@@ -283,9 +361,11 @@ async function saveData(names, expected = {}) {
         const message=`Public information was not changed. You are working in session ${selectedAcademicSession}, but Public View is connected to active session ${activePublicSession}. Select or activate ${activePublicSession} before publishing.`;
         showSyncError(message);alert(message);restoreSharedValues(names);return false;
     }
+    if(names.includes('students'))students=Object.values(studentRecords).flatMap(sections=>Object.values(sections||{}).flatMap(records=>Object.values(records||{}))).filter(Boolean);
     const impacts=publishedImpactsForChanges(names);
     if(impacts.length){const decision=await askPublishedUpdateDecision(impacts);if(decision==='cancel'){restoreSharedValues(names);return false;}if(decision==='stop'){impacts.forEach(item=>item.stop());impacts.forEach(item=>{if(!names.includes(item.collection))names.push(item.collection);});}}
     names=refreshPublishedDataForChanges(names);
+    if((names.includes('publicPortalBoards')||names.includes('publishedSubjectDirectories'))&&selectedAcademicSession!==activePublicSession){restoreSharedValues(names);alert('The workflow update needs the active public session. Select the active session before updating published records.');return false;}
     if(names.includes('holidayCalendar')){
         circularSettings={...circularSettings,_holidayCalendar:cloneData(holidayCalendar)};
         names=[...new Set(names.map(name=>name==='holidayCalendar'?'circularSettings':name))];
@@ -293,6 +373,7 @@ async function saveData(names, expected = {}) {
     const required = names.some(name => principalCollections.includes(name)) ? 'principal' : 'exam';
     if (!canEditSharedData(required)) { restoreSharedValues(names); return false; }
     const store = sharedStore;
+    let sourcesConfirmed=false;
     try {
         // Public display sequence is independently managed by PDS. Other public-board
         // saves must carry the latest Firebase sequence and can never reset it.
@@ -312,7 +393,13 @@ async function saveData(names, expected = {}) {
         if (names.includes('archivedExams') && editorBaselines.exam) {
             expected.archivedExams = [editorBaselines.exam];
         }
-        await Promise.all(desired.map(([name, value]) => store.save(name, value, expected[name] || [])));
+        const source=desired.filter(([name])=>name==='students'||name==='sectionConfigs'),derived=desired.filter(([name])=>name!=='students'&&name!=='sectionConfigs');
+        const baselines=Object.fromEntries(derived.map(([name])=>[name,cloneData(store.view(name))]));
+        const sourceResults=await Promise.allSettled(source.map(([name,value])=>store.save(name,value,expected[name]||[])));
+        sourcesConfirmed=sourceResults.some(result=>result.status==='fulfilled');
+        const sourceFailure=sourceResults.find(result=>result.status==='rejected');if(sourceFailure)throw sourceFailure.reason;
+        const derivedResults=await Promise.allSettled(derived.map(([name,value])=>store.save(name,value,expected[name]||[],baselines[name])));
+        const derivedFailure=derivedResults.find(result=>result.status==='rejected');if(derivedFailure)throw derivedFailure.reason;
         if (store !== sharedStore || !store.active) return false;
         lastConfirmedSave = new Date().toLocaleTimeString();
         showSyncError('');
@@ -324,7 +411,7 @@ async function saveData(names, expected = {}) {
     } catch (error) {
         if (store === sharedStore) {
             restoreSharedValues(names);
-            showSyncError(`Not saved: ${error.message}`);
+            showSyncError(sourcesConfirmed?`Student / subject changes were saved, but the workflow refresh is incomplete: ${error.message}. Retry saving to finish the refresh.`:`Not saved: ${error.message}`);
         }
         return false;
     }
@@ -596,7 +683,8 @@ function startSelectedSessionStore() {
     sharedStore?.stop();
     resetSessionViews();
     loadingStaffData=true;
-    sharedStore=new VemsSync.Store(db,sharedNames,acceptSharedValue,state=>{loadingStaffData=!state.ready;showSyncStatus(state);},sessionStorePaths(selectedAcademicSession));
+    let initialWorkflowChecked=false;
+    sharedStore=new VemsSync.Store(db,sharedNames,acceptSharedValue,state=>{loadingStaffData=!state.ready;showSyncStatus(state);if(state.ready&&!initialWorkflowChecked){initialWorkflowChecked=true;queueMicrotask(()=>reconcilePublishedDataNow().catch(error=>showSyncError(`Workflow refresh incomplete: ${error.message}`)));}},sessionStorePaths(selectedAcademicSession));
     sharedStore.start();
     bindPublicDirectory();
     updateSessionChrome();

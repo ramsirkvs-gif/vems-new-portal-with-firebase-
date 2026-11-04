@@ -148,9 +148,11 @@
             if (!this.ready) throw new Error('Shared data is not loaded. Check your sign-in and Firebase permissions.');
             if (!this.connected) throw new Error('You are offline. Reconnect before saving; this change has not been saved.');
         }
-        save(name, desired, expectedRecords = []) {
+        save(name, desired, expectedRecords = [], baseline = undefined) {
             this.assertWritable();
-            const before = apply(this.view(name), expectedRecords.map(record => ({ path: record.path, after: record.value })));
+            // A derived save can wait for its source transaction. Keep the original
+            // comparison point so intervening edits are merged or rejected, never overwritten.
+            const before = apply(baseline === undefined ? this.view(name) : normalize(name, baseline), expectedRecords.map(record => ({ path: record.path, after: record.value })));
             const patch = diff(before, normalize(name, desired));
             if (!patch.length) return Promise.resolve();
             const operation = { patch };

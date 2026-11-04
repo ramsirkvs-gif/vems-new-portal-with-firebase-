@@ -156,6 +156,8 @@ async function main() {
         console.log('PASS: public student directory stays visible and all-section publishing reaches Public View');
         await a.evaluate(async()=>{
             const prior=students,oldConfirm=window.confirm;
+            window.__subjectDirectoryConfigBefore=cloneData(sectionConfigs);
+            sectionConfigs={...sectionConfigs,'10-A':['ENGLISH','MATHS STANDARD','AI','SCIENCE'],'10-D':['ENGLISH','MATHS BASIC','ART']};
             students=[{id:910,name:'Maths Student',class:'10',section:'A',roll:'1010',subjects:['ENGLISH','MATHS STANDARD','-','SCIENCE']},{id:911,name:'Different Subjects',class:'10',section:'D',roll:'1011',subjects:['ENGLISH','MATHS BASIC','ART']},{id:912,name:'Inactive Subject Student',class:'12',section:'B',roll:'1212',active:false,subjects:['PHYSICS']},{id:913,name:'No Subjects Student',class:'9',section:'A',roll:'9013'}];
             window.confirm=()=>true;
             try{await toggleStudentSubjectPublishing();}finally{students=prior;window.confirm=oldConfirm;}
@@ -189,7 +191,7 @@ async function main() {
         assert.match(subjectPdf.print,/CLASS TEACHER/);
         console.log('PASS: studentwise subject Print and WhatsApp export the same filtered official PDF');
         await a.evaluate(()=>{
-            const prior=students;students=[{id:911,name:'Updated Student',class:'10',section:'D',roll:'1011',subjects:['BIOLOGY']}];
+            const prior=students;sectionConfigs['10-D']=['BIOLOGY'];students=[{id:911,name:'Updated Student',class:'10',section:'D',roll:'1011',subjects:['BIOLOGY']}];
             try{refreshPublishedDataForChanges(['students']);}finally{students=prior;}
         });
         assert.equal(await a.evaluate(()=>publicPortalBoards.studentSubjectDirectory.rows[0].subjects[0]),'BIOLOGY');
@@ -197,6 +199,7 @@ async function main() {
         await b.waitForFunction(()=>document.getElementById('public-student-subject-body').textContent.includes('not published yet'));
         assert.equal(await b.locator('#public-student-subject-section').isVisible(),true,'studentwise subject directory must keep its public area when unpublished');
         await b.evaluate(()=>activateArea('principal'));
+        await a.evaluate(()=>{sectionConfigs=window.__subjectDirectoryConfigBefore;delete window.__subjectDirectoryConfigBefore;});
         console.log('PASS: studentwise subjects publish, filter, refresh and stop independently of roll directories');
 
         assert.deepEqual(await a.evaluate(() => {
@@ -612,6 +615,7 @@ async function main() {
         await a.selectOption('#filter-section','A');
         await a.setInputFiles('#csv-file-input',{name:'class-9-a.csv',mimeType:'text/csv',buffer:Buffer.from('SNo,RollNo,StudentName,SCIENCE,AI\n1,9101,Dash Optional Child,SCIENCE,-\n2,9102,Blank Optional Child,SCIENCE,\n3,9103,Long Dash Optional Child,SCIENCE,—')});
         await a.waitForFunction(() => students.filter(student => String(student.class) === '9').length === 3);
+        await b.waitForFunction(() => students.filter(student => String(student.class) === '9').length === 3);
         assert.deepEqual(Object.values(data.students['9'].A).map(student => student.subjects), [['SCIENCE','-'],['SCIENCE','-'],['SCIENCE','-']]);
         assert.equal(await a.evaluate(() => decodeCsvBuffer(new Uint8Array([0x97]).buffer)), '—', 'Excel Windows-1252 dash must decode correctly');
         assert.equal(await a.evaluate(() => studentTakesSubject(students.find(student => Number(student.roll) === 9101),'SCIENCE')), true);
@@ -1059,6 +1063,16 @@ async function main() {
         assert.deepEqual(await b.evaluate(()=>({tab:activePreExamSubTab,date:selectedSeatingDate,vault:selectedPreExamVaultId,open:isPreExamFullPageOpen})),{tab:'seating',date:'2026-11-01',vault:100,open:true},'refresh must reopen the same Vault, Seating area and selected day');
         assert.equal(await b.locator('#seating-vault-days [data-workflow-date="2026-11-01"]').count(),1,'the restored day must remain addressable in the day belt');
         console.log('PASS: room layout supports mapped/manual rooms, automatic seating and linked invigilation workflow');
+        await a.evaluate(async()=>{const student=studentRecords['10'].A.seat1;window.__workflowStudentBefore=cloneData(student);window.__workflowDecisionBefore=window.__vemsPublicUpdateDecision;window.__vemsPublicUpdateDecision='update';studentRecords['10'].A.seat1={...student,name:'Workflow Corrected Student',roll:90001};if(!await saveData(['students']))throw new Error('Workflow student edit did not save');});
+        await b.waitForFunction(()=>seatingPlans['100']?.['2026-11-01']?.assignments?.some(row=>row.studentId==='seat1'&&row.name==='Workflow Corrected Student'&&Number(row.roll)===90001));
+        const refreshedAttendancePdf=await b.evaluate(async()=>{const exam=archivedExams.find(item=>String(item.id)==='100');return (await emergencyOfflineAttendancePdfBlob(exam,'2026-11-01').text());});
+        assert.match(refreshedAttendancePdf,/Workflow Corrected/);
+        assert.match(refreshedAttendancePdf,/90001/);
+        assert.doesNotMatch(refreshedAttendancePdf,/Seat Student One/);
+        await a.evaluate(async()=>{studentRecords['10'].A.seat1=window.__workflowStudentBefore;if(!await saveData(['students']))throw new Error('Workflow student restore did not save');delete window.__workflowStudentBefore;window.__vemsPublicUpdateDecision=window.__workflowDecisionBefore;delete window.__workflowDecisionBefore;});
+        await b.waitForFunction(()=>seatingPlans['100']?.['2026-11-01']?.assignments?.some(row=>row.studentId==='seat1'&&row.name==='Seat Student One'));
+        console.log('PASS: a student edit updates another device seating and offline attendance PDFs after the same confirmed save');
+
 
         await a.evaluate(()=>{selectedPreExamVaultId=100;openPreExamFullPageWorkspace(100);switchPreExamSubTab('exam-day-flow');examDayTimelineEditing=true;renderExamCreatorModule();});
         assert.equal(await a.locator('[data-exam-day-event]').count(),11,'advance preparation must provide the complete daywise clock-flow checklist');
@@ -1111,7 +1125,7 @@ async function main() {
         await a.waitForFunction(()=>publicPortalBoards.liveDuty?.days?.['2026-11-01']?.dutyVersion==='updated-after-absence');
         assert.match(await a.locator('#public-live-duty').innerText(),/UPDATED AFTER STAFF ATTENDANCE[\s\S]*Examination Room 10-A/,'the corrected duty must replace the pre-fixed duty in the same Public View slot');
         await a.getByRole('button',{name:/OK & Next/}).click();
-        await a.getByRole('button',{name:'4. Baggage Distribution',exact:true}).click();
+        await a.getByRole('button',{name:'5. Baggage Distribution',exact:true}).click();
         assert.equal(await a.getByRole('button',{name:'📢 Publish Status',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own daywise publish control');
         assert.equal(await a.getByRole('button',{name:'⏹ Stop Publishing',exact:true}).count(),1,'Room Inventory and Baggage Status must provide its own stop control');
         await a.getByRole('button',{name:'📢 Publish Status',exact:true}).click();
@@ -1140,9 +1154,9 @@ async function main() {
         await a.getByRole('button',{name:/Publish with PIN/}).click();
         await a.evaluate(()=>switchPortalArea('public'));
         assert.match(await a.locator('#public-exam-day-flow').innerText(),/🕒 REAL-TIME EXAM DISPLAY[\s\S]*Invigilator absence reporting/,'published Exam-Day flow must appear as a compact read-only live public display');
-        await a.waitForFunction(()=>document.querySelectorAll('#public-fixed-display > section').length===21);
+        await a.waitForFunction(()=>document.querySelectorAll('#public-fixed-display > section').length===22);
         assert.deepEqual(await a.locator('#public-fixed-display > section > h2').allTextContents(),['1. Public Notices', '2. Date Sheet', '3. Seating Arrangement', '4. Student Admit Cards', '5. Roll Number Directory', '6. Studentwise Subject Directory', '7. Invigilation and Relieving Duty', '8. PIN-Sensitive Absentee Attendance', '9. Final Roomwise Attendance Report', '10. Final Classwise Attendance Report', '11. Real-Time Exam-Day Display', '12. Room Inventory and Baggage Status', '13. Bundle Collection Duty', '14. QP Receiving Status', '15. QP Printing Status', '16. QP Setter Circulars', '17. Subject Mapping Directory', '18. Core Examination Team', '19. Internal Work Distribution for Core Members', '20. Faculty Roster and Fundamental Duties', '21. Class Teacher and Co-Class Teacher Roster', '22. Holiday Information'],'Public View must retain the exact fixed top-to-bottom order with newly generated serial numbers');
-        assert.equal(await a.locator('#public-fixed-display [data-public-fixed-empty]').count(),21,'every fixed public slot must contain a permanent unpublished placeholder');
+        assert.equal(await a.locator('#public-fixed-display [data-public-fixed-empty]').count(),22,'every fixed public slot must contain a permanent unpublished placeholder');
         assert.equal(await a.locator('#public-seating-scroll-window').evaluate(node=>node.classList.contains('max-h-72')&&node.classList.contains('overflow-auto')),true,'public Seating Arrangements must remain in a compact vertical and horizontal scroll window');
         assert.equal(await a.locator('#public-seating-scroll-window thead').evaluate(node=>node.classList.contains('sticky')),true,'the Seating table heading must remain visible while its rows scroll');
         assert.match(await a.locator('#public-seating-scroll-window thead').innerText(),/Column No\.[\s\S]*from gate side[\s\S]*Desk No\./,'public Seating must use the same column-from-gate and desk terminology as Admit Cards');
@@ -1165,7 +1179,7 @@ async function main() {
         assert.match(await a.locator('#public-attendance-submission-receipt').innerText(),/Attendance submitted to the Examination Cell[\s\S]*Present \d+ · Absent 1[\s\S]*Stage 2 → 6\. Real-Time Absentees & Final Report/,'the invigilator must receive a persistent submission receipt and exact final-report location');
         await a.evaluate(()=>{switchPortalArea('principal');openLifecycleStage('during');});
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Attendance received/,'the PIN page must show that the room submission was received');
-        await a.getByRole('button',{name:'5. Real-Time Absentees & Final Report'}).click();
+        await a.getByRole('button',{name:'6. Real-Time Absentees & Final Report'}).click();
         assert.match(await a.locator('#exam-day-step-panel').innerText(),/Real-Time Absentee Receiving Board[\s\S]*Seat Student One/,'the merged final-report page must show full candidate details after invigilator submission');
         assert.equal(await a.locator('[data-attendance-report-actions]').count(),2,'roomwise and classwise reports must have separate action groups');
         assert.equal(await a.getByRole('button',{name:/Exam IC Review \/ Update/}).count(),0,'the final report must be a read-only view of invigilator PIN submissions');

@@ -221,3 +221,18 @@ test('an edit cannot recreate a student section deleted on another device', asyn
         [{ path: ['10', 'A', 'one'], value: old }]), /Another device/);
     assert.deepEqual(db.data.students, { 10: {} });
 });
+
+test('delayed derived saves preserve unrelated public updates made after the source edit began',async()=>{
+    const db=new Database({publicPortalBoards:{seating:{name:'Old Student'}}}),a=await client(db,['publicPortalBoards']),b=await client(db,['publicPortalBoards']);
+    const baseline=copy(a.store.view('publicPortalBoards')),desired={seating:{name:'Updated Student'}};
+    await b.store.save('publicPortalBoards',{seating:{name:'Old Student'},notice:{heading:'Independent new notice'}});
+    await a.store.save('publicPortalBoards',desired,[],baseline);
+    assert.equal(db.data.publicPortalBoards.notice.heading,'Independent new notice');assert.equal(db.data.publicPortalBoards.seating.name,'Updated Student');
+});
+test('delayed derived saves reject conflicting edits made while their source was saving',async()=>{
+    const db=new Database({publicPortalBoards:{seating:{name:'Old Student'}}}),a=await client(db,['publicPortalBoards']),b=await client(db,['publicPortalBoards']);
+    const baseline=copy(a.store.view('publicPortalBoards'));
+    await b.store.save('publicPortalBoards',{seating:{name:'Other confirmed student edit'}});
+    await assert.rejects(a.store.save('publicPortalBoards',{seating:{name:'Stale dependent student edit'}},[],baseline),/Another device/);
+    assert.equal(db.data.publicPortalBoards.seating.name,'Other confirmed student edit');
+});
