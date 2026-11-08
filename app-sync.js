@@ -201,7 +201,7 @@ function synchronizeStudentWorkflow(inputNames,now){
     const printing=publicPortalBoards.qpPrinting,printingExam=examFor(printing);
     if(printing&&printingExam&&!printingExam.afterExamFrozen&&sourceChanged)assignBoard('qpPrinting',{...printing,rows:qpPrintingPublicationRows(printingExam)});
     const seatBoard=publicPortalBoards.seating,seatExam=examFor(seatBoard);
-    if(seatBoard&&seatExam&&!seatExam.afterExamFrozen&&sourceChanged){const plans={};for(const date of Object.keys(seatBoard.plans||{})){const plan=seatingPlans[String(seatExam.id)]?.[date];if(plan&&!plan.rosterReview)plans[date]=cloneData(plan);}assignBoard('seating',Object.keys(plans).length?{...seatBoard,plans}:undefined);}
+    if(seatBoard&&seatExam&&!seatExam.afterExamFrozen&&sourceChanged){const plans={};for(const date of Object.keys(seatBoard.plans||{})){const plan=seatingPlans[String(seatExam.id)]?.[date];if(plan&&!plan.rosterReview)plans[date]=seatingPublicationPlan(seatExam,date,plan);}assignBoard('seating',Object.keys(plans).length?{...seatBoard,plans}:undefined);}
     const admit=publicPortalBoards.admitCards,admitExam=examFor(admit);
     if(admit&&admitExam&&!admitExam.afterExamFrozen&&sourceChanged)assignBoard('admitCards',{...admit,candidates:admitCardPublicationRows(admitExam)});
     const flow=publicPortalBoards.examDayFlow,flowExam=examFor(flow);
@@ -453,6 +453,7 @@ function refreshSharedViews() {
     const qpArrangementDialog=document.getElementById('printed-qp-arrangement-dialog');if(qpArrangementDialog)runSharedRenderer('Printed QP arrangement',()=>refreshPrintedQpArrangement(qpArrangementDialog.dataset.examId,printedQpArrangementDates[qpArrangementDialog.dataset.examId]));
     runSharedRenderer('Session display',updateSessionChrome);
     runSharedRenderer('Exam IC access display',applyExamIcMasterReadOnlyUi);
+    processSeatingPublicationExpiry().catch(error=>console.warn('Seating expiry check deferred.',error));
 }
 document.addEventListener('focusout', event => {
     if (event.target.closest('#settings-signature-profiles, #public-notice-manager, #circular-editor, #exam-vault-editor, #faculty-order-manager') || event.target.id?.startsWith('circular-signature-')) return;
@@ -567,6 +568,7 @@ async function logoutSession() {
     }
 }
 function resetPrivateSharedValues() {
+    document.getElementById('next-seating-publication-reminder')?.remove();
     studentRecords={};students=[];sectionConfigs={};teachers=[];classTeacherAssignments={};examCoreTeam={};archivedExams=[];
     examOptionsList=defaultExamOptionsList;qpSubmissionsTracker={};qpPrintingTracker={};qpSubmissionDeadlines={};qpOfficeOrders={};qpOfficeOrderSettings={};
     dateSheetInstructions={};dateSheetSettings={};holidayCalendar={};publishedSubjectDirectories={};publicPortalBoards={};
@@ -873,3 +875,5 @@ const examActions = ['startNewExamSetup', 'saveMainHeaderConfig', 'saveOrUpdateD
     };
 });
 initializeSharedApp();
+
+startSeatingExpiryMonitor();

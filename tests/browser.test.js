@@ -44,7 +44,7 @@ async function notifyTree(name) {
 async function main() {
     const server = http.createServer((request, response) => {
         const filename = request.url.split('?')[0] === '/' ? 'index.html' : request.url.split('?')[0].slice(1);
-        if (!['index.html', 'sync-store.js', 'app-sync.js', 'teacher-timetable.js', 'teacher-timetable-ui.js', 'assets/teacher-timetable-2026-11-08.js'].includes(filename)) { response.writeHead(404).end(); return; }
+        if (!['index.html', 'sync-store.js', 'app-sync.js', 'teacher-timetable.js', 'teacher-timetable-ui.js', 'assets/teacher-timetable-2026-11-08.js', 'seating-expiry.js'].includes(filename)) { response.writeHead(404).end(); return; }
         response.setHeader('Content-Type', filename.endsWith('.js') ? 'application/javascript' : 'text/html');
         response.end(fs.readFileSync(path.join(root, filename)));
     });
@@ -56,6 +56,7 @@ async function main() {
         async function pageFor(options = {}) {
             const context = await browser.newContext(options.mobile ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {});
             const page = await context.newPage();
+            await page.clock.install({time:new Date('2026-10-31T06:00:00Z')});
             pages.push(page);
             page.on('pageerror', error => failures.push(error.message));
             page.on('dialog', dialog => { if (dialog.message() === 'XSS') failures.push('Stored script executed'); return dialog.accept(); });
@@ -137,6 +138,7 @@ async function main() {
         assert.match(await b.locator('#public-roll-body').innerText(),/No student rolls are published/);
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
+        if(process.env.VEMS_SEATING_EXPIRY_ONLY){const visitor=await pageFor({mobile:true});await require('./seating-expiry-browser-scenarios')(a,b,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_QP_RECEIVING_ONLY){const visitor=await pageFor({mobile:true});await require('./qp-receiving-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_TIMETABLE_ONLY){await require('./timetable-browser-scenarios')(a,b);assert.deepEqual(failures,[]);return;}
         const priorBoards=clone(data.publicPortalBoards||{});
