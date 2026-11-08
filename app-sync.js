@@ -268,6 +268,7 @@ function normalizeSharedUiValue(name,input){
         if(value.studentSubjectDirectory)value.studentSubjectDirectory.rows.forEach(row=>{row.subjects=sharedArray(row.subjects);});
         if(value.facultyRoster)value.facultyRoster.rows.forEach(row=>{row.allotments=sharedArray(row.allotments);});
         if(value.myExamRoles)value.myExamRoles.rows.forEach(row=>{row.todayRoles=sharedArray(row.todayRoles);row.fundamentalRoles=sharedArray(row.fundamentalRoles);row.roles=sharedArray(row.roles);});
+        if(value.ttIcReports){value.ttIcReports.days=value.ttIcReports.days||{};Object.values(value.ttIcReports.days).forEach(day=>{if(day){day.rows=sharedArray(day.rows);day.periods=sharedArray(day.periods);day.rows.forEach(row=>{if(row)row.lines=sharedArray(row.lines);});}});}
         if(value.seating){value.seating.plans=value.seating.plans||{};Object.values(value.seating.plans).forEach(plan=>{if(plan){plan.rooms=sharedArray(plan.rooms);plan.assignments=sharedArray(plan.assignments);}});}
         if(value.admitCards){value.admitCards.candidates=sharedArray(value.admitCards.candidates);value.admitCards.candidates.forEach(item=>{item.admitSchedule=sharedArray(item.admitSchedule);});}
         if(value.roomInventoryStatus){value.roomInventoryStatus.days=value.roomInventoryStatus.days||{};Object.values(value.roomInventoryStatus.days).forEach(day=>{if(day){day.rooms=sharedArray(day.rooms);day.rooms.forEach(room=>{if(room)room.invigilators=sharedArray(room.invigilators);});}});}
