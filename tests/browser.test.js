@@ -137,6 +137,7 @@ async function main() {
         assert.match(await b.locator('#public-roll-body').innerText(),/No student rolls are published/);
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
+        if(process.env.VEMS_QP_RECEIVING_ONLY){const visitor=await pageFor({mobile:true});await require('./qp-receiving-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_TIMETABLE_ONLY){await require('./timetable-browser-scenarios')(a,b);assert.deepEqual(failures,[]);return;}
         const priorBoards=clone(data.publicPortalBoards||{});
         await a.evaluate(async()=>{
