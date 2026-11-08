@@ -44,7 +44,7 @@ async function notifyTree(name) {
 async function main() {
     const server = http.createServer((request, response) => {
         const filename = request.url.split('?')[0] === '/' ? 'index.html' : request.url.split('?')[0].slice(1);
-        if (!['index.html', 'sync-store.js', 'app-sync.js'].includes(filename)) { response.writeHead(404).end(); return; }
+        if (!['index.html', 'sync-store.js', 'app-sync.js', 'teacher-timetable.js', 'teacher-timetable-ui.js', 'assets/teacher-timetable-2026-11-08.js'].includes(filename)) { response.writeHead(404).end(); return; }
         response.setHeader('Content-Type', filename.endsWith('.js') ? 'application/javascript' : 'text/html');
         response.end(fs.readFileSync(path.join(root, filename)));
     });
@@ -137,6 +137,7 @@ async function main() {
         assert.match(await b.locator('#public-roll-body').innerText(),/No student rolls are published/);
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
+        if(process.env.VEMS_TIMETABLE_ONLY){await require('./timetable-browser-scenarios')(a,b);assert.deepEqual(failures,[]);return;}
         const priorBoards=clone(data.publicPortalBoards||{});
         await a.evaluate(async()=>{
             const prior=students,oldConfirm=window.confirm;

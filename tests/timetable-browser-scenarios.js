@@ -1,0 +1,50 @@
+const assert=require('node:assert/strict');
+module.exports=async function(a,b){
+    await a.evaluate(()=>{
+        window.alert=()=>{};window.confirm=()=>true;
+        teachers=[{id:'tt1',name:'MRS. E.T. ZIRDO',desig:'PGT-English',allotments:[{cls:'12',sec:'E',subject:'ENGLISH'}]},{id:'tt2',name:'MR. JENLAN MONYAK',desig:'TGT-English',allotments:[]}];
+        const date='2026-11-09';
+        archivedExams=[{id:901,title:'Timetable Browser Test',datesheetSnapshot:[{id:1,dateStr:date,paperSlots:[{slotId:1,cls:'12',subject:'ENGLISH',selectedSections:['E'],repTime:'08:00',startTime:'08:30',overTime:'11:30'}]}]}];
+        students=[{id:'s1',name:'Candidate',class:'12',section:'E',roll:'1201',subjects:['ENGLISH']}];
+        sectionConfigs={'12-E':['ENGLISH']};
+        seatingPlans={901:{[date]:{date,updatedAt:'2026-11-08T10:00:00Z',rooms:[{id:'r1',name:'Room 1',rows:2,desksPerRow:2,deskCount:4}],assignments:[{studentId:'s1',roomId:'r1',cls:'12',section:'E',subject:'ENGLISH',name:'Candidate',roll:'1201',desk:0}]}}};
+        invigilationPlans={901:{[date]:{r1:{invigilators:[],relieverId:'',reliefFrom:'11:20',reliefTo:'12:00'}}}};
+        examCoreTeam={};suggestedSeatingPlan=null;selectedInvigilationDate=date;
+        document.querySelector('#area-principal').innerHTML='<div id="tt-test-workspace"></div>';
+        renderExamCreatorModule=()=>document.getElementById('tt-test-workspace').innerHTML=renderInvigilationOverview(archivedExams[0]);
+        renderExamCreatorModule();
+    });
+    assert.match(await a.locator('select[aria-label^="Invigilator 1 for"] option').first().textContent(),/Select faculty/);
+    const invigilator=a.locator('select[aria-label^="Invigilator 1 for"]');
+    assert.match(await invigilator.locator('option[value="tt1"]').textContent(),/TT: I:free II:12E/);
+    assert.match(await invigilator.locator('option[value="tt2"]').textContent(),/TT: not linked/);
+    await invigilator.selectOption('tt1');
+    const brief=a.locator('[data-timetable-duty="tt1"]');
+    await brief.waitFor();
+    assert.match(await brief.innerText(),/arrange replacement cover for P-II 09:00–09:40: 12E; P-IV 10:20–11:00: 12D/);
+    assert.match(await brief.innerText(),/P-I \(08:20–09:00\), P-III \(09:40–10:20\)/);
+    await a.locator('select[aria-label^="Reliever for"]').selectOption('tt2');
+    assert.match(await a.locator('[data-timetable-duty="tt2"]').innerText(),/Timetable not linked/);
+    await a.locator('#timetable-ic-report summary').filter({hasText:'Timetable name links'}).click();
+    await a.locator('select[aria-label="Timetable link for MR. JENLAN MONYAK"]').selectOption('36');
+    try{await a.waitForFunction(()=>circularSettings._teacherTimetableMatches?.tt2?.sourceId==='36' && !sharedStore.pendingCount,{},{timeout:8000});}catch(error){console.log(await a.evaluate(()=>({settings:circularSettings,error:sharedError,role:authorizedRole,active:currentActiveRole,pending:sharedStore.pendingCount})));throw error;}
+    await b.waitForFunction(()=>circularSettings._teacherTimetableMatches?.tt2?.sourceId==='36');
+    assert.doesNotMatch(await a.locator('[data-timetable-duty="tt2"]').innerText(),/Timetable not linked/);
+    await a.locator('input[aria-label^="Relief from for"]').fill('11:00');
+    await a.locator('input[aria-label^="Relief from for"]').dispatchEvent('change');
+    await a.locator('input[aria-label^="Relief until for"]').fill('11:30');
+    await a.locator('input[aria-label^="Relief until for"]').dispatchEvent('change');
+    assert.match(await a.locator('[data-timetable-duty="tt2"]').innerText(),/no overlapping scheduled classes/);
+    await a.locator('select[aria-label="TT IC report date"]').selectOption('2026-11-10');
+    await a.locator('#timetable-ic-report summary').filter({hasText:'teacher request(s)'}).click();
+    assert.match(await a.locator('#timetable-ic-report').innerText(),/yesterday’s exam: Class 12-E ENGLISH/);
+    const result=await a.evaluate(async()=>{
+        let blob;URL.createObjectURL=value=>{blob=value;return 'blob:tt-report';};window.open=()=>null;
+        printTimetableIcReport(901,'2026-11-10');return {type:blob.type,pdf:await blob.text()};
+    });
+    require('node:fs').writeFileSync('/tmp/vems-tt-ic-report.pdf',result.pdf);
+    assert.equal(result.type,'application/pdf');assert.match(result.pdf,/TT IC - EXAM DUTY/);assert.match(result.pdf,/Class 12-E ENGLISH/);
+    await a.setViewportSize({width:1280,height:900});
+    await a.screenshot({path:'/tmp/vems-timetable-guidance.png',fullPage:true});
+    console.log('PASS: actual duty dropdowns show TT summaries, selected-teacher clashes update for relief edits, links synchronize, next-day requests and PDF work');
+};
