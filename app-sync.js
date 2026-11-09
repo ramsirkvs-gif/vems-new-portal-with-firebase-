@@ -569,6 +569,7 @@ async function logoutSession() {
     }
 }
 function resetPrivateSharedValues() {
+    closeTimetableDutyPreview();
     document.getElementById('next-seating-publication-reminder')?.remove();
     studentRecords={};students=[];sectionConfigs={};teachers=[];classTeacherAssignments={};examCoreTeam={};archivedExams=[];
     examOptionsList=defaultExamOptionsList;qpSubmissionsTracker={};qpPrintingTracker={};qpSubmissionDeadlines={};qpOfficeOrders={};qpOfficeOrderSettings={};

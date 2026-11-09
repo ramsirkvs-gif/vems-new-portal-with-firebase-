@@ -20,7 +20,7 @@ Break: 11:00–11:30. Source is a recurring weekly timetable, not a daily substi
 
 Requested behavior:
 
-- Invigilation dropdowns show the selected examination date's TT summary. Selected teachers have all eight periods available beside the assignment, with affected classes and protected free periods.
+- Duty dropdowns show only the TT teaching-period count. Each selected invigilator or reliever has a compact “Today’s TT” tap target with an overlap count or a brief unknown/timing warning. Tapping opens a touch-friendly horizontal Day / I–VIII / Load table outside the assignment columns, with exact period times, subject labels, class-cover highlights and free periods during duty marked. Combined classes can expand to show the original source note. Close, Escape and backdrop dismiss the preview; role/session changes clear it. Background planner refreshes keep it open and refresh its duty markers; removing that teacher from the duty closes it.
 - Full invigilation uses reporting time through the latest finish time for the day. Relief uses that room's exact entered relief interval. Any partial overlap requires cover; an interval ending at a period's start does not overlap it.
 - TT IC is requested to allocate replacement/on-task cover for affected classes, protect free periods within duty windows, and avoid additional arrangements for exam-duty staff for the entire day.
 - The TT IC PDF and on-screen report include invigilation, relief, core-team and recorded bundle-collection requests. Other core/collection duties have no entered time interval, so only the whole-day request is shown for those roles.

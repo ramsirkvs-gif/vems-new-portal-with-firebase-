@@ -57,12 +57,13 @@ function ui(){
  vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'../teacher-timetable-ui.js'),'utf8'),ctx);
  const source=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),start=source.indexOf('        function createPdfFromStreams('),end=source.indexOf('        function subjectDirectoryPdfBlob(',start);vm.runInContext(source.slice(start,end),ctx);return ctx;
 }
-test('selected teacher guidance includes full today TT, replacement classes and protected free periods',()=>{
- const c=ui(),html=c.timetableDutyBriefHtml(exam,'2026-11-09','t1','invigilator');assert.match(html,/Today’s timetable/);assert.match(html,/P-II 09:00–09:40: 12E/);assert.match(html,/P-I \(08:20–09:00\)/);assert.match(html,/no additional arrangement/);
- assert.match(c.timetableDutyBriefHtml(exam,'2026-11-09','t2','relieverId',{}),/availability cannot be confirmed/);
- assert.match(c.timetableDutyBriefHtml(exam,'2026-11-09','t1','relieverId',{}),/Enter valid duty/);
+test('duty rows contain one compact tap target; the popup contains the marked TT row',()=>{
+ const c=ui(),html=c.timetableDutyBriefHtml(exam,'2026-11-09','t1','invigilator');assert.match(html,/Today’s TT/);assert.match(html,/2 class overlaps/);assert.doesNotMatch(html,/<table|arrange replacement cover|no additional arrangement/);
+ const preview=c.timetableDutyPreviewHtml(exam,'2026-11-09',teacher,'invigilator');assert.match(preview,/<table/);assert.match(preview,/Monday/);assert.match(preview,/12E/);assert.match(preview,/data-tt-period="II" data-duty-overlap="true" data-class-cover="true"/);assert.match(preview,/data-tt-period="I" data-duty-overlap="true" data-class-cover="false"/);assert.match(preview,/data-tt-period="V" data-duty-overlap="false"/);
+ assert.match(c.timetableDutyBriefHtml(exam,'2026-11-09','t2','relieverId',{}),/not linked/);assert.match(c.timetableDutyBriefHtml(exam,'2026-11-09','t1','relieverId',{}),/set duty times/);
  c.authorizedRole=null;assert.equal(c.timetableDutyBriefHtml(exam,'2026-11-09','t1','invigilator'),'');assert.equal(c.timetableReportPanelHtml(exam,'2026-11-09'),'');
 });
+test('relief popup marks only its exact slot and keeps unknown timetables unknown',()=>{const c=ui(),r=c.timetableDutyPreviewHtml(exam,'2026-11-09',teacher,'relieverId',{reliefFrom:'11:20',reliefTo:'12:00'});assert.match(r,/data-tt-period="V" data-duty-overlap="true"/);assert.match(r,/data-tt-period="IV" data-duty-overlap="false"/);assert.match(r,/RELIEF/);assert.match(c.timetableDutyPreviewHtml(exam,'2026-11-09',{id:'unknown',name:'Unknown Teacher'},'invigilator'),/Timetable not linked/);});
 test('mapping edits are role checked, source checked and saved with a conflict baseline',async()=>{
  const c=ui();c.authorizedRole=null;assert.equal(await c.saveTimetableTeacherLink('t2','3'),false);assert.equal(c.saves.length,0);
  c.authorizedRole='sec-ic';assert.equal(await c.saveTimetableTeacherLink('t2','bad'),false);assert.equal(await c.saveTimetableTeacherLink('t2','3'),true);assert.equal(c.saves.length,1);assert.equal(c.saves[0][1].circularSettings[0].path.join('/'),'_teacherTimetableMatches');assert.equal(c.timetableMappings().t2.teacherName,'Not in workbook');
