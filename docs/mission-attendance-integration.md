@@ -1,0 +1,9 @@
+# Mission Perfect 100 attendance bridge
+
+The existing **Publish Classwise for CTs / Samagam** action now includes a structured `attendanceFeed` in the same published board. The payload is encrypted in the VEMS browser with Mission’s public key before publication. Public readers cannot see its student identifiers or statuses. Mission’s existing server credential supplies a separate purpose-specific decryption key; that private key never leaves the server. The encrypted content covers Classes X/XII and excludes room PINs and contact data.
+
+After publishing, the authorised Exam Cell page's existing room-submission listener refreshes this encrypted feed; the existing classwise HTML publication keeps its previous workflow. Keep that page open during live invigilator reporting. The public-key endpoint must deploy in Mission before VEMS can publish the encrypted feed. No extra secret setup or background Cloud Function is installed. Stopping publication deletes the board and prevents the live refresh transaction from recreating it. Mock practice is flagged; Mission ignores mock records.
+
+Mission reads the active academic session's public board through its own staff-authenticated API. No VEMS password, room PIN, private raw submission or Firebase service account is shared. A room must have a valid submitted record before its non-absentees become Present. Roster resets/revisions invalidate old submissions. Students in unsubmitted rooms remain Attendance not taken.
+
+For existing published reports, open the authorised Exam Cell page or publish the classwise report again after deployment. The receiving app refreshes automatically and links back to VEMS for PIN entry. The static portal and Mission repositories must both deploy their updated commits; no database-rules change is required.
