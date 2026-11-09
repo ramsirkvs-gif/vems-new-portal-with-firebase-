@@ -49,7 +49,7 @@ module.exports=async function(a,b){
     await a.keyboard.press('Escape');
     assert.equal(await a.locator('#teacher-duty-tt-preview').count(),0);
     await a.locator('#timetable-ic-report summary').filter({hasText:'teacher request(s)'}).click();
-    assert.match(await a.locator('#timetable-ic-report').innerText(),/Invigilation \| Room 1/);
+    assert.match(await a.locator('#timetable-ic-report').innerText(),/Invigilation[\s\S]*Room 1/);
     assert.doesNotMatch(await a.locator('#timetable-ic-report').innerText(),/yesterday’s exam|avoid all additional arrangements/);
     const result=await a.evaluate(async()=>{
         let blob;URL.createObjectURL=value=>{blob=value;return 'blob:tt-report';};window.open=()=>null;
