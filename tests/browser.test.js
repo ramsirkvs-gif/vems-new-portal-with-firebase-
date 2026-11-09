@@ -138,6 +138,7 @@ async function main() {
         assert.match(await b.locator('#public-roll-body').innerText(),/No student rolls are published/);
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
+        if(process.env.VEMS_PUBLIC_DATESHEET_ONLY){const visitor=await pageFor({mobile:true});await require('./public-datesheet-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_TT_PUBLICATION_ONLY){const visitor=await pageFor({mobile:true});await require('./tt-ic-publication-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_SEATING_EXPIRY_ONLY){const visitor=await pageFor({mobile:true});await require('./seating-expiry-browser-scenarios')(a,b,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_QP_RECEIVING_ONLY){const visitor=await pageFor({mobile:true});await require('./qp-receiving-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
@@ -1433,8 +1434,9 @@ async function main() {
         await a.evaluate(() => selectAcademicSession('2026-27'));
         await a.waitForFunction(() => selectedAcademicSession==='2026-27' && sharedStore?.ready);
         assert.equal(await a.evaluate(() => sectionConfigs['10-A'].includes('MATHS')), true, 'existing 2026-27 records must remain intact');
+        await a.waitForFunction(() => sharedStore?.ready && !sharedStore.pendingCount);
         await a.evaluate(() => selectAcademicSession('2027-28'));
-        await a.waitForFunction(() => sharedStore?.ready && sectionConfigs['6-A']);
+        await a.waitForFunction(() => selectedAcademicSession==='2027-28' && sharedStore?.ready && sectionConfigs['6-A']);
         await a.evaluate(() => freezeSelectedSession());
         await a.waitForFunction(() => isSelectedSessionFrozen());
         assert.equal(await a.evaluate(() => canEditSharedData('principal')), false, 'frozen session must be read-only');
@@ -1457,7 +1459,7 @@ async function main() {
         assert.equal(await secondary.locator('#tab-btn-students').isDisabled(), false, 'read-only users must still be able to navigate between segments');
         assert.equal(await secondary.evaluate(() => canEditSharedData('exam')), false, 'the master-data view must block even normally authorized exam writes');
         await secondary.evaluate(() => switchPortalArea('sec-ic'));
-        assert.equal(await secondary.evaluate(() => canEditSharedData('exam')), true, 'returning to the Exam IC workspace must restore authorized exam work');
+        assert.equal(await secondary.evaluate(() => canEditSharedData('exam')), true, 'returning to the Exam IC workspace must restore authorized exam work: '+JSON.stringify(await secondary.evaluate(()=>({role:authorizedRole,area:currentActiveRole,ready:sharedStore?.ready,connected:sharedStore?.connected,storeError:sharedStore?.error,error:sharedError,session:selectedAcademicSession,frozen:isSelectedSessionFrozen()}))));
         await secondary.evaluate(() => openPreExamFullPageWorkspace(100));
         assert.equal(await secondary.locator('#exam-creator-mount-prin').innerHTML(), '');
         await secondary.evaluate(() => saveSubmissionDeadline('2026-11-06'));
