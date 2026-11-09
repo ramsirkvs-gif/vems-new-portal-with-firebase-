@@ -65,17 +65,12 @@ const TeacherTimetablePlanner = (() => {
         }));
         return byTeacher;
     }
-    function report(data,exam,date,teachers,plans,occupied,mappings,splitSubjects,normalizeSubject,extraDuties=[]) {
-        const byTeacher=new Map(), ensure=id=>{id=String(id);if(!byTeacher.has(id))byTeacher.set(id,{teacherId:id,teacher:teachers.find(t=>String(t.id)===id),duties:[],evaluation:[],nextEvaluation:[]});return byTeacher.get(id);};
-        duties(exam,date,plans,occupied).forEach(duty=>ensure(duty.teacherId).duties.push({...duty,comparison:compare(data,teachers.find(t=>String(t.id)===duty.teacherId),date,duty.from,duty.to,mappings)}));
-        extraDuties.forEach(duty=>ensure(duty.teacherId).duties.push(duty));
-        for(const day of exam.datesheetSnapshot || []){
-            if(nextDate(day.dateStr)!==date && day.dateStr!==date)continue;
-            evaluationPapers(exam,day.dateStr,teachers,splitSubjects,normalizeSubject).forEach((papers,id)=>{
-                const row=ensure(id), entries=[...papers];
-                if(day.dateStr===date)row.nextEvaluation.push(...entries);else row.evaluation.push(...entries);
-            });
-        }
+    function report(data,exam,date,teachers,plans,occupied,mappings) {
+        const byTeacher=new Map();
+        duties(exam,date,plans,occupied).forEach(duty=>{
+            if(!byTeacher.has(duty.teacherId))byTeacher.set(duty.teacherId,{teacherId:duty.teacherId,teacher:teachers.find(t=>String(t.id)===duty.teacherId),duties:[]});
+            const row=byTeacher.get(duty.teacherId);row.duties.push({...duty,comparison:compare(data,row.teacher,date,duty.from,duty.to,mappings)});
+        });
         return [...byTeacher.values()].sort((a,b)=>String(a.teacher?.name || a.teacherId).localeCompare(String(b.teacher?.name || b.teacherId)));
     }
     return {key,dayKey,nextDate,minutes,validWindow,overlaps,resolve,daily,compare,fullWindow,duties,evaluationPapers,report};

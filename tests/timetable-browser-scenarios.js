@@ -48,15 +48,15 @@ module.exports=async function(a,b){
     assert.equal(await a.locator('#teacher-duty-tt-preview [data-duty-overlap="true"]').count(),0,'break-only relief must not mark a period');
     await a.keyboard.press('Escape');
     assert.equal(await a.locator('#teacher-duty-tt-preview').count(),0);
-    await a.locator('select[aria-label="TT IC report date"]').selectOption('2026-11-10');
     await a.locator('#timetable-ic-report summary').filter({hasText:'teacher request(s)'}).click();
-    assert.match(await a.locator('#timetable-ic-report').innerText(),/yesterday’s exam: Class 12-E ENGLISH/);
+    assert.match(await a.locator('#timetable-ic-report').innerText(),/Invigilation \| Room 1/);
+    assert.doesNotMatch(await a.locator('#timetable-ic-report').innerText(),/yesterday’s exam|avoid all additional arrangements/);
     const result=await a.evaluate(async()=>{
         let blob;URL.createObjectURL=value=>{blob=value;return 'blob:tt-report';};window.open=()=>null;
-        printTimetableIcReport(901,'2026-11-10');return {type:blob.type,pdf:await blob.text()};
+        printTimetableIcReport(901,'2026-11-09');return {type:blob.type,pdf:await blob.text()};
     });
     require('node:fs').writeFileSync('/tmp/vems-tt-ic-report.pdf',result.pdf);
-    assert.equal(result.type,'application/pdf');assert.match(result.pdf,/TT IC - EXAM DUTY/);assert.match(result.pdf,/Class 12-E ENGLISH/);
+    assert.equal(result.type,'application/pdf');assert.match(result.pdf,/TT IC - EXAM DUTY/);assert.match(result.pdf,/12E/);
     await a.setViewportSize({width:1280,height:900});
     await a.screenshot({path:'/tmp/vems-timetable-guidance.png',fullPage:true});
     const mobileState=await a.evaluate(()=>({teachers,archivedExams,invigilationPlans,circularSettings}));

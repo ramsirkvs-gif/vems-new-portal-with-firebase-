@@ -3,9 +3,12 @@ module.exports=async function(staff,visitor){
     await staff.evaluate(async()=>{
         const date='2026-11-09',exam={id:904,title:'TT IC Publication Test',datesheetSnapshot:[{id:1,dateStr:date,paperSlots:[{slotId:1,cls:'12',subject:'ENGLISH',selectedSections:['E'],repTime:'08:00',startTime:'08:30',overTime:'11:30'}]}]};
         await sharedStore.save('teachers',{tt1:{id:'tt1',name:'MRS. E.T. ZIRDO',desig:'PGT-English',allotments:[{cls:'12',sec:'E',subject:'ENGLISH'}]},tt2:{id:'tt2',name:'MR. JENLAN MONYAK',desig:'TGT-English',allotments:[]}});
+        exam.datesheetSnapshot.push({id:2,dateStr:'2026-11-10',paperSlots:[{slotId:2,cls:'12',subject:'ENGLISH',selectedSections:['E'],repTime:'08:00',startTime:'08:30',overTime:'11:30'}]});
         await sharedStore.save('archivedExams',{904:exam});
         await sharedStore.save('seatingPlans',{904:{[date]:{date,method:'manual',rooms:[{id:'r1',name:'Room 1',rows:2,desksPerRow:2,deskCount:4}],assignments:[{studentId:'s1',roomId:'r1',name:'Candidate',roll:'1201',cls:'12',section:'E',subject:'ENGLISH',desk:0,seat:0}]}}});
         await sharedStore.save('invigilationPlans',{904:{[date]:{r1:{invigilators:['tt1'],relieverId:'',reliefFrom:'',reliefTo:''}}}});
+        const plans=cloneData(seatingPlans);plans['904']['2026-11-10']=cloneData(plans['904'][date]);plans['904']['2026-11-10'].date='2026-11-10';await sharedStore.save('seatingPlans',plans);
+        const duties=cloneData(invigilationPlans);duties['904']['2026-11-10']={r1:{invigilators:['tt1'],relieverId:'tt2',reliefFrom:'10:20',reliefTo:'10:40'}};await sharedStore.save('invigilationPlans',duties);
         selectedPreExamVaultId=904;selectedInvigilationDate=date;suggestedSeatingPlan=null;
         document.getElementById('area-principal').innerHTML='<div id="tt-public-test-workspace"></div>';
         renderExamCreatorModule=()=>document.getElementById('tt-public-test-workspace').innerHTML=renderInvigilationOverview(archivedExams[0]);renderExamCreatorModule();
@@ -31,7 +34,7 @@ module.exports=async function(staff,visitor){
     await panel.getByRole('button',{name:'Update Published Copy',exact:true}).click();await visitor.waitForFunction(()=>!document.getElementById('public-tt-ic-report-content').textContent.includes('JENLAN MONYAK'));
     await staff.locator('select[aria-label="TT IC report date"]').selectOption('2026-11-10');await panel.getByRole('button',{name:'Publish TT IC Report',exact:true}).click();
     await visitor.waitForFunction(()=>Object.keys(visiblePortalBoards().ttIcReports.days).length===2);
-    await visitor.selectOption('#public-tt-ic-report-date','2026-11-10');assert.match(await section.innerText(),/yesterday’s exam/);
+    await visitor.selectOption('#public-tt-ic-report-date','2026-11-10');assert.match(await section.innerText(),/Relieving \| Room 1 \| 10:20 - 10:40/);assert.doesNotMatch(await section.innerText(),/yesterday|evaluation|all additional arrangements/);
     await panel.getByRole('button',{name:'Stop Publishing This Date',exact:true}).click();await visitor.waitForFunction(()=>Object.keys(visiblePortalBoards().ttIcReports.days).length===1);assert.equal(await visitor.locator('#public-tt-ic-report-date').inputValue(),'2026-11-09');
     await staff.locator('select[aria-label="TT IC report date"]').selectOption('2026-11-09');await panel.getByRole('button',{name:'Stop Publishing This Date',exact:true}).click();await visitor.waitForFunction(()=>!visiblePortalBoards().ttIcReports);
     assert.match(await visitor.locator('#public-fixed-display-slot-8').innerText(),/Not published yet/);
