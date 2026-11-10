@@ -138,6 +138,7 @@ async function main() {
         assert.match(await b.locator('#public-roll-body').innerText(),/No student rolls are published/);
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
+        if(process.env.VEMS_WORKFLOW_CONFIRMATION_ONLY){slowWrites=true;await require('./workflow-confirmation-browser-scenarios')(a,b);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_PUBLIC_DATESHEET_ONLY){const visitor=await pageFor({mobile:true});await require('./public-datesheet-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_TT_PUBLICATION_ONLY){const visitor=await pageFor({mobile:true});await require('./tt-ic-publication-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_SEATING_EXPIRY_ONLY){const visitor=await pageFor({mobile:true});await require('./seating-expiry-browser-scenarios')(a,b,visitor);assert.deepEqual(failures,[]);return;}

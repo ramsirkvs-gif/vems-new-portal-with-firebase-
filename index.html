@@ -1245,10 +1245,9 @@
             Object.values(sectionStudents).forEach(student=>{student.subjects=reorderedStudentSubjects(student,oldSubs,subs,cls);});
             sectionConfigs[`${cls}-${sec}`] = subs;
             const refreshPublished=syncPublishedSubjectDirectorySnapshot();
-            if (!await saveData(['sectionConfigs',...(Object.keys(sectionStudents).length?['students']:[]),...(refreshPublished?['publishedSubjectDirectories']:[])], { sectionConfigs: editorBaselines.section ? [editorBaselines.section] : [] })) return;
+            if (!await saveData(['sectionConfigs',...(Object.keys(sectionStudents).length?['students']:[]),...(refreshPublished?['publishedSubjectDirectories']:[])], { sectionConfigs: editorBaselines.section ? [editorBaselines.section] : [] }, {workflowConfirmation:{label:`Subject mapping saved for Class ${formatClass(cls)} - Sec ${sec}.`,sections:[`${cls}-${sec}`]}})) return;
             editorBaselines.section = null;
             sectionFormDirty = false;
-            alert(`Section Configuration Saved for Class ${formatClass(cls)} - Sec ${sec}!`);
             switchTab('config');
         }
 
@@ -1728,7 +1727,7 @@
             studentRecords[cls] ||= {};
             studentRecords[cls][sec] ||= {};
             studentRecords[cls][sec][stuId] = stuData;
-            if (await saveData(['students'], { students: editorBaselines.student ? [editorBaselines.student] : [] })) {
+            if (await saveData(['students'], { students: editorBaselines.student ? [editorBaselines.student] : [] }, {workflowConfirmation:{label:`Student record saved: ${stuData.name} (Roll No. ${stuData.roll}).`,studentId:stuId,sections:[...new Set([`${cls}-${sec}`,...(previousPath?[`${previousPath[0]}-${previousPath[1]}`]:[])])]}})) {
                 editorBaselines.student = null;
                 closeStudentModal();
                 switchTab('students');

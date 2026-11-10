@@ -354,7 +354,47 @@ async function saveOperationalData(names){
         lastConfirmedSave=new Date().toLocaleTimeString();showSyncError('');store.status();return true;
     }catch(error){if(store===sharedStore)showSyncError(`Save failed: ${error.message||error}`);return false;}
 }
-async function saveData(names, expected = {}) {
+function workflowReceiptRows(value){return Array.isArray(value)?value.filter(Boolean):Object.values(value || {}).filter(Boolean);}
+function workflowReceiptSnapshot(store){return {exams:cloneData(store.view('archivedExams') || {}),plans:cloneData(store.view('seatingPlans') || {}),boards:cloneData(store.view('publicPortalBoards') || {})};}
+function studentWorkflowConfirmationMessage(store,scope,before,publicationDecision='update'){
+    const after=workflowReceiptSnapshot(store),sections=new Set(scope.sections || []),matches=(cls,section)=>sections.has(`${cls}-${section}`),reviews=[],missing=[],closed=new Set();let planCount=0,examCount=0,attendanceResets=0;
+    const relevantExamIds=new Set();
+    for(const exam of workflowReceiptRows(after.exams)){
+        let relevant=false;
+        for(const day of workflowReceiptRows(exam.datesheetSnapshot)){
+            const old=before.plans?.[String(exam.id)]?.[day.dateStr],plan=after.plans?.[String(exam.id)]?.[day.dateStr],assignments=[...workflowReceiptRows(old?.assignments),...workflowReceiptRows(plan?.assignments)];
+            const scheduled=workflowReceiptRows(day.paperSlots).some(slot=>[...sections].some(key=>{const dash=key.indexOf('-'),cls=key.slice(0,dash),section=key.slice(dash+1);return String(slot.cls)===cls&&(!workflowReceiptRows(slot.selectedSections).length||workflowReceiptRows(slot.selectedSections).map(String).includes(section));}));
+            if(!scheduled&&!assignments.some(row=>scope.studentId&&String(row.studentId)===String(scope.studentId)||matches(row.cls,row.section)))continue;
+            relevant=true;if(exam.afterExamFrozen){closed.add(String(exam.id));continue;}
+            relevantExamIds.add(String(exam.id));const label=`${exam.title || 'Examination'} — ${formatDateWithDay(day.dateStr)}`;
+            if(plan)planCount++;else missing.push(label);
+            const reason=plan?.rosterReview?.reason || exam.subjectMappingReview?.[day.dateStr];if(reason)reviews.push(`${label}: ${reason}`);
+            const prior=workflowReceiptRows(before.exams).find(item=>String(item.id)===String(exam.id)),oldDay=prior?.duringExamDays?.[day.dateStr],newDay=exam.duringExamDays?.[day.dateStr];
+            if(newDay?.rosterRevision&&newDay.rosterRevision!==oldDay?.rosterRevision)attendanceResets++;
+        }
+        if(relevant&&!exam.afterExamFrozen)examCount++;
+    }
+    const publishedStatus=(key,label)=>{const current=after.boards[key],previous=before.boards[key],related=record=>record&&relevantExamIds.has(String(record.examId));
+        if(current&&closed.has(String(current.examId)))return `${label}: closed/frozen copy preserved unchanged.`;
+        if(related(current))return `${label}: updated and save confirmed.`;
+        if(related(previous)&&!related(current))return `${label}: ${publicationDecision==='stop'?'publishing stopped as requested':'withdrawn; review and republish when ready'}.`;
+        return `${label}: not published for these records.`;
+    };
+    const lines=[reviews.length?'SAVED — WORKFLOW REVIEW REQUIRED':missing.length?'SAVED — SEATING STILL PENDING':!examCount?'SAVE CONFIRMED — NO ACTIVE EXAM WORKFLOW':'UPDATE CONFIRMED',scope.label || 'Student / subject mapping saved.','All saves for this update have finished.',`Related active examinations: ${examCount}.`,`Seating arrangements: ${planCount} saved day plan(s) checked and synchronized.`];
+    if(missing.length)lines.push(`Seating not yet generated for ${missing.length} related exam day(s); seating details on admit cards remain pending.`);
+    lines.push(!examCount?'Admit cards: no active exam requires regeneration; closed copies remain unchanged.':reviews.length||missing.length?'Admit cards: subject data updated; resolve pending seating/review before printing fresh PDFs.':'Admit cards: updated subjects and seating data are ready for fresh PDF generation.');
+    lines.push(publishedStatus('seating','Public seating'),publishedStatus('admitCards','Published admit cards'));
+    if(attendanceResets)lines.push(`Attendance: ${attendanceResets} changed roster(s) require fresh room confirmation.`);
+    if(closed.size)lines.push(`${closed.size} closed/frozen examination(s) were preserved unchanged.`);
+    if(reviews.length){lines.push('Review required:');reviews.slice(0,4).forEach(reason=>lines.push('• '+reason));if(reviews.length>4)lines.push(`Plus ${reviews.length-4} further day(s) requiring review.`);}
+    if(!examCount)lines.push('No active exam workflow currently applies to this class/section.');
+    return lines.join('\n');
+}
+async function waitForWorkflowConfirmationIdle(store){
+    while(store===sharedStore&&store.active&&store.pendingCount){if(store.connected===false||store.error)return false;await new Promise(resolve=>setTimeout(resolve,100));}
+    return store===sharedStore&&store.active&&store.connected!==false&&!store.error;
+}
+async function saveData(names, expected = {}, options = {}) {
     if (!Array.isArray(names) || !names.length) throw new Error('Choose the records to save.');
     const publishesPublicData=names.includes('publicPortalBoards')||names.includes('publishedSubjectDirectories');
     const activePublicSession=systemSettings.activeSession||DEFAULT_ACADEMIC_SESSION;
@@ -363,8 +403,10 @@ async function saveData(names, expected = {}) {
         showSyncError(message);alert(message);restoreSharedValues(names);return false;
     }
     if(names.includes('students'))students=Object.values(studentRecords).flatMap(sections=>Object.values(sections||{}).flatMap(records=>Object.values(records||{}))).filter(Boolean);
+    const confirmation=options.workflowConfirmation,confirmationBefore=confirmation&&sharedStore?workflowReceiptSnapshot(sharedStore):null;
+    let publicationDecision='update';
     const impacts=publishedImpactsForChanges(names);
-    if(impacts.length){const decision=await askPublishedUpdateDecision(impacts);if(decision==='cancel'){restoreSharedValues(names);return false;}if(decision==='stop'){impacts.forEach(item=>item.stop());impacts.forEach(item=>{if(!names.includes(item.collection))names.push(item.collection);});}}
+    if(impacts.length){const decision=await askPublishedUpdateDecision(impacts);publicationDecision=decision;if(decision==='cancel'){restoreSharedValues(names);return false;}if(decision==='stop'){impacts.forEach(item=>item.stop());impacts.forEach(item=>{if(!names.includes(item.collection))names.push(item.collection);});}}
     names=refreshPublishedDataForChanges(names);
     if((names.includes('publicPortalBoards')||names.includes('publishedSubjectDirectories'))&&selectedAcademicSession!==activePublicSession){restoreSharedValues(names);alert('The workflow update needs the active public session. Select the active session before updating published records.');return false;}
     if(names.includes('holidayCalendar')){
@@ -408,11 +450,16 @@ async function saveData(names, expected = {}) {
         if(names.includes('publicPortalBoards')&&selectedAcademicSession===activePublicSession){publicVisiblePortalBoards=normalizeSharedUiValue('publicPortalBoards',cloneData(publicPortalBoards));writePublicFeedCache('boards',activePublicSession,publicVisiblePortalBoards);runSharedRenderer('Public portal',renderPublicPortalBoards);}
         if(names.includes('publishedSubjectDirectories')&&selectedAcademicSession===activePublicSession){publicPublishedSubjectDirectories=normalizeSharedUiValue('publishedSubjectDirectories',cloneData(publishedSubjectDirectories));writePublicFeedCache('directory',activePublicSession,publicPublishedSubjectDirectories);runSharedRenderer('Public subject directory',renderPublicSubjectDirectory);}
         if (names.includes('archivedExams')) editorBaselines.exam = null;
+        if(confirmation&&confirmationBefore){
+            if(await waitForWorkflowConfirmationIdle(store))alert(studentWorkflowConfirmationMessage(store,confirmation,confirmationBefore,publicationDecision));
+            else if(store===sharedStore&&store.active)alert('This update was saved, but other pending/offline work prevents full workflow confirmation. Reconnect and check the sync status before printing seating or admit cards.');
+        }
         return true;
     } catch (error) {
         if (store === sharedStore) {
             restoreSharedValues(names);
             showSyncError(sourcesConfirmed?`Student / subject changes were saved, but the workflow refresh is incomplete: ${error.message}. Retry saving to finish the refresh.`:`Not saved: ${error.message}`);
+            if(confirmation)alert((sourcesConfirmed?'PARTIAL UPDATE — some student/subject saves completed.':'UPDATE NOT CONFIRMED.')+'\nSeating and admit-card workflow updates are NOT fully confirmed.\n'+(error.message || String(error))+'\nReview the sync error and retry Save.');
         }
         return false;
     }
