@@ -44,13 +44,15 @@ async function notifyTree(name) {
 async function main() {
     const server = http.createServer((request, response) => {
         const filename = request.url.split('?')[0] === '/' ? 'index.html' : request.url.split('?')[0].slice(1);
-        if (!['index.html', 'sync-store.js', 'app-sync.js', 'teacher-timetable.js', 'teacher-timetable-ui.js', 'assets/teacher-timetable-2026-11-08.js', 'seating-expiry.js'].includes(filename)) { response.writeHead(404).end(); return; }
+        if (!['index.html', 'sync-store.js', 'app-sync.js', 'teacher-timetable.js', 'teacher-timetable-ui.js', 'assets/teacher-timetable-2026-11-08.js', 'seating-expiry.js', 'mission-attendance-crypto.js'].includes(filename)) { response.writeHead(404).end(); return; }
         response.setHeader('Content-Type', filename.endsWith('.js') ? 'application/javascript' : 'text/html');
         response.end(fs.readFileSync(path.join(root, filename)));
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
     const browser = await chromium.launch({ executablePath: process.env.BROWSER_EXECUTABLE || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
+    const recipient=require('node:crypto').createECDH('prime256v1');recipient.generateKeys();
+    const attendanceTestKey={version:1,algorithm:'P-256-HKDF-SHA256-AES-256-GCM',keyId:'browser-test',publicKey:recipient.getPublicKey().toString('base64')};
     const pages = [];
     try {
         async function pageFor(options = {}) {
@@ -91,6 +93,7 @@ async function main() {
                 await notify(name);
                 return { committed: true };
             });
+            await page.route('https://vidyalaya-one-app.vercel.app/api/vems-attendance-key',route=>route.fulfill({contentType:'application/json',body:JSON.stringify(attendanceTestKey)}));
             await page.route('https://www.gstatic.com/**', route => route.fulfill({ contentType: 'application/javascript', body: route.request().url().includes('firebase-app-compat')
                 ? fs.readFileSync(path.join(__dirname, 'firebase-browser-double.js'), 'utf8') : '' }));
             await page.route('https://cdn.tailwindcss.com/**', route => route.fulfill({ contentType: 'application/javascript', body: `const style=document.createElement('style');style.textContent='.hidden{display:none!important}';document.head.appendChild(style);` }));
