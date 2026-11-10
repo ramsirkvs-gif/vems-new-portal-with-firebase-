@@ -48,7 +48,7 @@
         "$exam": {
           "$date": {
             "$room": {
-              ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) || (newData.child('pin').isString() && newData.child('pin').val() === root.child('examDayAttendancePins').child($session).child($exam).child($date).child($room).val())",
+              ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) || (root.child('examDayAttendanceWindows').child($session).child($exam).child($date).child('opensAt').isNumber() && now >= root.child('examDayAttendanceWindows').child($session).child($exam).child($date).child('opensAt').val() && now < root.child('examDayAttendanceWindows').child($session).child($exam).child($date).child('closesAt').val() && newData.child('pin').isString() && newData.child('pin').val() === root.child('examDayAttendancePins').child($session).child($exam).child($date).child($room).val())",
               ".validate": "!newData.exists() || newData.hasChildren(['pin','absentIds','submittedAt'])"
             }
           }
@@ -170,6 +170,17 @@
     "holidayCalendar": {
       ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
       ".write": "(auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')) && root.child('academicSessions').child('2026-27').child('status').val() !== 'frozen'"
+    },
+    "examDayAttendanceWindows": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+      "$session": {
+        "$exam": {
+          "$date": {
+            ".write": "auth != null && (root.child('roles').child(auth.uid).val() === 'principal' || root.child('roles').child(auth.uid).val() === 'sec-ic' || root.child('roles').child(auth.uid).val() === 'pri-ic')",
+            ".validate": "!newData.exists() || (newData.hasChildren(['opensAt','closesAt']) && newData.child('opensAt').isNumber() && newData.child('closesAt').isNumber() && newData.child('closesAt').val() === newData.child('opensAt').val() + 86400000)"
+          }
+        }
+      }
     }
   }
 }

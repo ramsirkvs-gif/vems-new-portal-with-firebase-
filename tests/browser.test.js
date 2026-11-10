@@ -733,6 +733,7 @@ async function main() {
         assert.deepEqual(await qpSourceSelect.locator('option').allTextContents(),['School / Internal — QP setter required','Regional Office (RO)','Headquarters (HQ)','CBSE','Other External Source']);
         await qpSourceSelect.selectOption('CBSE');
         await b.waitForFunction(key=>Object.values(archivedExams).find(exam=>String(exam.id)==='100')?.qpSources?.[key]==='CBSE',trackerKey);
+        await a.waitForFunction(()=>document.querySelector('select[onchange^="saveExamQpSource"]')?.closest('tr')?.textContent.includes('Not Required — External Paper'));
         assert.match(await a.locator('select[onchange^="saveExamQpSource"]').first().locator('xpath=ancestor::tr').innerText(),/Not Required — External Paper.*CBSE/s);
         assert.deepEqual(await a.evaluate(()=>{const item=getExamSubjectsListForVault(100)[0];return{source:item.sourceCode,external:item.isExternal,setter:item.setterName};}),{source:'CBSE',external:true,setter:'Not Required — CBSE'});
         await a.locator('select[onchange^="saveExamQpSource"]').first().selectOption('INTERNAL');
@@ -1178,6 +1179,7 @@ async function main() {
         assert.equal(await a.locator('#public-attendance-panel #public-attendance-pin').count(),0,'the general seating publication must remain read-only without its legacy attendance control');
         const roomPin=await a.evaluate(()=>seatingPlans['100']['2026-11-01'].rooms[0].attendancePin);
         await a.locator('#exam-day-public-pin').fill(roomPin);
+        await a.clock.setFixedTime(new Date('2026-11-01T04:00:00Z'));
         await a.getByRole('button',{name:'Unlock Room Seating'}).click();
         await a.waitForFunction(()=>document.querySelector('#public-attendance-panel')?.textContent.includes('FRONT · BLACKBOARD · INVIGILATOR'));
         assert.match(await a.locator('#public-attendance-panel').innerText(),/✈️ Examination Room[\s\S]*WINDOW SIDE[\s\S]*GATE \/ DOOR SIDE[\s\S]*FRONT · BLACKBOARD · INVIGILATOR[\s\S]*COLUMN 1 FROM GATE · DESK 1/,'sensitive attendance must preserve the complete Stage 1 flight seating design and desk geometry');
