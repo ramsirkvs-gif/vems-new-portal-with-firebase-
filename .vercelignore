@@ -1,0 +1,20 @@
+# Keep development material out of this static site's deployments.
+# SETUP_FIREBASE.md remains included because the portal links to it.
+tests/
+docs/
+node_modules/
+test-results/
+playwright-report/
+coverage/
+.firebase/
+.git/
+.github/
+.agents/
+.codex/
+firebase.json
+database.rules.json
+*-debug.log
+*.xlsx
+*.zip
+*.mp4
+*.webm
