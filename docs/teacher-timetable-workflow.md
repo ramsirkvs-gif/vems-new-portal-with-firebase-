@@ -43,3 +43,15 @@ VEMS_TT_PUBLICATION_ONLY=1 node tests/browser.test.js
 ```
 
 Future timetable updates should replace the source asset from a newly supplied workbook, preserving original cell text and verifying period times with the user. Do not invent class allocations or equate unmatched identities.
+
+### TT IC daywise report and morning revisions
+
+The full daywise report includes invigilators and relievers only. Duty starts at the saved reporting time, not the paper start. Missing reporting times or timetable links require review. Partial-period overlaps count. Free periods overlapping duty are protected against other arrangements.
+
+For all sections, Classes X and XII are suspended on 12–13 November 2026; Classes X, XI and XII are suspended on 16–21 November 2026 inclusive. Other classes remain running. Additional explicitly saved class suspensions may be supplied as `exam.ttSuspendedClasses[ISO-date]`, an array of class numbers. Suspended lessons need no replacement; overlapping running lessons need cover. Mixed class entries are separated conservatively; unrecognised entries require review.
+
+Publish the complete TT IC report first to establish a versioned baseline. Older reports without a revision need a fresh complete publication. Under During Exam → invigilation update due to absence, save replacements, then use **TT IC — Morning Changes**. Preview, PDF/Print and WhatsApp export do not advance the baseline. Publishing records a notice with exam/date, revision, issue time and baseline version, and advances the baseline to the confirmed saved assignments. Subsequent notices compare against that latest publication. Earlier notices remain available in the same public TT IC segment. Concurrent revision changes reject the save rather than overwrite a newer baseline.
+
+Outgoing and incoming teachers are both included. Earlier requests for changed teachers are superseded and restated for their revised duties. Only saved faculty absence marks create an absence-cover request; removal alone does not mark a teacher absent. Unchanged staff are omitted. A failed save does not establish a new baseline.
+
+Staff reminders ask Principal/Exam IC to take invigilator attendance first on examination day, and to publish the next scheduled examination day's duty after the current examination ends. Public invigilation duty hides at its saved duty end, including later relief completion. Missing legacy end times fall back to Indian midnight. Internal duty history and attendance remain saved. Expired duty and completed old PIN publication days do not block the next day's duty; PIN validation and same-day server restrictions are unchanged.

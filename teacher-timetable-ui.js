@@ -109,8 +109,8 @@ function timetableReportTableRows(value){
     });return result;
 }
 function timetableReportCells(row,changes=false){
-    return changes?[row.sn,`${row.name}\n${row.designation}`,`${row.change || ''} — ${row.reason || ''}`,`${row.duty || 'Removed / cancelled'} / ${row.room || ''} / ${row.time || ''}`,row.suspended || 'None',[...row.cover,...row.notes].join('\n') || 'None',row.free && row.free!=='None'?row.free+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None',row.withdrawn || 'None']:
-        [row.sn,`${row.name}\n${row.designation}`,`${row.duty} / ${row.room}`,row.time,row.overlap || 'Review legacy report',row.suspended || 'None',[...row.cover,...row.notes].join('\n') || 'None',row.free && row.free!=='None'?row.free+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None'];
+    return changes?[row.sn,`${row.name}\n${row.designation}`,`${row.change || ''} — ${row.reason || ''}`,`${row.duty || 'Removed / cancelled'} / ${row.room || ''} / ${row.time || ''}`,row.suspended || (row.notes.length?'Not confirmed':'None'),[...row.cover,...row.notes].join('\n') || 'None',row.free && row.free!=='None'?row.free+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None',row.withdrawn || 'None']:
+        [row.sn,`${row.name}\n${row.designation}`,`${row.duty} / ${row.room}`,row.time,row.overlap || (row.notes.length?'Not confirmed: review timetable / timing':'None / legacy report: review'),row.suspended || (row.notes.length?'Not confirmed':'None'),[...row.cover,...row.notes].join('\n') || 'None',row.free && row.free!=='None'?row.free+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None'];
 }
 function timetableReportHeadings(changes=false){return changes?['S.No.','Teacher name / designation','Change / reason','Revised duty / room / reporting–completion','Suspended-class periods: no replacement required','Running-class periods: arrangement required','Free periods protected by examination duty','Earlier requests withdrawn or superseded']:['S.No.','Teacher name / designation','Duty type / examination room','Reporting time–duty completion','Periods overlapping duty','Suspended-class lessons: no replacement needed','Running-class lessons: replacement required','Free in Master TT, but occupied by exam duty: do not assign arrangement'];}
 function timetableReportDisplayRows(value,changes=false){
@@ -250,7 +250,7 @@ async function runTimetableMorningAction(examId,date,action){
             const now=new Date().toISOString();
             if(day.revision!==notice.baselineVersion)throw Error('The baseline changed. Preview the latest changes again.');
             publicPortalBoards={...previous,ttIcReports:{...board,updatedAt:now,days:{...board.days,[date]:{...nextBaseline,revision:notice.revision,publishedAt:now,publishedBy:authorizedRole,notices:{...day.notices,[key]:{...published,publishedAt:now,publishedBy:authorizedRole}}}}}};
-            if(!await saveData(['publicPortalBoards'])){publicPortalBoards=previous;return;}
+            if(!await saveData(['publicPortalBoards'],{publicPortalBoards:[{path:['ttIcReports','days',date,'revision'],value:notice.baselineVersion}]})){publicPortalBoards=previous;return;}
             await refreshActivePublicFeed();renderExamCreatorModule();renderPublicPortalBoards();alert('TT IC changes published.');return;
         }
         if(action==='preview'){

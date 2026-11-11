@@ -19,7 +19,34 @@ const SeatingExpiry = (() => {
         return cutoff(date,schedule);
     }
     function planFor(exam,date,plan){return {...copy(plan),publicSeatingExpiresAt:new Date(cutoffForExam(exam,date)).toISOString()};}
+    function dutyCutoff(date,day){
+        if(!validDate(date))return 0;
+        const explicit=Date.parse(day?.dutyExpiresAt || '');
+        if(Number.isFinite(explicit))return Math.min(explicit,cutoff(date,[]));
+        const end=String(day?.dutyWindow || '').match(/(\d{2}:\d{2})\s*$/)?.[1];
+        const ends=[end,...rows(day?.rooms).map(room=>room.reliefTo).filter(Boolean)];
+        return cutoff(date,ends.map(overTime=>({overTime})));
+    }
+    function visibleDuty(boards,now){
+        const board=boards?.liveDuty;if(!board)return boards;
+        const days=Object.fromEntries(Object.entries(board.days || {}).filter(([date,day])=>now<dutyCutoff(date,day)));
+        if(Object.keys(days).length===Object.keys(board.days || {}).length)return boards;
+        const next={...boards};if(Object.keys(days).length)next.liveDuty={...board,days};else delete next.liveDuty;
+        return next;
+    }
+    function dutyReminders(boards,exams,now){
+        const today=new Date(now+19800000).toISOString().slice(0,10),result=[];
+        for(const exam of exams){
+            if(exam.mockPractice?.active)continue;
+            const dates=rows(exam.datesheetSnapshot).map(d=>d.dateStr).filter(validDate).sort();
+            if(dates.includes(today)&&now<cutoffForExam(exam,today))result.push({examId:String(exam.id),examTitle:exam.title,date:today,kind:'attendance'});
+            const completed=dates.filter(date=>cutoffForExam(exam,date)<=now).at(-1),nextDate=completed&&dates.find(date=>date>completed);
+            if(nextDate&&cutoffForExam(exam,nextDate)>now&&!(String(boards.liveDuty?.examId)===String(exam.id)&&boards.liveDuty?.days?.[nextDate]))result.push({examId:String(exam.id),examTitle:exam.title,date:nextDate,kind:'publish'});
+        }
+        return result;
+    }
     function visible(boards,now){
+        boards=visibleDuty(boards,now);
         const board=boards?.seating;if(!board)return boards;
         const plans=Object.fromEntries(Object.entries(board.plans || {}).filter(([date,plan])=>now<cutoffForPublished(board,date,plan,boards)));
         if(Object.keys(plans).length===Object.keys(board.plans || {}).length)return boards;
@@ -60,12 +87,12 @@ const SeatingExpiry = (() => {
         }
         return result.sort((a,b)=>a.nextDate.localeCompare(b.nextDate));
     }
-    return {validDate,cutoff,cutoffForExam,cutoffForPublished,planFor,visible,maintenance,reminders};
+    return {dutyCutoff,visibleDuty,dutyReminders,validDate,cutoff,cutoffForExam,cutoffForPublished,planFor,visible,maintenance,reminders};
 })();
 let seatingServerClockOffset=0,seatingExpiryBusy=false,seatingExpiryLastAttempt=0,seatingExpiryLastView='';
 const seatingReminderMemory=new Map();
 function seatingExpiryNow(){return Date.now()+seatingServerClockOffset;}
-function seatingViewSignature(boards){return JSON.stringify([currentActiveRole,boards.seating?.examId,Object.keys(boards.seating?.plans || {})]);}
+function seatingViewSignature(boards){return JSON.stringify([currentActiveRole,boards.seating?.examId,Object.keys(boards.seating?.plans || {}),boards.liveDuty?.examId,Object.keys(boards.liveDuty?.days || {})]);}
 function filterPublicSeatingBoards(boards){return SeatingExpiry.visible(boards,seatingExpiryNow());}
 function seatingPublicationPlan(exam,date,plan){return SeatingExpiry.planFor(exam,date,plan);}
 function seatingReminderKey(item){const uid=firebase.auth().currentUser?.uid || authorizedRole;return `vems_seating_reminder_${uid}_${selectedAcademicSession}_${item.examId}_${item.nextDate}`;}
@@ -93,7 +120,7 @@ function showNextSeatingReminder(boards,now){
     document.body.appendChild(modal);modal.querySelector('[data-seating-reminder-open]').focus();
 }
 async function processSeatingPublicationExpiry(){
-    const now=seatingExpiryNow(),raw=currentActiveRole==='public'?publicVisiblePortalBoards:publicPortalBoards,filtered=SeatingExpiry.visible(raw,now),view=seatingViewSignature(filtered);
+    const now=seatingExpiryNow();showInvigilationReminders(now);const raw=currentActiveRole==='public'?publicVisiblePortalBoards:publicPortalBoards,filtered=SeatingExpiry.visible(raw,now),view=seatingViewSignature(filtered);
     if(view!==seatingExpiryLastView){seatingExpiryLastView=view;renderPublicPortalBoards();}
     if(!['principal','sec-ic','pri-ic'].includes(authorizedRole)){document.getElementById('next-seating-publication-reminder')?.remove();return;}
     showNextSeatingReminder(publicPortalBoards,now);
@@ -114,3 +141,22 @@ function startSeatingExpiryMonitor(){
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)run();});
 }
 if(typeof module!=='undefined')module.exports=SeatingExpiry;
+
+function showInvigilationReminders(now){
+    const old=document.getElementById('invigilation-day-reminders');
+    if(!['principal','sec-ic','pri-ic'].includes(authorizedRole)||currentActiveRole==='public'||isSelectedSessionFrozen()||selectedAcademicSession!==(systemSettings.activeSession || DEFAULT_ACADEMIC_SESSION)){old?.remove();return;}
+    if(document.hidden)return;
+    const confirmed=sharedStore?.ready?Object.values(sharedStore.view('archivedExams') || {}).filter(Boolean):archivedExams;
+    const items=SeatingExpiry.dutyReminders(publicPortalBoards,confirmed,now);
+    if(!items.length){old?.remove();return;}
+    const panel=old || document.createElement('aside');panel.id='invigilation-day-reminders';panel.className='fixed bottom-3 left-3 z-50 max-h-48 max-w-sm overflow-auto rounded-xl border-2 border-amber-400 bg-white p-3 text-xs shadow-lg';
+    const html=items.map(item=>`<p class="mb-2"><b>${item.kind==='attendance'?'Take invigilator attendance first':'Publish the next scheduled examination day’s invigilation duty'}</b><br>${escapeHtml(item.examTitle || 'Examination')} · ${escapeHtml(formatDateWithDay(item.date))}<br><button class="font-bold text-indigo-800 underline" onclick="openInvigilationReminder(${jsArg(item.examId)},${jsArg(item.date)},'${item.kind}')">${item.kind==='attendance'?'Open faculty attendance':'Review next day duty'}</button></p>`).join('');
+    if(panel.innerHTML!==html)panel.innerHTML=html;
+    if(!old)document.body.appendChild(panel);
+}
+function openInvigilationReminder(examId,date,kind){
+    if(!['principal','sec-ic','pri-ic'].includes(authorizedRole))return;
+    selectedPreExamVaultId=Number(examId)||examId;selectedDuringExamDate=date;selectedInvigilationDate=date;
+    if(kind==='attendance'){duringExamStep=1;openLifecycleStage('during',examId);}
+    else {activePreExamSubTab='invigilation';openPreExamFullPageWorkspace(Number(examId)||examId);}
+}

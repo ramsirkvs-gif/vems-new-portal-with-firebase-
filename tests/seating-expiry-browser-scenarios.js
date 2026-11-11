@@ -6,7 +6,8 @@ module.exports=async function(staff,second,visitor){
         const makePlan=date=>({date,method:'manual',updatedAt:'2026-11-11T05:00:00Z',rooms:[{id:'r1',name:'Room 1',rows:2,desksPerRow:2,deskCount:4}],assignments:[{studentId:'s1',name:'Expiry Candidate',roll:'1001',cls:'10',section:'A',subject:'SCIENCE',roomId:'r1',roomName:'Room 1',desk:0,seat:0}]});
         await sharedStore.save('archivedExams',{902:exam});
         await sharedStore.save('seatingPlans',{902:Object.fromEntries(exam.datesheetSnapshot.map(day=>[day.dateStr,makePlan(day.dateStr)]))});
-        selectedPreExamVaultId=902;selectedSeatingDate='2026-11-12';await publishSeatingBoard('2026-11-12');
+        await sharedStore.save('publicPortalBoards',{liveDuty:{examId:902,days:{'2026-11-12':{date:'2026-11-12',dutyWindow:'08:00–11:30',rooms:[],relievers:[]}}},examDayFlow:{examId:902,days:{'2026-11-12':{date:'2026-11-12',attendanceEnabled:true}}}});
+        selectedPreExamVaultId=902;selectedSeatingDate='2026-11-12';await publishSeatingBoard('2026-11-12');seatingExpiryLastAttempt=0;await processSeatingPublicationExpiry();
     });
     await visitor.waitForFunction(()=>document.getElementById('public-seating-body').textContent.includes('Expiry Candidate'));
     assert.equal(await visitor.evaluate(()=>authorizedRole),null);
@@ -15,6 +16,8 @@ module.exports=async function(staff,second,visitor){
     await visitor.clock.setFixedTime(new Date('2026-11-12T11:30:00+05:30'));
     await visitor.waitForFunction(()=>!document.getElementById('public-seating-body').textContent.includes('Expiry Candidate'),{}, {timeout:15000});
     assert.equal(await visitor.evaluate(()=>visiblePortalBoards().seating),undefined);
+    assert.equal(await visitor.evaluate(()=>visiblePortalBoards().liveDuty),undefined);
+    assert.equal(await visitor.evaluate(()=>!!publicVisiblePortalBoards.liveDuty),true,'expired public duty remains in saved history');
     assert.doesNotMatch(await visitor.locator('#public-seating-body').innerText(),/Expiry Candidate/);
     assert.equal(await visitor.evaluate(()=>!!publicVisiblePortalBoards.seating),true,'anonymous expiry hides the plan without needing a database write');
     assert.equal(await visitor.locator('#next-seating-publication-reminder').count(),0,'public visitors never get staff reminders');
@@ -40,5 +43,8 @@ module.exports=async function(staff,second,visitor){
     await staff.evaluate(()=>publishSeatingBoard('2026-11-12'));
     assert.equal(await staff.evaluate(()=>!!publicPortalBoards.seating.plans['2026-11-13']),true,'an expired day cannot replace the next published day');
     assert.equal(await staff.evaluate(()=>!!publicPortalBoards.seating.plans['2026-11-12']),false);
+    assert.equal(await staff.evaluate(()=>monitoringPublicationConflict(902,'2026-11-13')),null,'expired duty and completed old PIN day must not block the next scheduled duty');
+    await staff.evaluate(()=>showInvigilationReminders(seatingExpiryNow()));
+    assert.match(await staff.locator('#invigilation-day-reminders').innerText(),/next scheduled/);
     console.log('PASS: anonymous seating expires at the IST cutoff; connected cleanup synchronizes without deleting private plans; Day 2 reminder snoozes and opens correct seating without auto publishing');
 };

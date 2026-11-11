@@ -56,3 +56,18 @@ test('cleanup conflict is retried later and cannot remove a newly published day'
 });
 
 test('unsaved local exam-time edits cannot change the cleanup cutoff',async()=>{const c=runtime();c.archivedExams=structuredClone([exam]);c.archivedExams[0].datesheetSnapshot[0].paperSlots.forEach(slot=>slot.overTime='23:59');await c.processSeatingPublicationExpiry();assert.equal(c.calls.length,1);assert.equal(c.calls[0][1].seating,undefined);});
+
+test('saved public invigilation duty expires at last duty/relief end and keeps internal history untouched',()=>{
+ const input={liveDuty:{examId:7,days:{'2026-11-12':{dutyWindow:'08:00–11:30',rooms:[{reliefTo:'11:40'}]},'2026-11-13':{dutyWindow:'08:00–11:00'}}},examDayFlow:{date:'2026-11-12',attendanceEnabled:true}},original=JSON.stringify(input);
+ assert.ok(E.visible(input,after).liveDuty.days['2026-11-12']);
+ const view=E.visible(input,iso('2026-11-12T11:40:00+05:30'));
+ assert.equal(view.liveDuty.days['2026-11-12'],undefined);assert.ok(view.liveDuty.days['2026-11-13']);assert.deepEqual(view.examDayFlow,input.examDayFlow);assert.equal(JSON.stringify(input),original);
+ assert.equal(E.dutyCutoff('2026-11-12',{dutyWindow:'missing'}),iso('2026-11-13T00:00:00+05:30'));
+});
+test('invigilation reminders use the next scheduled day across weekends and suppress already published duty',()=>{
+ const now=iso('2026-11-13T11:01:00+05:30');
+ assert.equal(E.dutyReminders({},[exam],before)[0].kind,'attendance');
+ const next=E.dutyReminders({},[exam],now);assert.equal(next.length,1);assert.equal(next[0].date,'2026-11-16');assert.equal(next[0].kind,'publish');
+ assert.equal(E.dutyReminders({liveDuty:{examId:7,days:{'2026-11-16':{}}}},[exam],now).length,0);
+ assert.equal(E.dutyReminders({},[exam],iso('2026-11-16T12:01:00+05:30')).length,0);
+});
