@@ -36,15 +36,15 @@ const TeacherTimetablePlanner = (() => {
     }
     function fullWindow(exam,date) {
         const slots = (exam?.datesheetSnapshot || []).find(day=>day.dateStr===date)?.paperSlots || [];
-        if (!slots.length || slots.some(slot=>!validWindow(slot.repTime || slot.startTime,slot.overTime || slot.endTime))) return {from:'',to:''};
-        return {from:slots.map(s=>s.repTime || s.startTime).sort()[0],to:slots.map(s=>s.overTime || s.endTime).sort().at(-1)};
+        if (!slots.length || slots.some(slot=>!validWindow(slot.repTime,slot.overTime || slot.endTime))) return {from:'',to:''};
+        return {from:slots.map(s=>s.repTime).sort()[0],to:slots.map(s=>s.overTime || s.endTime).sort().at(-1)};
     }
     function duties(exam,date,plans,occupied) {
         const window=fullWindow(exam,date), rows=[];
         occupied.filter(item=>item.date===date).forEach(item=>{
             const roomId=String(item.room.id), record=plans[String(exam.id)]?.[date]?.[roomId] || {}, room=item.room.name || roomId;
             [...new Set((record.invigilators || []).filter(Boolean).map(String))].forEach(teacherId=>rows.push({teacherId,role:'Invigilation',room,...window}));
-            if(record.relieverId) rows.push({teacherId:String(record.relieverId),role:'Relieving',room,from:record.reliefFrom || '',to:record.reliefTo || ''});
+            if(record.relieverId) rows.push({teacherId:String(record.relieverId),role:'Relieving',room,from:record.reliefReportTime || record.reliefFrom || '',to:record.reliefTo || ''});
         });
         return rows;
     }
@@ -65,14 +65,29 @@ const TeacherTimetablePlanner = (() => {
         }));
         return byTeacher;
     }
+    function suspendedClasses(exam,date) {
+        const confirmed=['2026-11-12','2026-11-13'].includes(date)?['10','12']:date>='2026-11-16'&&date<='2026-11-21'?['10','11','12']:[];
+        return new Set([...confirmed,...(exam?.ttSuspendedClasses?.[date] || [])].map(String));
+    }
+    function classify(exam,date,periods) {
+        const suspended=suspendedClasses(exam,date),running=[],stopped=[];
+        periods.forEach(p=>{
+            const matches=[...p.entry.matchAll(/\b(1[0-2]|[1-9])\s*[-]?\s*([A-Z])\b/g)];
+            if(!matches.length){running.push({...p,entry:p.entry+' (class not recognised: review)'});return;}
+            const split=flag=>matches.filter(m=>suspended.has(String(Number(m[1])))===flag).map(m=>m[0]);
+            if(split(true).length)stopped.push({...p,entry:split(false).length?split(true).join(' + '):p.entry});
+            if(split(false).length)running.push({...p,entry:split(true).length?split(false).join(' + '):p.entry});
+        });return {running,suspended:stopped};
+    }
     function report(data,exam,date,teachers,plans,occupied,mappings) {
         const byTeacher=new Map();
         duties(exam,date,plans,occupied).forEach(duty=>{
             if(!byTeacher.has(duty.teacherId))byTeacher.set(duty.teacherId,{teacherId:duty.teacherId,teacher:teachers.find(t=>String(t.id)===duty.teacherId),duties:[]});
             const row=byTeacher.get(duty.teacherId);row.duties.push({...duty,comparison:compare(data,row.teacher,date,duty.from,duty.to,mappings)});
         });
+        byTeacher.forEach(row=>row.duties.forEach(duty=>Object.assign(duty.comparison,classify(exam,date,duty.comparison.classes))));
         return [...byTeacher.values()].sort((a,b)=>String(a.teacher?.name || a.teacherId).localeCompare(String(b.teacher?.name || b.teacherId)));
     }
-    return {key,dayKey,nextDate,minutes,validWindow,overlaps,resolve,daily,compare,fullWindow,duties,evaluationPapers,report};
+    return {suspendedClasses,classify,key,dayKey,nextDate,minutes,validWindow,overlaps,resolve,daily,compare,fullWindow,duties,evaluationPapers,report};
 })();
 if(typeof module!=='undefined')module.exports=TeacherTimetablePlanner;

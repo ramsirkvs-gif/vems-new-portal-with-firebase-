@@ -69,13 +69,13 @@ test('mapping edits are role checked, source checked and saved with a conflict b
  c.authorizedRole='sec-ic';assert.equal(await c.saveTimetableTeacherLink('t2','bad'),false);assert.equal(await c.saveTimetableTeacherLink('t2','3'),true);assert.equal(c.saves.length,1);assert.equal(c.saves[0][1].circularSettings[0].path.join('/'),'_teacherTimetableMatches');assert.equal(c.timetableMappings().t2.teacherName,'Not in workbook');
 });
 test('PDF contains only actual duty windows and class clashes with no data mutation',async()=>{
- const c=ui(),before=JSON.stringify([c.teachers,c.invigilationPlans,c.circularSettings]);const pdf=await c.timetableIcReportPdfBlob(exam,'2026-11-09').text();assert.match(pdf,/^%PDF-1.4/);assert.match(pdf,/12E/);assert.match(pdf,/P-III 09:40-10:20/);assert.match(pdf,/08:00 - 11:30/);assert.match(pdf,/Duty Time/);assert.match(pdf,/S.No./);assert.doesNotMatch(pdf,/evaluation|avoid all additional arrangements/);assert.match(pdf,/TT NOT LINKED/);
+ const c=ui(),before=JSON.stringify([c.teachers,c.invigilationPlans,c.circularSettings]);const pdf=await c.timetableIcReportPdfBlob(exam,'2026-11-09').text();assert.match(pdf,/^%PDF-1.4/);assert.match(pdf,/12E/);assert.match(pdf,/P-III/);assert.match(pdf,/09:40-10:20/);assert.match(pdf,/08:00 - 11:30/);assert.match(pdf,/Reporting/);assert.match(pdf,/S.No./);assert.doesNotMatch(pdf,/evaluation|avoid all additional arrangements/);assert.match(pdf,/TT NOT LINKED/);
  const tomorrow=await c.timetableIcReportPdfBlob(exam,'2026-11-10').text();assert.doesNotMatch(tomorrow,/yesterday|Class 12-E ENGLISH/);assert.equal(JSON.stringify([c.teachers,c.invigilationPlans,c.circularSettings]),before);
  c.printTimetableIcReport(7,'2026-11-09');assert.equal(c.urls.length,1);c.sharedStore.pendingCount=1;c.printTimetableIcReport(7,'2026-11-09');assert.equal(c.urls.length,1);c.authorizedRole=null;c.printTimetableIcReport(7,'2026-11-09');assert.equal(c.urls.length,1);
 });
 test('long timetable notes paginate without dropping the final text or corrupting PDF xrefs',async()=>{
  const c=ui();c.teachers[0]={...teacher,name:teacher.name};const long='COMBINED CLASS DETAILS '.repeat(600)+'END OF ORIGINAL NOTE';const clone=structuredClone(data);clone.teachers.find(t=>t.id==='3').days.MON[1]=long;c.VEMSTeacherTimetable=clone;
- const pdf=await c.timetableIcReportPdfBlob(exam,'2026-11-09').text();assert.match(pdf,/END OF ORIGINAL NOTE/);assert.ok((pdf.match(/\/Type \/Page /g)||[]).length>1);const offset=Number(pdf.match(/startxref\n(\d+)/)[1]);assert.equal(pdf.slice(offset,offset+4),'xref');
+ const pdf=await c.timetableIcReportPdfBlob(exam,'2026-11-09').text();assert.match([...pdf.matchAll(/\(([^\n]*)\) Tj/g)].map(m=>m[1]).join(' '),/END OF ORIGINAL NOTE/);assert.ok((pdf.match(/\/Type \/Page /g)||[]).length>1);const offset=Number(pdf.match(/startxref\n(\d+)/)[1]);assert.equal(pdf.slice(offset,offset+4),'xref');
 });
 
 test('emergency evaluators are excluded from the TT duty report without invigilation or relief',()=>{
@@ -95,3 +95,14 @@ test('TT IC report excludes core, collectors and evaluation-only staff but keeps
 });
 
 test('relieving recommendations cover only the actual partial-period interval',()=>{const c=ui(),record=c.invigilationPlans[7]['2026-11-09'].r1;record.invigilators=[];record.relieverId='t1';record.reliefFrom='11:40';record.reliefTo='12:00';let lines=c.timetableReportTeacherLines(c.timetableReportRows(exam,'2026-11-09')[0],'2026-11-09').join(' ');assert.match(lines,/P-V 11:30–12:10: 12C · duty overlap 11:40–12:00/);record.reliefFrom='10:00';record.reliefTo='10:10';lines=c.timetableReportTeacherLines(c.timetableReportRows(exam,'2026-11-09')[0],'2026-11-09').join(' ');assert.match(lines,/Free periods protected during duty: P-III 10:00-10:10/);assert.doesNotMatch(lines,/09:40-10:20|all additional arrangements|evaluation/);});
+
+test('confirmed all-section suspensions separate mixed running and suspended lessons, including partial overlaps',()=>{
+ const periods=[{label:'I',start:'08:20',end:'09:00',entry:'10A + 9B + 12E'},{label:'II',start:'09:00',end:'09:40',entry:'11A'}];
+ for(const date of ['2026-11-12','2026-11-13']){const c=P.classify({},date,periods);assert.equal(c.suspended[0].entry,'10A + 12E');assert.equal(c.running[0].entry,'9B');assert.equal(c.running[1].entry,'11A');}
+ for(const date of ['2026-11-16','2026-11-21']){const c=P.classify({},date,periods);assert.equal(c.suspended.length,2);assert.equal(c.running.length,1);}
+ assert.equal(P.classify({},'2026-11-22',periods).suspended.length,0);
+ assert.equal(P.overlaps('08:59','09:01','08:20','09:00'),true);
+});
+test('paper start cannot replace missing required reporting time',()=>{
+ assert.equal(P.fullWindow({datesheetSnapshot:[{dateStr:'2026-11-12',paperSlots:[{startTime:'09:00',overTime:'12:00'}]}]},'2026-11-12').from,'');
+});

@@ -76,10 +76,12 @@ function timetableReportTeacherLines(row,date){
         if(!c.valid)lines.push('DUTY TIMES INCOMPLETE/INVALID: class clashes cannot be confirmed.');
         if(c.known && c.valid){
             lines.push('Replacement cover requested:');
-            if(c.classes.length)c.classes.forEach(p=>lines.push('  '+timetablePeriodText(p)+` · duty overlap ${duty.from>p.start?duty.from:p.start}–${duty.to<p.end?duty.to:p.end}`));else lines.push('  No scheduled class overlaps this duty window.');
+            if((c.running || c.classes).length)(c.running || c.classes).forEach(p=>lines.push('  '+timetablePeriodText(p)+` · duty overlap ${duty.from>p.start?duty.from:p.start}–${duty.to<p.end?duty.to:p.end}`));else lines.push('  No scheduled class overlaps this duty window.');
+            lines.push('Suspended-class lessons: '+((c.suspended || []).map(timetablePeriodText).join('; ') || 'None'));
+            lines.push('Periods overlapping duty: '+[...c.classes,...c.protectedFree].map(p=>'P-'+p.label).join(', '));
             lines.push('Free periods protected during duty: '+(c.protectedFree.map(p=>`P-${p.label} ${duty.from>p.start?duty.from:p.start}-${duty.to<p.end?duty.to:p.end}`).join('; ') || 'None'));
         }
-        if(c.valid)lines.push(`TT IC: no arrangement during ${duty.from}–${duty.to} (${duty.role}).`);
+        if(c.valid)lines.push(`TT IC: no arrangement during ${duty.from}–${duty.to} (${duty.role}). Free in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.`);
     });
     return lines;
 }
@@ -95,28 +97,42 @@ function timetableReportTableRows(value){
     const result=[];
     timedTimetableReportRows(value).forEach((employee,index)=>{let current=null;
         for(const value of timetableReportList(employee.lines)){const line=String(value),parts=line.split('|');
-            if(/^(Invigilation|Relieving)\s*\|/.test(line)){current={sn:index+1,teacherId:employee.teacherId,name:employee.name,designation:employee.designation,duty:parts[0].trim(),room:parts.slice(1,-1).join('|').trim(),time:parts.at(-1).trim(),cover:[],free:'',notes:[]};result.push(current);continue;}
+            if(/^(Invigilation|Relieving)\s*\|/.test(line)){current={sn:index+1,teacherId:employee.teacherId,name:employee.name,designation:employee.designation,duty:parts[0].trim(),room:parts.slice(1,-1).join('|').trim(),time:parts.at(-1).trim(),cover:[],free:'',suspended:'',overlap:'',notes:[]};result.push(current);continue;}
             if(!current)continue;
-            if(/^\s*P-/.test(line))current.cover.push(line.trim());
+            if(line.startsWith('Suspended-class lessons:'))current.suspended=line.slice(24).trim();
+            else if(line.startsWith('Periods overlapping duty:'))current.overlap=line.slice(25).trim();
+            else if(/^\s*P-/.test(line))current.cover.push(line.trim());
             else if(/^\s*No scheduled class overlaps/.test(line))current.cover.push('No class overlap');
             else if(line.startsWith('Free periods protected during duty:'))current.free=line.slice('Free periods protected during duty:'.length).trim();
             else if(/^(TT NOT LINKED:|NO TIMETABLE FOR THIS DAY:|DUTY TIMES INCOMPLETE)/.test(line))current.notes.push(line);
         }
     });return result;
 }
-function timetableReportTableHtml(value){
-    const rows=timetableReportTableRows(value),counts=new Map();rows.forEach(row=>counts.set(row.sn,(counts.get(row.sn)||0)+1));const seen=new Set();
-    return `<div class="max-h-96 overflow-auto rounded-lg border border-slate-300 bg-white"><table data-tt-arrangement-table class="w-full min-w-[1100px] border-collapse text-xs"><caption class="sr-only">Numbered employee invigilation and relieving arrangements for exact duty times</caption><thead class="sticky top-0 z-10 bg-indigo-950 text-white"><tr>${['S.No.','Employee / Designation','Duty','Exam Room','Duty Time (IST)','Affected Classes / Cover Needed','Protected Free Periods'].map((h,col)=>`<th scope="col" class="border border-slate-300 p-3 text-left ${col===0?'sticky left-0 z-20 w-16 min-w-16 bg-indigo-950':col===1?'sticky left-16 z-20 min-w-48 bg-indigo-950':''}">${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>{const first=!seen.has(row.sn);seen.add(row.sn);return `<tr data-tt-employee="${escapeHtml(String(row.teacherId || row.sn))}" class="align-top ${row.sn%2?'bg-white':'bg-cyan-50/50'}">${first?`<td rowspan="${counts.get(row.sn)}" class="sticky left-0 z-[1] w-16 min-w-16 border border-slate-300 bg-white p-3 text-center font-extrabold text-indigo-950">${row.sn}</td><th scope="rowgroup" rowspan="${counts.get(row.sn)}" class="sticky left-16 z-[1] min-w-48 border border-slate-300 bg-white p-3 text-left"><b class="block text-sm text-indigo-950">${escapeHtml(row.name || 'Unknown employee')}</b><span class="mt-1 block text-[11px] font-normal text-slate-600">${escapeHtml(row.designation || '')}</span></th>`:''}<td class="border border-slate-300 p-3 font-bold">${escapeHtml(row.duty)}</td><td class="border border-slate-300 p-3">${escapeHtml(row.room)}</td><td class="whitespace-nowrap border border-slate-300 p-3 font-bold text-indigo-900">${escapeHtml(row.time)}</td><td class="min-w-72 border border-slate-300 p-3"><div class="space-y-1.5">${row.cover.map(line=>`<p class="break-words leading-5">${escapeHtml(line)}</p>`).join('') || (!row.notes.length?'<span>None</span>':'')}${row.notes.map(note=>`<p class="break-words font-bold leading-5 text-amber-900">${escapeHtml(note)}</p>`).join('')}</div></td><td class="min-w-44 border border-slate-300 p-3 leading-5">${escapeHtml(row.free || (row.notes.length?'Not confirmed':'None'))}</td></tr>`;}).join('') || '<tr><td colspan="7" class="p-5 text-center text-slate-500">No invigilator or reliever duty recorded for this date.</td></tr>'}</tbody></table></div>`;
+function timetableReportCells(row,changes=false){
+    return changes?[row.sn,`${row.name}\n${row.designation}`,`${row.change || ''} — ${row.reason || ''}`,`${row.duty || 'Removed / cancelled'} / ${row.room || ''} / ${row.time || ''}`,row.suspended || 'None',[...row.cover,...row.notes].join('\n') || 'None',row.free && row.free!=='None'?row.free+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None',row.withdrawn || 'None']:
+        [row.sn,`${row.name}\n${row.designation}`,`${row.duty} / ${row.room}`,row.time,row.overlap || 'Review legacy report',row.suspended || 'None',[...row.cover,...row.notes].join('\n') || 'None',row.free && row.free!=='None'?row.free+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None'];
+}
+function timetableReportHeadings(changes=false){return changes?['S.No.','Teacher name / designation','Change / reason','Revised duty / room / reporting–completion','Suspended-class periods: no replacement required','Running-class periods: arrangement required','Free periods protected by examination duty','Earlier requests withdrawn or superseded']:['S.No.','Teacher name / designation','Duty type / examination room','Reporting time–duty completion','Periods overlapping duty','Suspended-class lessons: no replacement needed','Running-class lessons: replacement required','Free in Master TT, but occupied by exam duty: do not assign arrangement'];}
+function timetableReportDisplayRows(value,changes=false){
+    if(!changes)return timetableReportTableRows(value);
+    return timetableReportList(value).flatMap((employee,index)=>{
+        const duties=timetableReportTableRows([employee]);
+        return (duties.length?duties:[{name:employee.name,designation:employee.designation,cover:[],notes:[]}]).map(r=>({...r,sn:index+1,change:employee.change,reason:employee.reason,withdrawn:employee.withdrawn,cover:[...(r.cover || []),...(employee.absenceCover?['ABSENCE cover: '+employee.absenceCover]:[])]}));
+    });
+}
+function timetableReportTableHtml(value,changes=false){
+    const rows=timetableReportDisplayRows(value,changes);
+    return `<div class="max-h-96 overflow-auto"><table data-tt-arrangement-table class="w-full min-w-[1400px] border-collapse text-xs"><thead><tr>${timetableReportHeadings(changes).map(h=>`<th class="border bg-indigo-950 p-3 text-white">${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr data-tt-employee="${escapeHtml(String(row.teacherId || row.sn))}">${timetableReportCells(row,changes).map((cell,i)=>`<td class="border p-3 align-top whitespace-pre-line">${escapeHtml(String(cell))}</td>`).join('')}</tr>`).join('') || '<tr><td colspan="8">No changes / no invigilator or reliever duty recorded.</td></tr>'}</tbody></table></div>`;
 }
 function timetableReportSnapshotPdf(snapshot){
-    const rows=timetableReportTableRows(snapshot.rows),streams=[],x=[30,58,205,269,334,410,637,812],limits=[4,28,12,12,15,46,34];
+    const changes=snapshot.kind==='morning-changes',rows=timetableReportDisplayRows(snapshot.rows,changes),streams=[],x=[30,57,169,271,368,452,564,676,812],limits=[4,20,18,17,15,20,20,24];
     const clean=value=>String(value??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,'-').replace(/([\\()])/g,'\\$1'),text=(value,xx,y,size=8,color='0.07 0.12 0.32')=>`${color} rg BT /F1 ${size} Tf 1 0 0 1 ${xx} ${y} Tm (${clean(value)}) Tj ET\n`;
     const wrap=(value,max)=>{const out=[];let line='';for(const word of String(value??'').split(/\s+/)){if((line+' '+word).trim().length>max&&line){out.push(line);line='';}for(let i=0;i<word.length;i+=max){const part=word.slice(i,i+max);if(i+max<word.length){if(line){out.push(line);line='';}out.push(part);}else line=(line+' '+part).trim();}}if(line)out.push(line);return out.length?out:[''];};
     let stream='',y=0,page=0;
-    const newPage=()=>{if(stream)streams.push(stream+text(`Page ${page} | TT IC - Timed Duty Arrangements`,30,20,7));page++;stream=text('PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR',225,568,12)+text('TT IC - EXAM DUTY & ARRANGEMENT REQUESTS',265,550,11);y=532;for(const line of wrap(`${snapshot.examTitle} | ${formatDateWithDay(snapshot.date)}`,150)){stream+=text(line,30,y,9);y-=12;}stream+=text(snapshot.publishedAt?'Published report.':'Working copy: save exam duties before sharing.',30,y,7);y-=12;stream+=text('Arrangement protection applies only to the listed duty times (IST).',30,y,7);y-=12;for(const line of wrap(`Timetable: ${snapshot.source || 'Uploaded teacher timetable'}`,160)){stream+=text(line,30,y,7);y-=11;}if(snapshot.publishedAt){stream+=text(`Published: ${new Date(snapshot.publishedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})} (IST)`,30,y,7);y-=12;}y-=5;stream+=`0.07 0.12 0.32 rg 30 ${y-32} 782 32 re f\n`;const headings=[['S.No.'],['Employee /','Designation'],['Duty'],['Exam Room'],['Duty Time','(IST)'],['Affected Classes / Cover Needed'],['Protected Free Periods']];headings.forEach((lines,col)=>lines.forEach((line,i)=>stream+=text(line,x[col]+4,y-13-i*10,7,'1 1 1')));y-=32;};
+    const newPage=()=>{if(stream)streams.push(stream+text(`Page ${page} | TT IC - Timed Duty Arrangements`,30,20,7));page++;stream=text('PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR',225,568,12)+text('TT IC - EXAM DUTY & ARRANGEMENT REQUESTS',265,550,11);y=532;for(const line of wrap(`${snapshot.examTitle} | ${formatDateWithDay(snapshot.date)}`,150)){stream+=text(line,30,y,9);y-=12;}if(changes){stream+=text(`Morning Changes | Revision ${snapshot.revision} | Baseline ${snapshot.baselineVersion} | Issued ${snapshot.issuedAt}`,30,y,8);y-=14;}stream+=text(snapshot.publishedAt?'Published report.':'Working copy: save exam duties before sharing.',30,y,7);y-=12;stream+=text('Arrangement protection applies only to the listed duty times (IST).',30,y,7);y-=12;for(const line of wrap(`Timetable: ${snapshot.source || 'Uploaded teacher timetable'}`,160)){stream+=text(line,30,y,7);y-=11;}if(snapshot.publishedAt){stream+=text(`Published: ${new Date(snapshot.publishedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})} (IST)`,30,y,7);y-=12;}y-=5;stream+=`0.07 0.12 0.32 rg 30 ${y-65} 782 65 re f\n`;const headings=timetableReportHeadings(changes).map(h=>wrap(h,18));headings.forEach((lines,col)=>lines.forEach((line,i)=>stream+=text(line,x[col]+4,y-13-i*10,7,'1 1 1')));y-=65;};
     newPage();
     rows.forEach(row=>{
-        const cells=[String(row.sn),`${row.name || 'Unknown employee'}\n${row.designation || ''}`,row.duty,row.room,row.time,[...row.cover,...row.notes].join('\n') || 'None',(row.free || (row.notes.length?'Not confirmed':'None')).replace(/;\s*/g,'\n')],lines=cells.map((cell,col)=>String(cell).split('\n').flatMap(part=>wrap(part,limits[col]))),total=Math.max(...lines.map(a=>a.length));let offset=0;
+        const cells=timetableReportCells(row,changes).map(String),lines=cells.map((cell,col)=>String(cell).split('\n').flatMap(part=>wrap(part,limits[col]))),total=Math.max(...lines.map(a=>a.length));let offset=0;
         while(offset<total){const capacity=Math.floor((y-57)/10);if(capacity<1){newPage();continue;}const take=Math.min(total-offset,capacity),height=Math.max(32,take*10+12);if(y-height<42){newPage();continue;}if(row.sn%2===0)stream+=`0.95 0.98 1 rg 30 ${y-height} 782 ${height} re f\n`;stream+='0.75 0.8 0.88 RG 0.5 w ';x.forEach(xx=>stream+=`${xx} ${y-height} m ${xx} ${y} l S `);stream+=`30 ${y-height} m 812 ${y-height} l S\n`;lines.forEach((cell,col)=>{let visible=cell.slice(offset,offset+take);if(offset&&!visible.length&&col<5)visible=cell.slice(0,take);visible.forEach((line,index)=>stream+=text(line,x[col]+4,y-13-index*10,8));});y-=height;offset+=take;}
     });
     if(!rows.length){stream+=text('No invigilator or reliever duty recorded for this date.',34,y-20,9);y-=35;}
@@ -131,7 +147,7 @@ function printTimetableIcReport(examId,date){
 
 function timetableReportList(value){return Array.isArray(value)?value.filter(Boolean):value&&typeof value==='object'?Object.values(value).filter(Boolean):[];}
 function timetableReportSnapshot(exam,date,reportRows=null){
-    return {scope:'timed-invigilation-relief',examId:exam.id,examTitle:String(exam.title || 'Examination'),date,source:VEMSTeacherTimetable.source,
+    return {scope:'timed-invigilation-relief',absentFaculty:(exam.duringExamDays?.[date]?.absentFaculty || []).map(String).sort(),examId:exam.id,examTitle:String(exam.title || 'Examination'),date,source:VEMSTeacherTimetable.source,
         periods:VEMSTeacherTimetable.periods.map(p=>({label:p.label,start:p.start,end:p.end})),
         rows:(reportRows || timetableReportRows(exam,date)).map(row=>({teacherId:String(row.teacherId),name:String(row.teacher?.name || `Unknown teacher (${row.teacherId})`),designation:String(row.teacher?.desig || ''),lines:timetableReportTeacherLines(row,date)}))};
 }
@@ -156,7 +172,7 @@ async function publishTimetableIcReport(examId,date){
     const exam=archivedExams.find(e=>String(e.id)===String(examId));if(!exam || !timetableReportDates(exam).includes(date))return false;
     const saved=timetableConfirmedReportSnapshot(examId,date),working=timetableReportSnapshot(exam,date);
     if(!saved || timetableSnapshotSignature(saved)!==timetableSnapshotSignature(working)){alert('Save the current duty, seating or timetable changes before publishing this TT IC report.');return false;}
-    const previous=publicPortalBoards.ttIcReports,same=String(previous?.examId)===String(exam.id),now=new Date().toISOString(),days={...(same?previous.days || {}:{}),[date]:{...saved,publishedAt:now,publishedBy:authorizedRole}};
+    const previous=publicPortalBoards.ttIcReports,same=String(previous?.examId)===String(exam.id),now=new Date().toISOString(),days={...(same?previous.days || {}:{}),[date]:{...saved,revision:(same?previous.days?.[date]?.revision || 0:0)+1,notices:same?previous.days?.[date]?.notices || {}:{},publishedAt:now,publishedBy:authorizedRole}};
     publicPortalBoards={...publicPortalBoards,ttIcReports:{examId:exam.id,examTitle:exam.title,days,lastPublishedDate:date,publishedAt:same?previous.publishedAt || now:now,updatedAt:now}};
     if(!await saveData(['publicPortalBoards']))return false;
     if(!await refreshActivePublicFeed() || String(publicVisiblePortalBoards.ttIcReports?.examId)!==String(exam.id) || visiblePublicTimetableDays(publicVisiblePortalBoards.ttIcReports)[date]?.publishedAt!==now){alert('Report saved, but Public View confirmation is pending. Check the active session and retry.');return false;}
@@ -172,7 +188,7 @@ async function stopTimetableIcReport(examId,date){
 function timedTimetableReportRows(value){
     return timetableReportList(value).map(row=>{let keep=false,from='',to='';const lines=[];
         for(const value of timetableReportList(row.lines)){const line=String(value);if(/^(Invigilation|Relieving)\s*\|/.test(line)){keep=true;const times=line.split('|').at(-1).trim().match(/^(\d{2}:\d{2})\s*[-–]\s*(\d{2}:\d{2})$/);from=times?.[1] || '';to=times?.[2] || '';lines.push(line);continue;}
-            if(keep && /^(?:\s*P-|\s*No scheduled class overlaps|TT NOT LINKED:|NO TIMETABLE FOR THIS DAY:|DUTY TIMES INCOMPLETE|Replacement cover requested:|Free periods protected during duty:|TT IC: no arrangement during )/.test(line)){
+            if(keep && /^(?:\s*P-|\s*No scheduled class overlaps|TT NOT LINKED:|NO TIMETABLE FOR THIS DAY:|DUTY TIMES INCOMPLETE|Suspended-class lessons:|Periods overlapping duty:|Replacement cover requested:|Free periods protected during duty:|TT IC: no arrangement during )/.test(line)){
                 let text=line;if(from&&to){
                     if(line.startsWith('Free periods protected during duty:'))text=line.replace(/(P-[IVX]+ )(\d{2}:\d{2})[-–](\d{2}:\d{2})/g,(_,p,start,end)=>`${p}${from>start?from:start}-${to<end?to:end}`);
                     else if(/^\s*P-/.test(line)&&!line.includes('duty overlap')){const p=line.match(/^\s*P-[IVX]+ (\d{2}:\d{2})[-–](\d{2}:\d{2})/);if(p)text+=` · duty overlap ${from>p[1]?from:p[1]}–${to<p[2]?to:p[2]}`;}
@@ -189,7 +205,7 @@ function renderPublicTimetableReport(boards=visiblePortalBoards()){
     const board=boards.ttIcReports,days=visiblePublicTimetableDays(board),dates=Object.keys(days).sort(),previous=document.getElementById('public-tt-ic-report-date')?.value,date=dates.includes(previous)?previous:dates.includes(board?.lastPublishedDate)?board.lastPublishedDate:dates.at(-1);
     section.classList.toggle('hidden',!dates.length);if(!date){content.innerHTML='';return;}
     const snapshot=days[date],rows=timetableReportList(snapshot.rows);
-    content.innerHTML=`<div class="flex flex-wrap items-end justify-between gap-3"><div><b class="block text-sm text-indigo-950">${escapeHtml(snapshot.examTitle || board.examTitle || 'Examination')}</b><label class="mt-2 block text-xs font-bold">Published report date<select id="public-tt-ic-report-date" onchange="renderPublicTimetableReport()" class="mt-1 block max-w-full rounded border bg-white p-2">${dates.map(d=>`<option value="${escapeHtml(d)}" ${d===date?'selected':''}>${escapeHtml(formatDateWithDay(d))}</option>`).join('')}</select></label></div><div class="flex flex-wrap gap-2"><button type="button" onclick="printPublicTimetableIcReport()" class="public-export-button rounded bg-indigo-700 px-3 py-2 text-xs font-bold text-white">PDF / Print TT IC Report</button><button type="button" onclick="sharePublicTimetableIcReport()" class="public-export-button rounded bg-emerald-700 px-3 py-2 text-xs font-bold text-white">Share PDF to WhatsApp</button></div></div><p class="mt-3 text-xs text-slate-600">${rows.length} teacher request(s) · Replacement cover and arrangement protection for the listed invigilation / relieving times only. Published copy; replacement staff must be allocated by TT IC.</p><div class="mt-3">${timetableReportTableHtml(rows)}</div>`;
+    content.innerHTML=`<div class="flex flex-wrap items-end justify-between gap-3"><div><b class="block text-sm text-indigo-950">${escapeHtml(snapshot.examTitle || board.examTitle || 'Examination')}</b><label class="mt-2 block text-xs font-bold">Published report date<select id="public-tt-ic-report-date" onchange="renderPublicTimetableReport()" class="mt-1 block max-w-full rounded border bg-white p-2">${dates.map(d=>`<option value="${escapeHtml(d)}" ${d===date?'selected':''}>${escapeHtml(formatDateWithDay(d))}</option>`).join('')}</select></label></div><div class="flex flex-wrap gap-2"><button type="button" onclick="printPublicTimetableIcReport()" class="public-export-button rounded bg-indigo-700 px-3 py-2 text-xs font-bold text-white">PDF / Print TT IC Report</button><button type="button" onclick="sharePublicTimetableIcReport()" class="public-export-button rounded bg-emerald-700 px-3 py-2 text-xs font-bold text-white">Share PDF to WhatsApp</button></div></div><p class="mt-3 text-xs text-slate-600">${rows.length} teacher request(s) · Replacement cover and arrangement protection for the listed invigilation / relieving times only. Published copy; replacement staff must be allocated by TT IC.</p><div class="mt-3">${timetableReportTableHtml(rows)}</div>${Object.entries(snapshot.notices || {}).map(([key,notice])=>`<section class="mt-4 rounded border p-3">${timetableNoticeHtml(notice)}<button onclick="exportPublicTimetableNotice(${jsArg(date)},${jsArg(key)},'print')">Download PDF / Print</button> <button onclick="exportPublicTimetableNotice(${jsArg(date)},${jsArg(key)},'share')">Share to WhatsApp</button></section>`).join('')}`;
 }
 function selectedPublicTimetableReport(){const board=visiblePortalBoards().ttIcReports,date=document.getElementById('public-tt-ic-report-date')?.value;return visiblePublicTimetableDays(board)[date] || null;}
 function publicTimetableIcReportPdfBlob(){const snapshot=selectedPublicTimetableReport();return snapshot?timetableReportSnapshotPdf(snapshot):null;}
@@ -200,3 +216,54 @@ async function sharePublicTimetableIcReport(){
     if(navigator.share && navigator.canShare?.({files:[file]})){try{await navigator.share({title,text:title,files:[file]});return;}catch(error){if(error.name==='AbortError')return;}}
     const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),120000);window.open('https://wa.me/?text='+encodeURIComponent(title),'_blank','noopener,noreferrer');alert('PDF downloaded. Attach the downloaded report in WhatsApp. This browser cannot attach files directly.');
 }
+
+// Morning reports compare confirmed saves with the latest explicitly published full snapshot.
+function timetableMorningChanges(examId,date){
+    if(!timetableStaffAccess() || !sharedStore?.ready || sharedStore.pendingCount)throw Error('Wait for all saves to finish.');
+    const exam=archivedExams.find(e=>String(e.id)===String(examId)),saved=timetableConfirmedReportSnapshot(examId,date);
+    if(!exam || !saved || timetableSnapshotSignature(saved)!==timetableSnapshotSignature(timetableReportSnapshot(exam,date)))throw Error('Save duty, seating and timetable changes first.');
+    const board=publicPortalBoards.ttIcReports,baseline=String(board?.examId)===String(examId)?board.days?.[date]:null;
+    if(!baseline?.revision || baseline.scope!=='timed-invigilation-relief')throw Error('A complete baseline report is needed. Publish the full TT IC report first.');
+    const confirmedExam=Object.values(normalizeSharedUiValue('archivedExams',sharedStore.view('archivedExams'))).find(e=>String(e.id)===String(examId));
+    const absent=new Set((confirmedExam?.duringExamDays?.[date]?.absentFaculty || []).map(String));
+    const before=new Map(timetableReportList(baseline.rows).map(r=>[String(r.teacherId),r])),after=new Map(saved.rows.map(r=>[String(r.teacherId),r]));
+    const rows=[];
+    for(const id of new Set([...before.keys(),...after.keys()])){
+        const old=before.get(id),current=after.get(id);
+        if(timetableSnapshotSignature(old)===timetableSnapshotSignature(current)&&absent.has(id)===(baseline.absentFaculty || []).includes(id))continue;
+        const staff=teachers.find(t=>String(t.id)===id),daily=TeacherTimetablePlanner.daily(VEMSTeacherTimetable,staff,date,timetableMappings());
+        const absenceCover=absent.has(id)?(daily.known?TeacherTimetablePlanner.classify(exam,date,daily.periods.filter(p=>p.entry)).running.map(timetablePeriodText).join('; '):'Timetable unavailable: review all running-class absence cover'):'';
+        rows.push({...current || old,lines:current?.lines || [],change:!old?'Incoming / replacement teacher':!current?'Outgoing / duty cancelled':'Duty changed / reduced / room or timing revised',
+            absenceCover,reason:absent.has(id)?'ABSENCE: running-class cover is required because the teacher is absent.':'Assignment revision; absence is not recorded.',
+            withdrawn:old?'Earlier requests superseded: '+timetableReportList(old.lines).join('\n'):'None',previousLines:old?.lines || []});
+    }
+    return {...saved,rows,kind:'morning-changes',baselineVersion:baseline.revision,revision:baseline.revision+1,issuedAt:new Date().toISOString(),nextBaseline:saved};
+}
+function timetableMorningControls(exam,date){return `<section class="mt-3 rounded border border-cyan-400 bg-cyan-50 p-3"><b>TT IC — Morning Changes</b><p class="text-xs">Save replacements first. Only publishing advances the TT IC baseline.</p><div class="flex flex-wrap gap-2">${[['preview','Preview Changes'],['print','Download PDF / Print'],['share','Share to WhatsApp'],['publish','Publish / Update TT IC Changes']].map(([action,label])=>`<button type="button" class="rounded bg-indigo-700 p-2 text-xs text-white" onclick="runTimetableMorningAction(${jsArg(exam.id)},${jsArg(date)},'${action}')">${label}</button>`).join('')}</div></section>`;}
+async function runTimetableMorningAction(examId,date,action){
+    try{
+        const notice=timetableMorningChanges(examId,date);
+        if(!notice.rows.length){alert('No changes.');return;}
+        if(action==='publish'){
+            if(!canEditSharedData('exam'))return;
+            const previous=publicPortalBoards,board=previous.ttIcReports,day=board.days[date],{nextBaseline,...published}=notice,key='revision-'+notice.revision;
+            const now=new Date().toISOString();
+            if(day.revision!==notice.baselineVersion)throw Error('The baseline changed. Preview the latest changes again.');
+            publicPortalBoards={...previous,ttIcReports:{...board,updatedAt:now,days:{...board.days,[date]:{...nextBaseline,revision:notice.revision,publishedAt:now,publishedBy:authorizedRole,notices:{...day.notices,[key]:{...published,publishedAt:now,publishedBy:authorizedRole}}}}}};
+            if(!await saveData(['publicPortalBoards'])){publicPortalBoards=previous;return;}
+            await refreshActivePublicFeed();renderExamCreatorModule();renderPublicPortalBoards();alert('TT IC changes published.');return;
+        }
+        if(action==='preview'){
+            document.getElementById('tt-morning-preview')?.remove();const modal=document.createElement('dialog');modal.id='tt-morning-preview';modal.className='w-full max-w-7xl rounded p-4';modal.innerHTML=`<button type="button" onclick="this.closest('dialog').remove()">Close ×</button>${timetableNoticeHtml(notice)}`;document.body.appendChild(modal);modal.showModal();return;
+        }
+        await exportTimetableNotice(notice,action);
+    }catch(error){alert(error.message || String(error));}
+}
+function timetableNoticeHtml(notice){return `<h4 class="font-bold">TT IC — Morning Changes · ${escapeHtml(notice.examTitle)} · ${escapeHtml(notice.date)}</h4><p>Revision ${escapeHtml(notice.revision)} · Baseline ${escapeHtml(notice.baselineVersion)} · Issued ${escapeHtml(new Date(notice.issuedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'}))} IST</p>${timetableReportTableHtml(notice.rows, true)}`;}
+async function exportTimetableNotice(notice,action){
+    const blob=timetableReportSnapshotPdf(notice),title=`TT IC Morning Changes ${notice.examTitle} ${notice.date} revision ${notice.revision}`,file=new File([blob],`TT-IC-Changes-${notice.date}-r${notice.revision}.pdf`,{type:'application/pdf'});
+    if(action==='share'&&navigator.share&&navigator.canShare?.({files:[file]})){try{await navigator.share({title,text:title,files:[file]});return;}catch(error){if(error.name==='AbortError')return;}}
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;a.click();
+    if(action==='print')window.open(url,'_blank');else {window.open('https://wa.me/?text='+encodeURIComponent(title),'_blank','noopener,noreferrer');alert('PDF downloaded. Attach the downloaded report in WhatsApp.');}setTimeout(()=>URL.revokeObjectURL(url),120000);
+}
+function exportPublicTimetableNotice(date,key,action){const board=visiblePortalBoards().ttIcReports,notice=board?.days?.[date]?.notices?.[key];if(notice)return exportTimetableNotice(notice,action);}
