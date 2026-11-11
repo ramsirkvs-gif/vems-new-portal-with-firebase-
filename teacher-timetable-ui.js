@@ -108,11 +108,21 @@ function timetableReportTableRows(value){
         }
     });return result;
 }
-function timetableReportCells(row,changes=false){
-    return changes?[row.sn,`${row.name}\n${row.designation}`,`${row.change || ''} — ${row.reason || ''}`,`${row.duty || 'Removed / cancelled'} / ${row.room || ''} / ${row.time || ''}`,row.suspended || (row.notes.length?'Not confirmed':'None'),[...row.cover,...row.notes].join('\n') || 'None',row.free && row.free!=='None'?row.free+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None',row.withdrawn || 'None']:
-        [row.sn,`${row.name}\n${row.designation}`,`${row.duty} / ${row.room}`,row.time,row.overlap || (row.notes.length?'Not confirmed: review timetable / timing':'None / legacy report: review'),row.suspended || (row.notes.length?'Not confirmed':'None'),[...row.cover,...row.notes].join('\n') || 'None',row.free && row.free!=='None'?row.free+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None'];
+function timetableArrangementText(value,arrange=false){
+    const numbers={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8};
+    let text=String(value || '').replace(/\s*[·-]?\s*duty overlap\s+\d{2}:\d{2}\s*[-–]\s*\d{2}:\d{2}/gi,'')
+        .replace(/(P-(?:VIII|VII|VI|IV|III|II|V|I|[1-8]))\s+\d{2}:\d{2}\s*[-–]\s*\d{2}:\d{2}/g,'$1')
+        .replace(/P-(VIII|VII|VI|IV|III|II|V|I)\b/g,(_,n)=>'P-'+numbers[n])
+        .replace(/No class overlap|No scheduled class overlaps this duty window\./gi,'No arrangement needed')
+        .replace(/Periods overlapping duty:/g,'Periods on exam duty:');
+    if(arrange && /^\s*P-\d/.test(text))text+=' — Put arrangement';
+    return text;
 }
-function timetableReportHeadings(changes=false){return changes?['S.No.','Teacher name / designation','Change / reason','Revised duty / room / reporting–completion','Suspended-class periods: no replacement required','Running-class periods: arrangement required','Free periods protected by examination duty','Earlier requests withdrawn or superseded']:['S.No.','Teacher name / designation','Duty type / examination room','Reporting time–duty completion','Periods overlapping duty','Suspended-class lessons: no replacement needed','Running-class lessons: replacement required','Free in Master TT, but occupied by exam duty: do not assign arrangement'];}
+function timetableReportCells(row,changes=false){
+    return changes?[row.sn,`${row.name}\n${row.designation}`,`${row.change || ''} — ${row.reason || ''}`,`${row.duty || 'Removed / cancelled'} / ${row.room || ''} / ${row.time || ''}`,timetableArrangementText(row.suspended) || (row.notes.length?'Not confirmed':'None'),[...row.cover.map(line=>timetableArrangementText(line,true)),...row.notes].join('\n') || 'None',row.free && row.free!=='None'?timetableArrangementText(row.free)+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None',timetableArrangementText(row.withdrawn) || 'None']:
+        [row.sn,`${row.name}\n${row.designation}`,`${row.duty} / ${row.room}`,row.time,timetableArrangementText(row.overlap) || (row.notes.length?'Not confirmed: review timetable / timing':'None / legacy report: review'),timetableArrangementText(row.suspended) || (row.notes.length?'Not confirmed':'None'),[...row.cover.map(line=>timetableArrangementText(line,true)),...row.notes].join('\n') || 'None',row.free && row.free!=='None'?timetableArrangementText(row.free)+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None'];
+}
+function timetableReportHeadings(changes=false){return changes?['S.No.','Teacher name / designation','Change / reason','Revised duty / room / reporting–completion','Suspended-class periods: no replacement required','Running-class periods: put arrangement','Free periods protected by examination duty','Earlier requests withdrawn or superseded']:['S.No.','Teacher name / designation','Duty type / examination room','Reporting time–duty completion','Periods on exam duty','Suspended-class lessons: no replacement needed','Running-class lessons: put arrangement','Free in Master TT, but occupied by exam duty: do not assign arrangement'];}
 function timetableReportDisplayRows(value,changes=false){
     if(!changes)return timetableReportTableRows(value);
     return timetableReportList(value).flatMap((employee,index)=>{
