@@ -57,3 +57,9 @@ test('replacement includes both teachers, saved absence cover, successive notice
  const html=c.timetableReportTableHtml(rows);assert.match(html,/P-1: 7D — Put arrangement/);assert.match(html,/P-4: 8D — Put arrangement/);assert.match(html,/P-3/);assert.doesNotMatch(html,/overlap|08:20|08:30|09:00|10:20|11:00|10:10/);assert.match(html,/08:00 - 11:30/);
  const pdf=await c.timetableReportSnapshotPdf({rows,examTitle:'Test',date:'2026-11-12'}).text();assert.match(pdf,/P-1: 7D/);assert.match([...pdf.matchAll(/\(([^\n]*)\) Tj/g)].map(m=>m[1]).join(' '),/Put arrangement/);assert.doesNotMatch(pdf,/overlap|08:20|08:30|10:20/);
  });
+
+test('invigilation and relieving render as separate charts and separate PDF pages',async()=>{
+ const {c}=setup(),rows=[{teacherId:'t1',name:'Teacher',designation:'TGT',lines:['Invigilation | Room 1 | 08:00 - 11:30','  P-I 08:20–09:00: 7D · duty overlap 08:30–09:00','Relieving | Room 2 | 11:40 - 12:00','  P-V 11:30–12:10: 8C · duty overlap 11:40–12:00']}];
+ const html=c.timetableReportTableHtml(rows);assert.equal((html.match(/data-tt-arrangement-table/g)||[]).length,2);assert.match(html,/Invigilation Duty[\s\S]*Room 1[\s\S]*Relieving Duty[\s\S]*Room 2/);
+ const pdf=await c.timetableReportSnapshotPdf({rows,examTitle:'Test',date:'2026-11-12'}).text();assert.match(pdf,/INVIGILATION DUTY CHART/);assert.match(pdf,/RELIEVING DUTY CHART/);assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,2);
+});
