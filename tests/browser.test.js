@@ -146,6 +146,7 @@ async function main() {
         if(process.env.VEMS_TT_PUBLICATION_ONLY){const visitor=await pageFor({mobile:true});await require('./tt-ic-publication-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_SEATING_EXPIRY_ONLY){const visitor=await pageFor({mobile:true});await require('./seating-expiry-browser-scenarios')(a,b,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_QP_RECEIVING_ONLY){const visitor=await pageFor({mobile:true});await require('./qp-receiving-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
+        if(process.env.VEMS_CORE_TASK_PERIODS_ONLY){const visitor=await pageFor({mobile:true});await require('./core-task-period-browser-scenarios')(a,b,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_TIMETABLE_ONLY){await require('./timetable-browser-scenarios')(a,b);assert.deepEqual(failures,[]);return;}
         const priorBoards=clone(data.publicPortalBoards||{});
         await a.evaluate(async()=>{
@@ -1047,11 +1048,12 @@ async function main() {
         await a.locator('[data-inventory-field="supplementaryType"]').selectOption('8 pages');
         await a.locator('[data-inventory-field="supplementaryQty"]').fill('6');
         assert.match(await a.locator('.inventory-room-card').innerText(),/Automatic bundle guide[\s\S]*SCIENCE[\s\S]*Exact room roll-number ranges[\s\S]*RN 1 to 2/,'each room must automatically show its bundle guide and exact roll-number ranges below the checklist');
-        const inventoryLineChecks=a.locator('[data-inventory-line-check]');
-        assert.equal(await inventoryLineChecks.count(),11,'each inventory room must be a clear eleven-line preparation checklist');
+        assert.equal(await a.locator('[data-inventory-line-check]').count(),0,'materials must have no individual check controls');
+        const roomCheck=a.locator('[data-inventory-room-complete]');
+        assert.equal(await roomCheck.count(),1,'only one final checkbox appears at the bottom of each room chart');
         const inventoryBefore=await a.evaluate(()=>JSON.stringify(roomInventoryPlans));
-        for(let index=0;index<11;index++)await inventoryLineChecks.nth(index).check();
-        assert.equal(await a.evaluate(()=>JSON.stringify(roomInventoryPlans)),inventoryBefore,'material checks do not save individually');
+        await roomCheck.check();
+        assert.equal(await a.evaluate(()=>JSON.stringify(roomInventoryPlans)),inventoryBefore,'checking the complete room does not save before Done / Save');
         assert.equal(await a.getByRole('button',{name:/Done \/ Save/}).count(),1);
         await a.getByRole('button',{name:/Done \/ Save/}).click();
         await a.waitForFunction(()=>roomInventoryPlans['100']['2026-11-01'].finalized===true);
@@ -1064,7 +1066,7 @@ async function main() {
         assert.equal(await a.locator('#inventory-bag-slip-preview iframe').getAttribute('srcdoc').then(value=>value?.includes('ROOM INVIGILATOR BAGGAGE SLIP')),true,'the generated room slip must contain the printable exam-day document');
         assert.equal(await a.locator('#inventory-bag-slip-preview iframe').getAttribute('srcdoc').then(value=>value?.includes('Display outside the examination room')),false,'the removed exam-day display instruction must not appear in the room PDF');
         await a.locator('#inventory-bag-slip-preview').getByRole('button',{name:/Close/}).click();
-        assert.equal(await a.locator('[data-inventory-line-check]:checked').count(),11,'all saved checklist ticks must remain after generating and closing the PDF');
+        assert.equal(await a.locator('[data-inventory-room-complete]:checked').count(),1,'the final room check remains after generating and closing the PDF');
         await a.getByRole('button',{name:/Generate All Room PDFs/}).click();
         await a.locator('#inventory-bag-slip-preview').waitFor();
         await a.locator('#inventory-bag-slip-preview').getByRole('button',{name:/Close/}).click();

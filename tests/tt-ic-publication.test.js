@@ -63,3 +63,35 @@ test('invigilation and relieving render as separate charts and separate PDF page
  const html=c.timetableReportTableHtml(rows);assert.equal((html.match(/data-tt-arrangement-table/g)||[]).length,2);assert.match(html,/Invigilation Duty[\s\S]*P-1[\s\S]*Relieving Duty[\s\S]*P-5/);
  const pdf=await c.timetableReportSnapshotPdf({rows,examTitle:'Test',date:'2026-11-12'}).text();assert.match(pdf,/INVIGILATION DUTY CHART/);assert.match(pdf,/RELIEVING DUTY CHART/);assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,2);
 });
+
+test('explicit core task periods form the third report table and merge with the same employee duty snapshot',async()=>{
+ const {c,cloud,date}=setup();
+ c.archivedExams[0].coreTaskPeriods={[date]:{t1:{name:'MRS. E.T. ZIRDO',designation:'PGT-English',periods:[4,2,2,1]},core:{name:'Core only',designation:'Exam IC',periods:[8,3,1]}}};cloud.archivedExams[7]=clone(c.archivedExams[0]);
+ const saved=c.timetableConfirmedReportSnapshot(7,date);assert.equal(saved.rows.length,2);assert.equal(saved.rows.filter(row=>row.teacherId==='t1').length,1);
+ assert.equal(await c.publishTimetableIcReport(7,date),true);
+ const html=c.timetableReportTableHtml(saved.rows);assert.match(html,/Invigilation Duty[\s\S]*Core Team \/ On Task/);assert.match(html,/P-1, P-3, P-8/);assert.equal((html.match(/data-tt-arrangement-table/g)||[]).length,2);
+ const pdf=await c.timetableReportSnapshotPdf(saved).text();assert.match(pdf,/CORE TEAM \/ ON TASK CHART/);assert.match(pdf,/P-1, P-3, P-8/);assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,2);
+ c.archivedExams[0].coreTaskPeriods[date].core.periods=[5];assert.equal(await c.publishTimetableIcReport(7,date),false,'unsaved core period edits cannot be published');
+ assert.match(c.timetableReportTableHtml(c.publicVisiblePortalBoards.ttIcReports.days[date].rows),/P-1, P-3, P-8/);
+});
+
+test('core periods save one day, copy to all scheduled days and clear without changing unrelated exam records',async()=>{
+ const {c,cloud,date}=setup();c.coreTeamRows=()=>[{teacherId:'core',name:'Core Member',designation:'TGT'}];
+ const expected=[];c.saveData=async(names,checks)=>{expected.push(checks);cloud.archivedExams[7]=clone(c.archivedExams[0]);return true;};
+ const original=clone(c.archivedExams[0].datesheetSnapshot);
+ assert.equal(await c.saveCoreTaskPeriods(7,date,'day',[{teacherId:'core',periods:[3,1,1,99]}]),true);
+ assert.deepEqual(clone(c.archivedExams[0].coreTaskPeriods[date].core.periods),[1,3]);assert.equal(c.archivedExams[0].coreTaskPeriods['2026-11-10'],undefined);
+ assert.equal(await c.saveCoreTaskPeriods(7,date,'all',[{teacherId:'core',periods:[2,4]}]),true);
+ assert.deepEqual(clone(c.archivedExams[0].coreTaskPeriods['2026-11-10'].core.periods),[2,4]);assert.equal(expected[1].archivedExams.length,2,'all-day saves check both existing day baselines');
+ assert.equal(await c.saveCoreTaskPeriods(7,'2026-11-10','day',[{teacherId:'core',periods:[]}]),true);
+ assert.deepEqual(clone(c.archivedExams[0].coreTaskPeriods['2026-11-10']),{});assert.deepEqual(clone(c.archivedExams[0].coreTaskPeriods[date].core.periods),[2,4]);assert.deepEqual(clone(c.archivedExams[0].datesheetSnapshot),original);
+});
+
+test('core period writes reject read-only, pending, frozen, wrong date and partial rosters',async()=>{
+ for(const mutate of [c=>c.authorizedRole=null,c=>c.canEditSharedData=()=>false,c=>c.sharedStore.pendingCount=1,c=>c.archivedExams[0].afterExamFrozen=true]){
+ const {c,date}=setup();c.coreTeamRows=()=>[{teacherId:'core',name:'Core Member'}];mutate(c);assert.equal(await c.saveCoreTaskPeriods(7,date,'day',[{teacherId:'core',periods:[1]}]),false);assert.equal(c.saves.length,0);
+ }
+ const {c,date}=setup();c.coreTeamRows=()=>[{teacherId:'core',name:'Core Member'}];
+ assert.equal(await c.saveCoreTaskPeriods(7,'2026-12-01','day',[{teacherId:'core',periods:[1]}]),false);assert.equal(await c.saveCoreTaskPeriods(7,date,'day',[]),false);
+ assert.equal(await c.saveCoreTaskPeriods(7,date,'day',[{teacherId:'unknown',periods:[1]}]),false);
+});
