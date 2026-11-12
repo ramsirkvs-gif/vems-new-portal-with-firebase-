@@ -24,8 +24,8 @@ module.exports=async function(staff,visitor){
     assert.equal(await visitor.evaluate(()=>authorizedRole),null);assert.equal(await visitor.evaluate(()=>archivedExams.length),0);
     assert.equal(await visitor.locator('#public-fixed-display > section').count(),23);
     assert.equal(await visitor.locator('#public-fixed-display-slot-8 > h2').innerText(),'8. TT IC — Daywise Duty & Arrangement Requests');
-    assert.equal(await section.locator('.public-export-button').count(),2);assert.equal(await section.locator('[data-tt-arrangement-table]').count(),1);assert.equal(await section.locator('thead th').count(),8);assert.match(await section.locator('thead').innerText(),/S.No.[\s\S]*Teacher name \/ designation/);assert.match(await section.innerText(),/MR. JENLAN MONYAK/);assert.doesNotMatch(await section.innerText(),/Timetable name links/);
-    const pdf=await visitor.evaluate(async()=>{let blob;URL.createObjectURL=value=>{blob=value;return 'blob:public-tt';};window.open=()=>{};document.querySelector('#public-tt-ic-report-content [onclick="printPublicTimetableIcReport()"]').click();return await blob.text();});require('node:fs').writeFileSync('/tmp/vems-numbered-tt-report.pdf',pdf);assert.match(pdf,/Published report/);assert.match(pdf,/S.No./);assert.match(pdf,/Running-class/);assert.match(pdf,/JENLAN MONYAK/);
+    assert.equal(await section.locator('.public-export-button').count(),2);assert.equal(await section.locator('[data-tt-arrangement-table]').count(),1);assert.equal(await section.locator('thead th').count(),3);assert.match(await section.locator('thead').innerText(),/SN[\s\S]*Name & Designation/);assert.match(await section.innerText(),/MR. JENLAN MONYAK/);assert.doesNotMatch(await section.innerText(),/Timetable name links/);
+    const pdf=await visitor.evaluate(async()=>{let blob;URL.createObjectURL=value=>{blob=value;return 'blob:public-tt';};window.open=()=>{};document.querySelector('#public-tt-ic-report-content [onclick="printPublicTimetableIcReport()"]').click();return await blob.text();});require('node:fs').writeFileSync('/tmp/vems-numbered-tt-report.pdf',pdf);assert.match(pdf,/Published report/);assert.match(pdf,/SN/);assert.match(pdf,/Periods on Exam Duty/);assert.match(pdf,/JENLAN MONYAK/);
     await visitor.evaluate(()=>{Object.defineProperty(navigator,'canShare',{configurable:true,value:()=>true});Object.defineProperty(navigator,'share',{configurable:true,value:async payload=>window.__ttShared=payload});});
     await section.getByRole('button',{name:'Share PDF to WhatsApp',exact:true}).click();assert.equal(await visitor.evaluate(()=>window.__ttShared.files[0].text()),pdf);
     await staff.evaluate(()=>editInvigilationDay(904,'2026-11-09'));
@@ -34,19 +34,19 @@ module.exports=async function(staff,visitor){
     await panel.getByRole('button',{name:'Update Published Copy',exact:true}).click();await visitor.waitForFunction(()=>!document.getElementById('public-tt-ic-report-content').textContent.includes('JENLAN MONYAK'));
     await staff.locator('select[aria-label="TT IC report date"]').selectOption('2026-11-10');await panel.getByRole('button',{name:'Publish TT IC Report',exact:true}).click();
     await visitor.waitForFunction(()=>Object.keys(visiblePortalBoards().ttIcReports.days).length===2);
-    await visitor.selectOption('#public-tt-ic-report-date','2026-11-10');assert.match(await section.innerText(),/Relieving[\s\S]*Room 1[\s\S]*10:20 - 10:40/);assert.doesNotMatch(await section.innerText(),/yesterday|evaluation|all additional arrangements/);
+    await visitor.selectOption('#public-tt-ic-report-date','2026-11-10');assert.match(await section.innerText(),/Relieving[\s\S]*JENLAN MONYAK/);assert.doesNotMatch(await section.innerText(),/yesterday|evaluation|all additional arrangements/);
     await staff.evaluate(async()=>{
         const duties=cloneData(invigilationPlans);duties['904']['2026-11-10'].r1.invigilators=['tt2'];duties['904']['2026-11-10'].r1.relieverId='';await sharedStore.save('invigilationPlans',duties);
         renderExamCreatorModule=()=>document.getElementById('tt-public-test-workspace').innerHTML=renderInvigilationOverview(archivedExams[0])+timetableMorningControls(archivedExams[0],'2026-11-10');renderExamCreatorModule();
     });
     await staff.getByRole('button',{name:'Preview Changes',exact:true}).click();
-    await staff.locator('#tt-morning-preview').waitFor();assert.match(await staff.locator('#tt-morning-preview').innerText(),/Outgoing|cancelled/);
+    await staff.locator('#tt-morning-preview').waitFor();assert.match(await staff.locator('#tt-morning-preview').innerText(),/Morning Changes/);
     assert.equal(await staff.evaluate(()=>publicPortalBoards.ttIcReports.days['2026-11-10'].revision),1);
     await staff.locator('#tt-morning-preview button').click();
     const download=staff.waitForEvent('download');await staff.getByRole('button',{name:'Download PDF / Print',exact:true}).click();assert.match((await download).suggestedFilename(),/TT-IC-Changes/);
     await staff.getByRole('button',{name:'Publish / Update TT IC Changes',exact:true}).click();
     await visitor.waitForFunction(()=>visiblePortalBoards().ttIcReports.days['2026-11-10'].revision===2);
-    assert.match(await section.innerText(),/Morning Changes/);assert.match(await section.innerText(),/Earlier requests superseded/);
+    assert.match(await section.innerText(),/Morning Changes/);assert.equal(await section.locator('[data-tt-arrangement-table] th').count()%3,0);
     assert.equal(await staff.evaluate(()=>timetableMorningChanges(904,'2026-11-10').rows.length),0);
     await panel.getByRole('button',{name:'Stop Publishing This Date',exact:true}).click();await visitor.waitForFunction(()=>Object.keys(visiblePortalBoards().ttIcReports.days).length===1);assert.equal(await visitor.locator('#public-tt-ic-report-date').inputValue(),'2026-11-09');
     await staff.locator('select[aria-label="TT IC report date"]').selectOption('2026-11-09');await panel.getByRole('button',{name:'Stop Publishing This Date',exact:true}).click();await visitor.waitForFunction(()=>!visiblePortalBoards().ttIcReports);

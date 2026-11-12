@@ -39,9 +39,11 @@ const SeatingExpiry = (() => {
         for(const exam of exams){
             if(exam.mockPractice?.active)continue;
             const dates=rows(exam.datesheetSnapshot).map(d=>d.dateStr).filter(validDate).sort();
-            if(dates.includes(today)&&now<cutoffForExam(exam,today))result.push({examId:String(exam.id),examTitle:exam.title,date:today,kind:'attendance'});
+            const starts=rows(rows(exam.datesheetSnapshot).find(day=>day.dateStr===today)?.paperSlots).map(slot=>slot.startTime).filter(time=>/^([01]\d|2[0-3]):[0-5]\d$/.test(time || '')).sort();
+            const attendanceEnd=starts.length?Date.parse(`${today}T${starts[0]}:00+05:30`)+3600000:0;
+            if(dates.includes(today)&&now<attendanceEnd)result.push({examId:String(exam.id),examTitle:exam.title,date:today,kind:'attendance'});
             const completed=dates.filter(date=>cutoffForExam(exam,date)<=now).at(-1),nextDate=completed&&dates.find(date=>date>completed);
-            if(nextDate&&cutoffForExam(exam,nextDate)>now&&!(String(boards.liveDuty?.examId)===String(exam.id)&&boards.liveDuty?.days?.[nextDate]))result.push({examId:String(exam.id),examTitle:exam.title,date:nextDate,kind:'publish'});
+            if(completed===today&&nextDate&&cutoffForExam(exam,nextDate)>now&&!(String(boards.liveDuty?.examId)===String(exam.id)&&boards.liveDuty?.days?.[nextDate]))result.push({examId:String(exam.id),examTitle:exam.title,date:nextDate,kind:'publish'});
         }
         return result;
     }

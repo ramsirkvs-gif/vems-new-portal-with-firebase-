@@ -118,11 +118,16 @@ function timetableArrangementText(value,arrange=false){
     if(arrange && /^\s*P-\d/.test(text))text+=' — Put arrangement';
     return text;
 }
-function timetableReportCells(row,changes=false){
-    return changes?[row.sn,`${row.name}\n${row.designation}`,`${row.change || ''} — ${row.reason || ''}`,`${row.duty || 'Removed / cancelled'} / ${row.room || ''} / ${row.time || ''}`,timetableArrangementText(row.suspended) || (row.notes.length?'Not confirmed':'None'),[...row.cover.map(line=>timetableArrangementText(line,true)),...row.notes].join('\n') || 'None',row.free && row.free!=='None'?timetableArrangementText(row.free)+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None',timetableArrangementText(row.withdrawn) || 'None']:
-        [row.sn,`${row.name}\n${row.designation}`,`${row.duty} / ${row.room}`,row.time,timetableArrangementText(row.overlap) || (row.notes.length?'Not confirmed: review timetable / timing':'None / legacy report: review'),timetableArrangementText(row.suspended) || (row.notes.length?'Not confirmed':'None'),[...row.cover.map(line=>timetableArrangementText(line,true)),...row.notes].join('\n') || 'None',row.free && row.free!=='None'?timetableArrangementText(row.free)+'\nFree in Master TT, but teacher is on examination duty. TT IC: Please do not assign any class arrangement or other duty during these periods.':row.notes.length?'Not confirmed':'None'];
+function timetableDutyPeriods(row){
+    const numbers={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8};
+    const source=[row.overlap,...(row.cover || []),row.free,row.suspended].join(' '),periods=new Set();
+    for(const match of source.matchAll(/P-(VIII|VII|VI|IV|III|II|V|I|\d+)\b/g))periods.add(numbers[match[1]] || Number(match[1]));
+    return [...periods].sort((a,b)=>a-b).map(n=>'P-'+n).join(', ') || '—';
 }
-function timetableReportHeadings(changes=false){return changes?['S.No.','Teacher name / designation','Change / reason','Revised duty / room / reporting–completion','Suspended-class periods: no replacement required','Running-class periods: put arrangement','Free periods protected by examination duty','Earlier requests withdrawn or superseded']:['S.No.','Teacher name / designation','Duty type / examination room','Reporting time–duty completion','Periods on exam duty','Suspended-class lessons: no replacement needed','Running-class lessons: put arrangement','Free in Master TT, but occupied by exam duty: do not assign arrangement'];}
+function timetableReportCells(row,changes=false){
+    return [row.sn,`${row.name}\n${row.designation}`,timetableDutyPeriods(row)];
+}
+function timetableReportHeadings(){return ['SN','Name & Designation','Periods on Exam Duty / On Task'];}
 function timetableReportDisplayRows(value,changes=false){
     if(!changes)return timetableReportTableRows(value);
     return timetableReportList(value).flatMap((employee,index)=>{
@@ -130,22 +135,31 @@ function timetableReportDisplayRows(value,changes=false){
         return (duties.length?duties:[{name:employee.name,designation:employee.designation,duty:timetableReportTableRows([{...employee,lines:employee.previousLines}])[0]?.duty || 'Invigilation',room:'Removed / cancelled',cover:[],notes:[]}]).map(r=>({...r,sn:index+1,change:employee.change,reason:employee.reason,withdrawn:employee.withdrawn,cover:[...(r.cover || []),...(employee.absenceCover?['ABSENCE cover: '+employee.absenceCover]:[])]}));
     });
 }
+function timetableCompactRows(value,changes=false){
+    const grouped=new Map();
+    timetableReportDisplayRows(value,changes).forEach(row=>{
+        const key=`${row.duty}|${row.teacherId || row.name}`,old=grouped.get(key);
+        if(old){old.overlap=[old.overlap,row.overlap].join(' ');old.cover.push(...(row.cover || []));old.free=[old.free,row.free].join(' ');old.suspended=[old.suspended,row.suspended].join(' ');}
+        else grouped.set(key,{...row,cover:[...(row.cover || [])]});
+    });
+    return [...grouped.values()];
+}
 function timetableReportTableHtml(value,changes=false){
-    const rows=timetableReportDisplayRows(value,changes);
+    const rows=timetableCompactRows(value,changes);
     return ['Invigilation','Relieving'].map(role=>{
         const selected=rows.filter(row=>row.duty===role);
         return selected.length?`<section class="mt-3"><h5 class="mb-2 text-sm font-extrabold text-indigo-950">${role==='Invigilation'?'Invigilation Duty':'Relieving Duty'}</h5>${timetableDutyChartHtml(selected,changes)}</section>`:'';
     }).join('') || timetableDutyChartHtml(rows,changes);
 }
 function timetableDutyChartHtml(rows,changes=false){
-    return `<div class="max-h-96 overflow-auto"><table data-tt-arrangement-table class="w-full min-w-[1400px] border-collapse text-xs"><thead><tr>${timetableReportHeadings(changes).map(h=>`<th class="border bg-indigo-950 p-3 text-white">${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr data-tt-employee="${escapeHtml(String(row.teacherId || row.sn))}">${timetableReportCells(row,changes).map((cell,i)=>`<td class="border p-3 align-top whitespace-pre-line">${escapeHtml(String(cell))}</td>`).join('')}</tr>`).join('') || '<tr><td colspan="8">No changes / no invigilator or reliever duty recorded.</td></tr>'}</tbody></table></div>`;
+    return `<div class="max-h-96 overflow-auto"><table data-tt-arrangement-table class="w-full min-w-[540px] border-collapse text-xs"><thead><tr>${timetableReportHeadings(changes).map(h=>`<th class="border bg-indigo-950 p-3 text-white">${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr data-tt-employee="${escapeHtml(String(row.teacherId || row.sn))}">${timetableReportCells(row,changes).map((cell,i)=>`<td class="border p-3 align-top whitespace-pre-line">${escapeHtml(String(cell))}</td>`).join('')}</tr>`).join('') || '<tr><td colspan="3">No changes / no invigilator or reliever duty recorded.</td></tr>'}</tbody></table></div>`;
 }
 function timetableReportSnapshotPdf(snapshot){
-    const changes=snapshot.kind==='morning-changes',rows=timetableReportDisplayRows(snapshot.rows,changes).sort((a,b)=>(a.duty==='Relieving')-(b.duty==='Relieving')),streams=[],x=[30,57,169,271,368,452,564,676,812],limits=[4,20,18,17,15,20,20,24];
+    const changes=snapshot.kind==='morning-changes',rows=timetableCompactRows(snapshot.rows,changes).sort((a,b)=>(a.duty==='Relieving')-(b.duty==='Relieving')),streams=[],x=[30,75,400,812],limits=[4,45,55];
     const clean=value=>String(value??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,'-').replace(/([\\()])/g,'\\$1'),text=(value,xx,y,size=8,color='0.07 0.12 0.32')=>`${color} rg BT /F1 ${size} Tf 1 0 0 1 ${xx} ${y} Tm (${clean(value)}) Tj ET\n`;
     const wrap=(value,max)=>{const out=[];let line='';for(const word of String(value??'').split(/\s+/)){if((line+' '+word).trim().length>max&&line){out.push(line);line='';}for(let i=0;i<word.length;i+=max){const part=word.slice(i,i+max);if(i+max<word.length){if(line){out.push(line);line='';}out.push(part);}else line=(line+' '+part).trim();}}if(line)out.push(line);return out.length?out:[''];};
     let stream='',y=0,page=0,chartRole=rows[0]?.duty || 'Invigilation';
-    const newPage=()=>{if(stream)streams.push(stream+text(`Page ${page} | TT IC - Timed Duty Arrangements`,30,20,7));page++;stream=text('PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR',225,568,12)+text('TT IC - EXAM DUTY & ARRANGEMENT REQUESTS',265,550,11)+text(chartRole==='Relieving'?'RELIEVING DUTY CHART':'INVIGILATION DUTY CHART',30,544,9);y=532;for(const line of wrap(`${snapshot.examTitle} | ${formatDateWithDay(snapshot.date)}`,150)){stream+=text(line,30,y,9);y-=12;}if(changes){stream+=text(`Morning Changes | Revision ${snapshot.revision} | Baseline ${snapshot.baselineVersion} | Issued ${snapshot.issuedAt}`,30,y,8);y-=14;}stream+=text(snapshot.publishedAt?'Published report.':'Working copy: save exam duties before sharing.',30,y,7);y-=12;stream+=text('Arrangement protection applies only to the listed duty times (IST).',30,y,7);y-=12;for(const line of wrap(`Timetable: ${snapshot.source || 'Uploaded teacher timetable'}`,160)){stream+=text(line,30,y,7);y-=11;}if(snapshot.publishedAt){stream+=text(`Published: ${new Date(snapshot.publishedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})} (IST)`,30,y,7);y-=12;}y-=5;stream+=`0.07 0.12 0.32 rg 30 ${y-65} 782 65 re f\n`;const headings=timetableReportHeadings(changes).map(h=>wrap(h,18));headings.forEach((lines,col)=>lines.forEach((line,i)=>stream+=text(line,x[col]+4,y-13-i*10,7,'1 1 1')));y-=65;};
+    const newPage=()=>{if(stream)streams.push(stream+text(`Page ${page} | TT IC - Timed Duty Arrangements`,30,20,7));page++;stream=text('PM SHRI KENDRIYA VIDYALAYA NO. 1, ITANAGAR',225,568,12)+text('TT IC - EXAM DUTY & ARRANGEMENT REQUESTS',265,550,11)+text(chartRole==='Relieving'?'RELIEVING DUTY CHART':'INVIGILATION DUTY CHART',30,544,9);y=532;for(const line of wrap(`${snapshot.examTitle} | ${formatDateWithDay(snapshot.date)}`,150)){stream+=text(line,30,y,9);y-=12;}if(changes){stream+=text(`Morning Changes | Revision ${snapshot.revision} | Baseline ${snapshot.baselineVersion} | Issued ${snapshot.issuedAt}`,30,y,8);y-=14;}stream+=text(snapshot.publishedAt?'Published report.':'Working copy: save exam duties before sharing.',30,y,7);y-=12;for(const line of wrap(`Timetable: ${snapshot.source || 'Uploaded teacher timetable'}`,160)){stream+=text(line,30,y,7);y-=11;}if(snapshot.publishedAt){stream+=text(`Published: ${new Date(snapshot.publishedAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})} (IST)`,30,y,7);y-=12;}y-=5;stream+=`0.07 0.12 0.32 rg 30 ${y-65} 782 65 re f\n`;const headings=timetableReportHeadings(changes).map((h,i)=>wrap(h,limits[i]));headings.forEach((lines,col)=>lines.forEach((line,i)=>stream+=text(line,x[col]+4,y-13-i*10,7,'1 1 1')));y-=65;};
     newPage();
     rows.forEach(row=>{
         if(row.duty!==chartRole){chartRole=row.duty;newPage();}

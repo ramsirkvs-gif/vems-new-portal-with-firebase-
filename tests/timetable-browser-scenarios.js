@@ -49,14 +49,14 @@ module.exports=async function(a,b){
     await a.keyboard.press('Escape');
     assert.equal(await a.locator('#teacher-duty-tt-preview').count(),0);
     await a.locator('#timetable-ic-report summary').filter({hasText:'teacher request(s)'}).click();
-    assert.match(await a.locator('#timetable-ic-report').innerText(),/Invigilation[\s\S]*Room 1/);
+    assert.match(await a.locator('#timetable-ic-report').innerText(),/Invigilation[\s\S]*P-1, P-2, P-3, P-4/);
     assert.doesNotMatch(await a.locator('#timetable-ic-report').innerText(),/yesterday’s exam|avoid all additional arrangements/);
     const result=await a.evaluate(async()=>{
         let blob;URL.createObjectURL=value=>{blob=value;return 'blob:tt-report';};window.open=()=>null;
         printTimetableIcReport(901,'2026-11-09');return {type:blob.type,pdf:await blob.text()};
     });
     require('node:fs').writeFileSync('/tmp/vems-tt-ic-report.pdf',result.pdf);
-    assert.equal(result.type,'application/pdf');assert.match(result.pdf,/TT IC - EXAM DUTY/);assert.match(result.pdf,/12E/);
+    assert.equal(result.type,'application/pdf');assert.match(result.pdf,/TT IC - EXAM DUTY/);assert.match(result.pdf,/P-1, P-2, P-3, P-4/);
     await a.setViewportSize({width:1280,height:900});
     await a.screenshot({path:'/tmp/vems-timetable-guidance.png',fullPage:true});
     const mobileState=await a.evaluate(()=>({teachers,archivedExams,invigilationPlans,circularSettings}));

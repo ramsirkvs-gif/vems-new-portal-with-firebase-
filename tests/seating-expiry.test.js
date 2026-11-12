@@ -66,8 +66,22 @@ test('saved public invigilation duty expires at last duty/relief end and keeps i
 });
 test('invigilation reminders use the next scheduled day across weekends and suppress already published duty',()=>{
  const now=iso('2026-11-13T11:01:00+05:30');
- assert.equal(E.dutyReminders({},[exam],before)[0].kind,'attendance');
+ assert.equal(E.dutyReminders({},[exam],before).length,0,'missing start time does not invent a reminder window');
  const next=E.dutyReminders({},[exam],now);assert.equal(next.length,1);assert.equal(next[0].date,'2026-11-16');assert.equal(next[0].kind,'publish');
  assert.equal(E.dutyReminders({liveDuty:{examId:7,days:{'2026-11-16':{}}}},[exam],now).length,0);
  assert.equal(E.dutyReminders({},[exam],iso('2026-11-16T12:01:00+05:30')).length,0);
+});
+
+test('faculty reminder stops exactly one hour after earliest saved start, independent of reporting and end times',()=>{
+ const saved=structuredClone(exam);saved.datesheetSnapshot[0].paperSlots=[{repTime:'07:00',startTime:'08:30',overTime:'12:00'},{startTime:'10:00',overTime:'13:00'}];
+ const at=time=>E.dutyReminders({},[saved],iso('2026-11-12T'+time+'+05:30')).filter(row=>row.kind==='attendance');
+ assert.equal(at('09:29:59').length,1);assert.equal(at('09:30:00').length,0);assert.equal(at('12:00:00').length,0);
+});
+test('next duty reminder runs from the completed day end until midnight IST, including weekend gaps',()=>{
+ const at=time=>E.dutyReminders({},[exam],iso(time)).filter(row=>row.kind==='publish');
+ assert.equal(at('2026-11-13T10:59:59+05:30').length,0);
+ assert.equal(at('2026-11-13T11:00:00+05:30')[0].date,'2026-11-16');
+ assert.equal(at('2026-11-13T23:59:59+05:30').length,1);
+ assert.equal(at('2026-11-14T00:00:00+05:30').length,0);
+ assert.equal(at('2026-11-15T12:00:00+05:30').length,0);
 });

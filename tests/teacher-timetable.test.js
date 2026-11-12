@@ -68,14 +68,14 @@ test('mapping edits are role checked, source checked and saved with a conflict b
  const c=ui();c.authorizedRole=null;assert.equal(await c.saveTimetableTeacherLink('t2','3'),false);assert.equal(c.saves.length,0);
  c.authorizedRole='sec-ic';assert.equal(await c.saveTimetableTeacherLink('t2','bad'),false);assert.equal(await c.saveTimetableTeacherLink('t2','3'),true);assert.equal(c.saves.length,1);assert.equal(c.saves[0][1].circularSettings[0].path.join('/'),'_teacherTimetableMatches');assert.equal(c.timetableMappings().t2.teacherName,'Not in workbook');
 });
-test('PDF contains only actual duty windows and class clashes with no data mutation',async()=>{
- const c=ui(),before=JSON.stringify([c.teachers,c.invigilationPlans,c.circularSettings]);const pdf=await c.timetableIcReportPdfBlob(exam,'2026-11-09').text();assert.match(pdf,/^%PDF-1.4/);assert.match(pdf,/12E/);assert.match(pdf,/P-3/);assert.doesNotMatch(pdf,/09:40-10:20/);assert.match(pdf,/08:00 - 11:30/);assert.match(pdf,/Reporting/);assert.match(pdf,/S.No./);assert.doesNotMatch(pdf,/evaluation|avoid all additional arrangements/);assert.match(pdf,/TT NOT LINKED/);
- const tomorrow=await c.timetableIcReportPdfBlob(exam,'2026-11-10').text();assert.doesNotMatch(tomorrow,/yesterday|Class 12-E ENGLISH/);assert.equal(JSON.stringify([c.teachers,c.invigilationPlans,c.circularSettings]),before);
+test('PDF contains compact ordered periods and keeps data and print permissions unchanged',async()=>{
+ const c=ui(),before=JSON.stringify([c.teachers,c.invigilationPlans,c.circularSettings]);const pdf=await c.timetableIcReportPdfBlob(exam,'2026-11-09').text();assert.match(pdf,/^%PDF-1.4/);assert.match(pdf,/P-1, P-2, P-3, P-4/);assert.match(pdf,/Name & Designation/);assert.doesNotMatch(pdf,/12E|08:00|Reporting|TT NOT LINKED|Put arrangement/);
+ assert.equal(JSON.stringify([c.teachers,c.invigilationPlans,c.circularSettings]),before);
  c.printTimetableIcReport(7,'2026-11-09');assert.equal(c.urls.length,1);c.sharedStore.pendingCount=1;c.printTimetableIcReport(7,'2026-11-09');assert.equal(c.urls.length,1);c.authorizedRole=null;c.printTimetableIcReport(7,'2026-11-09');assert.equal(c.urls.length,1);
 });
-test('long timetable notes paginate without dropping the final text or corrupting PDF xrefs',async()=>{
- const c=ui();c.teachers[0]={...teacher,name:teacher.name};const long='COMBINED CLASS DETAILS '.repeat(600)+'END OF ORIGINAL NOTE';const clone=structuredClone(data);clone.teachers.find(t=>t.id==='3').days.MON[1]=long;c.VEMSTeacherTimetable=clone;
- const pdf=await c.timetableIcReportPdfBlob(exam,'2026-11-09').text();assert.match([...pdf.matchAll(/\(([^\n]*)\) Tj/g)].map(m=>m[1]).join(' '),/END OF ORIGINAL NOTE/);assert.ok((pdf.match(/\/Type \/Page /g)||[]).length>1);const offset=Number(pdf.match(/startxref\n(\d+)/)[1]);assert.equal(pdf.slice(offset,offset+4),'xref');
+test('long legacy lesson notes are excluded while PDF xrefs remain valid',async()=>{
+ const c=ui(),clone=structuredClone(data);clone.teachers.find(t=>t.id==='3').days.MON[1]='COMBINED CLASS DETAILS '.repeat(600)+'END OF ORIGINAL NOTE';c.VEMSTeacherTimetable=clone;
+ const pdf=await c.timetableIcReportPdfBlob(exam,'2026-11-09').text();assert.doesNotMatch(pdf,/ORIGINAL NOTE|COMBINED CLASS/);const offset=Number(pdf.match(/startxref\n(\d+)/)[1]);assert.equal(pdf.slice(offset,offset+4),'xref');
 });
 
 test('emergency evaluators are excluded from the TT duty report without invigilation or relief',()=>{
