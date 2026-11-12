@@ -1054,6 +1054,11 @@ async function main() {
         const inventoryBefore=await a.evaluate(()=>JSON.stringify(roomInventoryPlans));
         await roomCheck.check();
         assert.equal(await a.evaluate(()=>JSON.stringify(roomInventoryPlans)),inventoryBefore,'checking the complete room does not save before Done / Save');
+        assert.equal(await a.locator('[data-save-room-inventory]').count(),1,'each room footer has a visible save/update action');
+        await a.locator('[data-save-room-inventory]').click();
+        await b.waitForFunction(()=>Object.values(roomInventoryPlans['100']?.['2026-11-01']?.rooms||{})[0]?.supplementaryQty===6);
+        assert.equal(await a.evaluate(()=>!!roomInventoryPlans['100']['2026-11-01'].finalized),false,'Save / Update does not require finalizing all rooms');
+        assert.match(await a.locator('[data-room-save-status]').innerText(),/Inventory saved/);
         assert.equal(await a.getByRole('button',{name:/Done \/ Save/}).count(),1);
         await a.getByRole('button',{name:/Done \/ Save/}).click();
         await a.waitForFunction(()=>roomInventoryPlans['100']['2026-11-01'].finalized===true);

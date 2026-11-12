@@ -54,14 +54,14 @@ test('replacement includes both teachers, saved absence cover, successive notice
 
 test('legacy periods are deduplicated and numerically sorted in exactly three columns',async()=>{
  const {c}=setup(),rows=[{teacherId:'t1',name:'Teacher',designation:'TGT',lines:['Invigilation | Room 1 | 08:00 - 11:30','Periods overlapping duty: P-IV, P-II, P-I, P-II','  P-I 08:20–09:00: 7D','Free periods protected during duty: P-III 10:00-10:10']}];
- const html=c.timetableReportTableHtml(rows);assert.equal((html.match(/<th /g)||[]).length,3);assert.match(html,/P-1, P-2, P-3, P-4/);assert.doesNotMatch(html,/7D|08:00|10:10|Room 1|Put arrangement/);
+ const html=c.timetableReportTableHtml(rows);assert.equal((html.match(/<th /g)||[]).length,9);assert.match(html,/P-1, P-2, P-3, P-4/);assert.doesNotMatch(html,/7D|08:00|10:10|Room 1|Put arrangement/);
  const pdf=await c.timetableReportSnapshotPdf({rows,examTitle:'Test',date:'2026-11-12'}).text();assert.match(pdf,/P-1, P-2, P-3, P-4/);assert.doesNotMatch(pdf,/08:00|7D/);
 });
 
 test('invigilation and relieving render as separate charts and separate PDF pages',async()=>{
  const {c}=setup(),rows=[{teacherId:'t1',name:'Teacher',designation:'TGT',lines:['Invigilation | Room 1 | 08:00 - 11:30','  P-I 08:20–09:00: 7D · duty overlap 08:30–09:00','Relieving | Room 2 | 11:40 - 12:00','  P-V 11:30–12:10: 8C · duty overlap 11:40–12:00']}];
- const html=c.timetableReportTableHtml(rows);assert.equal((html.match(/data-tt-arrangement-table/g)||[]).length,2);assert.match(html,/Invigilation Duty[\s\S]*P-1[\s\S]*Relieving Duty[\s\S]*P-5/);
- const pdf=await c.timetableReportSnapshotPdf({rows,examTitle:'Test',date:'2026-11-12'}).text();assert.match(pdf,/INVIGILATION DUTY CHART/);assert.match(pdf,/RELIEVING DUTY CHART/);assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,2);
+ const html=c.timetableReportTableHtml(rows);assert.equal((html.match(/data-tt-arrangement-table/g)||[]).length,3);assert.match(html,/Invigilation Duty[\s\S]*P-1[\s\S]*Relieving Duty[\s\S]*P-5/);
+ const pdf=await c.timetableReportSnapshotPdf({rows,examTitle:'Test',date:'2026-11-12'}).text();assert.match(pdf,/INVIGILATION DUTY CHART/);assert.match(pdf,/RELIEVING DUTY CHART/);assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,3);
 });
 
 test('explicit core task periods form the third report table and merge with the same employee duty snapshot',async()=>{
@@ -69,8 +69,8 @@ test('explicit core task periods form the third report table and merge with the 
  c.archivedExams[0].coreTaskPeriods={[date]:{t1:{name:'MRS. E.T. ZIRDO',designation:'PGT-English',periods:[4,2,2,1]},core:{name:'Core only',designation:'Exam IC',periods:[8,3,1]}}};cloud.archivedExams[7]=clone(c.archivedExams[0]);
  const saved=c.timetableConfirmedReportSnapshot(7,date);assert.equal(saved.rows.length,2);assert.equal(saved.rows.filter(row=>row.teacherId==='t1').length,1);
  assert.equal(await c.publishTimetableIcReport(7,date),true);
- const html=c.timetableReportTableHtml(saved.rows);assert.match(html,/Invigilation Duty[\s\S]*Core Team \/ On Task/);assert.match(html,/P-1, P-3, P-8/);assert.equal((html.match(/data-tt-arrangement-table/g)||[]).length,2);
- const pdf=await c.timetableReportSnapshotPdf(saved).text();assert.match(pdf,/CORE TEAM \/ ON TASK CHART/);assert.match(pdf,/P-1, P-3, P-8/);assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,2);
+ const html=c.timetableReportTableHtml(saved.rows);assert.match(html,/Invigilation Duty[\s\S]*Core Team \/ On Task/);assert.match(html,/P-1, P-3, P-8/);assert.equal((html.match(/data-tt-arrangement-table/g)||[]).length,3);
+ const pdf=await c.timetableReportSnapshotPdf(saved).text();assert.match(pdf,/CORE TEAM \/ ON TASK CHART/);assert.match(pdf,/P-1, P-3, P-8/);assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,3);
  c.archivedExams[0].coreTaskPeriods[date].core.periods=[5];assert.equal(await c.publishTimetableIcReport(7,date),false,'unsaved core period edits cannot be published');
  assert.match(c.timetableReportTableHtml(c.publicVisiblePortalBoards.ttIcReports.days[date].rows),/P-1, P-3, P-8/);
 });
@@ -94,4 +94,10 @@ test('core period writes reject read-only, pending, frozen, wrong date and parti
  const {c,date}=setup();c.coreTeamRows=()=>[{teacherId:'core',name:'Core Member'}];
  assert.equal(await c.saveCoreTaskPeriods(7,'2026-12-01','day',[{teacherId:'core',periods:[1]}]),false);assert.equal(await c.saveCoreTaskPeriods(7,date,'day',[]),false);
  assert.equal(await c.saveCoreTaskPeriods(7,date,'day',[{teacherId:'unknown',periods:[1]}]),false);
+});
+
+test('empty and legacy reports retain all three tables with an explicit core-team empty state',async()=>{
+ const {c,date}=setup(),snapshot=c.timetableReportSnapshot(c.archivedExams[0],date);
+ const html=c.timetableReportTableHtml(snapshot.rows);assert.match(html,/Invigilation Duty[\s\S]*Relieving Duty[\s\S]*Core Team \/ On Task[\s\S]*No saved core-team periods/);
+ const pdf=await c.timetableReportSnapshotPdf(snapshot).text();assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,3);assert.match(pdf,/CORE TEAM \/ ON TASK CHART/);assert.match(pdf,/No saved core-team periods/);
 });

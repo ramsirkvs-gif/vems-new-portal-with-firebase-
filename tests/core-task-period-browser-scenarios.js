@@ -12,10 +12,13 @@ module.exports=async function(staff,other,visitor){
         await sharedStore.save('invigilationPlans',{905:{[date]:{r1:{invigilators:['inv'],relieverId:'rel',reliefFrom:'09:00',reliefTo:'09:40'}}}});
         suggestedSeatingPlan=null;selectedCoreTaskDate=date;activateArea('principal');switchTab('exam-creator-prin');openPreExamFullPageWorkspace(905);
     });
+    assert.equal(await staff.locator('#core-task-period-planner').count(),0,'the roster is zipped into its own tab');
+    await staff.getByRole('button',{name:'🧭 6A. Core Team On Task',exact:true}).click();
     const panel=staff.locator('#core-task-period-planner');await panel.waitFor({state:'visible'});
     assert.match(await panel.innerText(),/Core Test Member/);
     await panel.getByRole('checkbox',{name:'Core Test Member P-3',exact:true}).check();await panel.getByRole('checkbox',{name:'Core Test Member P-1',exact:true}).check();
     assert.equal(await staff.evaluate(()=>archivedExams[0].coreTaskPeriods),undefined,'period selections wait for Save');
+    assert.equal(await staff.evaluate(()=>timetableCoreDraftBlocksReport(905,'2026-11-09')),true,'an unsaved selection must not silently disappear from a report');
     await panel.locator('[aria-label="Core task period scope"]').selectOption('all');await panel.getByRole('button',{name:'Save On Task Periods',exact:true}).click();
     try{await other.waitForFunction(()=>archivedExams.find(exam=>String(exam.id)==='905')?.coreTaskPeriods?.['2026-11-10']?.core?.periods?.join(',')==='1,3',null,{timeout:8000});}catch(error){console.log(await staff.evaluate(()=>({exams:archivedExams,error:sharedError,pending:sharedStore.pendingCount,ready:sharedStore.ready,roster:coreTeamRows(),drafts:[...coreTaskPeriodDrafts],status:document.getElementById('core-task-period-planner').innerText})));console.log(await other.evaluate(()=>({exams:archivedExams,error:sharedError})));throw error;}
     await panel.locator('[aria-label="Core task exam day"]').selectOption('2026-11-10');
@@ -34,6 +37,7 @@ module.exports=async function(staff,other,visitor){
     const pdf=await visitor.evaluate(async()=>await publicTimetableIcReportPdfBlob().text());
     assert.ok(pdf.indexOf('INVIGILATION DUTY CHART')<pdf.indexOf('RELIEVING DUTY CHART'));assert.ok(pdf.indexOf('RELIEVING DUTY CHART')<pdf.indexOf('CORE TEAM / ON TASK CHART'));assert.match(pdf,/P-1, P-3/);assert.equal((pdf.match(/\/Type \/Page /g)||[]).length,3);
     require('node:fs').writeFileSync('/tmp/vems-three-table-tt-report.pdf',pdf);
+    await staff.getByRole('button',{name:'🧭 6A. Core Team On Task',exact:true}).click();
     await staff.locator('[aria-label="Core task exam day"]').selectOption('2026-11-09');
     await panel.getByRole('checkbox',{name:'Core Test Member P-1',exact:true}).uncheck();await panel.getByRole('checkbox',{name:'Core Test Member P-3',exact:true}).uncheck();
     // A background rerender must not silently discard unsaved period selections.
@@ -42,9 +46,10 @@ module.exports=async function(staff,other,visitor){
     await panel.getByRole('button',{name:'Save On Task Periods',exact:true}).click();
     await other.waitForFunction(()=>!archivedExams.find(exam=>String(exam.id)==='905')?.coreTaskPeriods?.['2026-11-09']?.core);
     assert.match(await section.locator('[data-tt-arrangement-table]').nth(2).innerText(),/P-1, P-3/,'saved private edits leave Public View unchanged until explicit update');
-    await staff.locator('#timetable-ic-report').getByRole('button',{name:'Update Published Copy',exact:true}).click();
-    await visitor.waitForFunction(()=>!document.getElementById('public-tt-ic-report-content').textContent.includes('Core Test Member'));
-    assert.equal(await section.locator('[data-tt-arrangement-table]').count(),2);
+    await panel.getByRole('button',{name:'Update Published Copy',exact:true}).click();
+    await visitor.waitForFunction(()=>document.getElementById('public-tt-ic-report-content').textContent.includes('No saved core-team periods'));
+    assert.match(await section.locator('[data-tt-arrangement-table]').nth(2).innerText(),/No saved core-team periods/);
+    assert.equal(await section.locator('[data-tt-arrangement-table]').count(),3);
     await panel.getByRole('checkbox',{name:'Core Test Member P-4',exact:true}).check();
     await other.evaluate(async()=>{const ok=await saveCoreTaskPeriods(905,'2026-11-09','day',[{teacherId:'core',periods:[6]}]);if(!ok)throw Error('Second client could not save periods');});
     await staff.waitForFunction(()=>archivedExams.find(exam=>String(exam.id)==='905')?.coreTaskPeriods?.['2026-11-09']?.core?.periods?.join(',')==='6');
@@ -54,5 +59,8 @@ module.exports=async function(staff,other,visitor){
     assert.deepEqual(await other.evaluate(()=>archivedExams.find(exam=>String(exam.id)==='905').coreTaskPeriods['2026-11-09'].core.periods),[6],'stale edits cannot overwrite another device');
     await panel.getByRole('button',{name:'Reload Saved Periods',exact:true}).click();
     assert.equal(await panel.getByRole('checkbox',{name:'Core Test Member P-4',exact:true}).isChecked(),false);assert.equal(await panel.getByRole('checkbox',{name:'Core Test Member P-6',exact:true}).isChecked(),true);
+    await panel.getByRole('checkbox',{name:'Core Test Member P-2',exact:true}).check();
+    const privatePdf=await staff.evaluate(async()=>{let blob;const open=window.open,make=URL.createObjectURL;URL.createObjectURL=value=>{blob=value;return 'blob:core-test';};window.open=()=>null;try{await saveCoreTaskAndReport(905,'2026-11-09','print');return blob?await blob.text():'';}finally{window.open=open;URL.createObjectURL=make;}});
+    assert.match(privatePdf,/CORE TEAM \/ ON TASK CHART[\s\S]*Core Test Member[\s\S]*P-2, P-6/,'Save & Print must include the newly entered periods in the third table');
     console.log('PASS: Core Team periods save for one/all days, synchronize, survive rerenders, publish as the third TT IC/PDF table, and clear explicitly');
 };
