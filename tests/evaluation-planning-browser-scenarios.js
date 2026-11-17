@@ -32,6 +32,25 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
     assert.match(await publicPlan.innerText(), /ANIL KUMAR/);
     assert.match(await publicPlan.innerText(), /Reviewed by Principal/);
     assert.equal(await publicPlan.locator('select').count(), 0);
+    const slots = await visitor.locator('#public-fixed-display > section').evaluateAll(nodes => nodes.slice(0, 3).map(node => node.querySelector('[data-public-fixed-heading]').textContent));
+    assert.deepEqual(slots, ['1. Public Notices', '1-A. Pre-Samagam Evaluation & Checking Plan', '2. Date Sheet']);
+    assert.equal(await publicPlan.locator('..').locator('..').getAttribute('id'), 'public-fixed-display-slot-1-A');
+    const pdf = await visitor.evaluate(async () => await evaluationPlanningPdfBlob().text());
+    assert.match(pdf, /%PDF-1.4/);
+    assert.match(pdf, /ANIL KUMAR/);
+    assert.match(pdf, /Evaluator A/);
+    assert.match(pdf, /Evaluator B/);
+    assert.match(pdf, /Class 10-A/);
+    assert.match(pdf, /Class 10-B/);
+    require('node:fs').writeFileSync('/tmp/vems-pre-samagam-plan.pdf', pdf);
+    await visitor.evaluate(() => {
+        Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+        Object.defineProperty(navigator, 'share', { configurable: true, value: async data => { window.sharedPlanningPdf = { name: data.files[0].name, type: data.files[0].type, content: await data.files[0].text() }; } });
+    });
+    await publicPlan.getByRole('button', { name: 'Share PDF to WhatsApp', exact: true }).click();
+    await visitor.waitForFunction(() => !!window.sharedPlanningPdf);
+    assert.equal(await visitor.evaluate(() => sharedPlanningPdf.name), 'Pre-Samagam-Evaluation-Checking-Plan.pdf');
+    assert.equal(await visitor.evaluate(() => sharedPlanningPdf.type), 'application/pdf');
     await a.reload();
     await a.waitForFunction(() => portalGateReady === true);
     if (await a.locator('#portal-curtain').isVisible()) {
@@ -46,6 +65,8 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
     await a.waitForFunction(() => !evaluationPlanningBusy && !evaluationPlanningDrafts.size);
     assert.match(await area.locator('tbody').innerText(), /Pending Principal review/);
     assert.match(await publicPlan.innerText(), /Reviewed by Principal/, 'saved edits do not silently change a published snapshot');
+    assert.match(await visitor.evaluate(async () => await evaluationPlanningPdfBlob().text()), /Reviewed by Principal/, 'public PDF exports the published copy');
+    assert.match(await a.evaluate(async () => await evaluationPlanningPdfBlob(true).text()), /Pending Principal review/, 'staff PDF exports saved changes');
     setDenyWrites(true);
     await area.getByRole('button', { name: 'Publish / Update Plan', exact: true }).click();
     await a.waitForFunction(() => !evaluationPlanningBusy);
@@ -59,8 +80,10 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
     for (const role of ['sec-ic', 'pri-ic']) {
         const ic = await pageFor();
         await login(ic, role === 'sec-ic' ? 'secondary@example.test' : 'primary@example.test', role);
-        await ic.evaluate(() => openExamIcMasterTab('evaluation-planning'));
+        await ic.locator(`#area-${role} [data-master-tab="evaluation-planning"]`).click();
         const icArea = ic.locator('#sec-evaluation-planning');
+        assert.equal(await ic.locator(`#area-${role}`).isVisible(), true, 'plan stays inside the Exam IC view');
+        assert.equal(await ic.locator('#area-principal').isVisible(), false);
         const checker = icArea.locator('[data-planning-field="checkerId"]').first();
         assert.equal(await checker.isEnabled(), true, `${role} can use the teacher dropdown in master view`);
         assert.equal(await checker.locator('optgroup[label="Primary wing"] option').count(), 6);
@@ -70,6 +93,7 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
         await icArea.getByRole('button', { name: 'Save Plan', exact: true }).click();
         await ic.waitForFunction(() => !evaluationPlanningBusy && !evaluationPlanningDrafts.size);
         assert.equal(await checker.inputValue(), primaryId);
+        assert.match(await ic.evaluate(async () => await evaluationPlanningPdfBlob(true).text()), /ANIL KUMAR/);
         await ic.evaluate(async () => {
             const before = archivedExams[0].evaluationPlan.reviewedAt;
             await saveEvaluationPlanning(true);
@@ -77,9 +101,12 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
         });
         await icArea.getByRole('button', { name: 'Publish Plan', exact: true }).click();
         await ic.waitForFunction(() => !evaluationPlanningBusy && !!publicPortalBoards.evaluationPlanning);
+        assert.equal(await icArea.getByRole('button', { name: 'Publish / Update Plan', exact: true }).isEnabled(), true);
         await icArea.getByRole('button', { name: 'Stop Publishing', exact: true }).click();
         await ic.waitForFunction(() => !evaluationPlanningBusy && !publicPortalBoards.evaluationPlanning);
-        await ic.evaluate(() => switchTab('teachers'));
+        await ic.locator(`#area-${role}`).getByRole('button', { name: '📊 Examination Workspace', exact: true }).click();
+        await icArea.waitFor({ state: 'hidden' });
+        await ic.evaluate(() => openExamIcMasterTab('teachers'));
         assert.equal(await ic.evaluate(() => canEditSharedData('principal')), false, 'master faculty remains read-only');
     }
     console.log('PASS: item 6 auto-fills date sheet/evaluators, assigns Primary faculty, saves across devices/reload, reviews, publishes a read-only snapshot, preserves it on failed writes, and stops publishing');

@@ -28,3 +28,13 @@ test('review invalidates when a date, evaluator or checking assignment changes',
     for (const [field, value] of [['key', 'new-date'], ['evaluator', 'Two'], ['checkerId', 'p2'], ['matcher', 'New name']]) assert.notEqual(P.signature(rows), P.signature([{ ...rows[0], [field]: value }]));
     assert.doesNotMatch(P.key(['CS/IP.#$[]', 'A']), /[.#$\[\]/]/);
 });
+test('PDF repeats column headers across pages and preserves every scheduled row and long faculty name', () => {
+    const rows = Array.from({ length: 90 }, (_, i) => ({ subject: `SUBJECT_${i}`, cls: '12', section: 'A', date: '2026-11-12', evaluator: 'Evaluator Name', checker: 'Primary Teacher with a long name that needs wrapping', matcher: `Matcher_${i}` }));
+    const streams = P.pdfStreams({ examTitle: 'Preboard-1', rows, reviewed: false });
+    assert.ok(streams.length > 1);
+    for (const stream of streams) { assert.match(stream, /PRE-SAMAGAM/); assert.match(stream, /Evaluator/); assert.match(stream, /Cross-checker/); }
+    const combined = streams.join('');
+    for (let i = 0; i < 90; i++) { assert.ok(combined.includes(`SUBJECT_${i})`)); assert.ok(combined.includes(`Matcher_${i})`)); }
+    assert.match(combined, /Primary Teacher/);
+    assert.match(combined, /wrapping/);
+});
