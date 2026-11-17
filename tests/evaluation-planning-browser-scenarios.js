@@ -56,7 +56,31 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
     await area.getByRole('button', { name: 'Stop Publishing', exact: true }).click();
     await visitor.waitForFunction(() => !visiblePortalBoards().evaluationPlanning);
     await publicPlan.waitFor({ state: 'hidden' });
-    await b.evaluate(() => { authorizedRole = 'sec-ic'; });
-    assert.equal(await b.evaluate(() => evaluationPlanningCanEdit()), false);
+    for (const role of ['sec-ic', 'pri-ic']) {
+        const ic = await pageFor();
+        await login(ic, role === 'sec-ic' ? 'secondary@example.test' : 'primary@example.test', role);
+        await ic.evaluate(() => openExamIcMasterTab('evaluation-planning'));
+        const icArea = ic.locator('#sec-evaluation-planning');
+        const checker = icArea.locator('[data-planning-field="checkerId"]').first();
+        assert.equal(await checker.isEnabled(), true, `${role} can use the teacher dropdown in master view`);
+        assert.equal(await checker.locator('optgroup[label="Primary wing"] option').count(), 6);
+        assert.equal(await checker.locator('optgroup[label="Portal faculty"] option').count(), 2);
+        assert.equal(await icArea.getByRole('button', { name: 'Mark Reviewed by Principal', exact: true }).isDisabled(), true);
+        await checker.selectOption(primaryId);
+        await icArea.getByRole('button', { name: 'Save Plan', exact: true }).click();
+        await ic.waitForFunction(() => !evaluationPlanningBusy && !evaluationPlanningDrafts.size);
+        assert.equal(await checker.inputValue(), primaryId);
+        await ic.evaluate(async () => {
+            const before = archivedExams[0].evaluationPlan.reviewedAt;
+            await saveEvaluationPlanning(true);
+            if (archivedExams[0].evaluationPlan.reviewedAt !== before) throw Error('IC must not mark Principal review');
+        });
+        await icArea.getByRole('button', { name: 'Publish Plan', exact: true }).click();
+        await ic.waitForFunction(() => !evaluationPlanningBusy && !!publicPortalBoards.evaluationPlanning);
+        await icArea.getByRole('button', { name: 'Stop Publishing', exact: true }).click();
+        await ic.waitForFunction(() => !evaluationPlanningBusy && !publicPortalBoards.evaluationPlanning);
+        await ic.evaluate(() => switchTab('teachers'));
+        assert.equal(await ic.evaluate(() => canEditSharedData('principal')), false, 'master faculty remains read-only');
+    }
     console.log('PASS: item 6 auto-fills date sheet/evaluators, assigns Primary faculty, saves across devices/reload, reviews, publishes a read-only snapshot, preserves it on failed writes, and stops publishing');
 };

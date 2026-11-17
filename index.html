@@ -283,7 +283,7 @@
             </div>
             <div id="exam-ic-master-view-banner" class="hidden rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-950">
                 <b>👁 Read-only master-data view</b>
-                <span class="ml-1">Subject mapping, students, faculty, holidays and examination records are available for reference. Only the Principal can change information in this view.</span>
+                <span class="ml-1">Subject mapping, students, faculty, holidays and examination records are available for reference. Only the Principal can change master data. In item 6, Exam ICs can assign checking duties, save and publish; Principal review remains restricted to the Principal.</span>
             </div>
 
             <section id="sec-evaluation-planning" class="hidden rounded-xl border bg-white p-4 space-y-4"></section>
@@ -944,7 +944,7 @@
                     delete control.dataset.examIcOriginalDisabled;
                 }
             });
-            area.querySelectorAll('button:not(.module-tabs button)').forEach(button => {
+            area.querySelectorAll('button:not(.module-tabs button):not(#sec-evaluation-planning button)').forEach(button => {
                 if (locked) {
                     if (!button.dataset.examIcOriginalDisabled) button.dataset.examIcOriginalDisabled = button.disabled ? 'true' : 'false';
                     button.disabled = true;
@@ -4822,7 +4822,7 @@
         window.addEventListener('beforeunload',saveWorkspacePositionNow);
         window.addEventListener('pagehide',saveWorkspacePositionNow);
     </script>
-    <script src="evaluation-planning.js"></script>
-    <script src="app-sync.js?v=20261110-workflow-confirmation"></script>
+    <script src="evaluation-planning.js?v=20261117-dropdowns"></script>
+    <script src="app-sync.js?v=20261117-evaluation-access"></script>
 </body>
 </html>

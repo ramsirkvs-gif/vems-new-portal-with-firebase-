@@ -125,8 +125,9 @@ function showSyncStatus(state) {
     element.className = `no-print px-6 py-3 text-sm ${good ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'}`;
     if (state?.error) showSyncError(state.error);
 }
-function canEditSharedData(required = 'exam') {
-    if (isExamIcMasterView()) { showSyncError('This master-data screen is view-only for Exam IC accounts. Return to your Exam IC workspace for authorized examination work.'); return false; }
+function canEditSharedData(required = 'exam', options = {}) {
+    const planningWrite = options.evaluationPlanning === true && required === 'exam' && currentActiveTab === 'evaluation-planning';
+    if (isExamIcMasterView() && !planningWrite) { showSyncError('This master-data screen is view-only for Exam IC accounts. Return to your Exam IC workspace for authorized examination work.'); return false; }
     const allowed = authorizedRole === 'principal' || (required === 'exam' && ['sec-ic', 'pri-ic'].includes(authorizedRole));
     if (!allowed) { showSyncError('Your staff role cannot make this change. Sign in with the appropriate account.'); return false; }
     if (isSelectedSessionFrozen()) { showSyncError(`Session ${selectedAcademicSession} is frozen and read-only. Select an open session or ask the Principal to unfreeze it.`); return false; }
@@ -414,7 +415,8 @@ async function saveData(names, expected = {}, options = {}) {
         names=[...new Set(names.map(name=>name==='holidayCalendar'?'circularSettings':name))];
     }
     const required = names.some(name => principalCollections.includes(name)) ? 'principal' : 'exam';
-    if (!canEditSharedData(required)) { restoreSharedValues(names); return false; }
+    const planningOptions = options.evaluationPlanning && names.every(name => ['archivedExams', 'publicPortalBoards'].includes(name)) ? { evaluationPlanning: true } : {};
+    if (!canEditSharedData(required, planningOptions)) { restoreSharedValues(names); return false; }
     const store = sharedStore;
     let sourcesConfirmed=false;
     try {
