@@ -38,6 +38,17 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
     const slots = await visitor.locator('#public-fixed-display > section').evaluateAll(nodes => nodes.slice(0, 3).map(node => node.querySelector('[data-public-fixed-heading]').textContent));
     assert.deepEqual(slots, ['1. Public Notices', '1-A. Pre-Samagam Evaluation & Checking Plan', '2. Date Sheet']);
     assert.equal(await publicPlan.locator('..').locator('..').getAttribute('id'), 'public-fixed-display-slot-1-A');
+    await visitor.evaluate(() => {
+        const board = publicVisiblePortalBoards.evaluationPlanning;
+        const rows = publicRecordRows(board.rows);
+        renderPublicEvaluationPlanning({ evaluationPlanning: { ...board, rows: Array.from({ length: 40 }, (_, i) => ({ ...rows[i % rows.length], key: 'scroll-test-' + i })) } });
+    });
+    const scroll = publicPlan.locator('#public-evaluation-planning-scroll');
+    assert.equal(await scroll.getAttribute('tabindex'), '0');
+    assert.ok(await scroll.evaluate(node => node.clientHeight <= 256 && node.scrollHeight > node.clientHeight));
+    assert.ok(await scroll.evaluate(node => { node.scrollTop = 100; node.scrollLeft = 100; return node.scrollTop > 0 && node.scrollLeft > 0; }));
+    assert.equal(await scroll.locator('thead').evaluate(node => getComputedStyle(node).position), 'sticky');
+    await visitor.evaluate(() => renderPublicEvaluationPlanning(publicVisiblePortalBoards));
     const pdf = await visitor.evaluate(async () => await evaluationPlanningPdfBlob().text());
     assert.match(pdf, /%PDF-1.4/);
     assert.match(pdf, /ANIL KUMAR/);
