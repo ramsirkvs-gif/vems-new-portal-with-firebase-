@@ -44,7 +44,7 @@ async function notifyTree(name) {
 async function main() {
     const server = http.createServer((request, response) => {
         const filename = request.url.split('?')[0] === '/' ? 'index.html' : request.url.split('?')[0].slice(1);
-        if (!['index.html', 'sync-store.js', 'app-sync.js', 'teacher-timetable.js', 'teacher-timetable-ui.js', 'assets/teacher-timetable-2026-11-08.js', 'seating-expiry.js', 'mission-attendance-crypto.js'].includes(filename)) { response.writeHead(404).end(); return; }
+        if (!['index.html', 'sync-store.js', 'app-sync.js', 'evaluation-planning.js', 'teacher-timetable.js', 'teacher-timetable-ui.js', 'assets/teacher-timetable-2026-11-08.js', 'seating-expiry.js', 'mission-attendance-crypto.js'].includes(filename)) { response.writeHead(404).end(); return; }
         response.setHeader('Content-Type', filename.endsWith('.js') ? 'application/javascript' : 'text/html');
         response.end(fs.readFileSync(path.join(root, filename)));
     });
@@ -141,6 +141,7 @@ async function main() {
         assert.match(await b.locator('#public-roll-body').innerText(),/No student rolls are published/);
         await login(a, 'principal1@example.test');
         await login(b, 'principal2@example.test');
+        if(process.env.VEMS_EVALUATION_PLANNING_ONLY){await require('./evaluation-planning-browser-scenarios')({a,b,pageFor,login,setDenyWrites:value=>{denyWrites=value;}});assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_WORKFLOW_CONFIRMATION_ONLY){slowWrites=true;await require('./workflow-confirmation-browser-scenarios')(a,b);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_PUBLIC_DATESHEET_ONLY){const visitor=await pageFor({mobile:true});await require('./public-datesheet-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}
         if(process.env.VEMS_TT_PUBLICATION_ONLY){const visitor=await pageFor({mobile:true});await require('./tt-ic-publication-browser-scenarios')(a,visitor);assert.deepEqual(failures,[]);return;}

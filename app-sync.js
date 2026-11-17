@@ -490,6 +490,7 @@ function refreshSharedViews() {
     runSharedRenderer('Student headers',updateStudentTableHeaders);
     runSharedRenderer('Student records',filterStudents);
     runSharedRenderer('Faculty records',renderTeachers);
+    if(currentActiveTab==='evaluation-planning')runSharedRenderer('Evaluation planning',renderEvaluationPlanning);
     runSharedRenderer('Faculty order',renderFacultyDisplayOrder);
     runSharedRenderer('Core examination team',renderExamCoreTeam);
     if(typeof renderProOrderManager==='function')runSharedRenderer('Public display sequence',renderProOrderManager);
