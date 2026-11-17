@@ -23,6 +23,12 @@ test('all live faculty and six bundled Primary teachers are offered without dupl
     assert.ok(faculty.some(t => t.id === 's'));
     assert.ok(!faculty.some(t => t.id === 'v'));
 });
+test('Samagam options follow saved core team membership and exclude metadata and unavailable teachers', () => {
+    const faculty = P.faculty([{ id: 1, name: 'One', desig: 'TGT' }, { id: 2, name: 'Two', desig: 'PRT' }, { id: 3, name: 'Three', desig: 'PGT' }]);
+    const team = { 1: { teacherId: '1' }, 2: { teacherId: 2 }, missing: { teacherId: 'missing' }, __roles: ['One'] };
+    assert.deepEqual(P.coreFaculty(faculty, team).map(t => t.id).sort(), ['1', '2']);
+    assert.deepEqual(P.coreFaculty(faculty, {}), []);
+});
 test('review invalidates when a date, evaluator or checking assignment changes', () => {
     const rows = [{ key: 'date|class|section|subject', evaluator: 'One', checkerId: 'p1', checker: 'Primary One', matcherId: 's1', matcher: 'Secondary One' }];
     for (const [field, value] of [['key', 'new-date'], ['evaluator', 'Two'], ['checkerId', 'p2'], ['matcher', 'New name']]) assert.notEqual(P.signature(rows), P.signature([{ ...rows[0], [field]: value }]));

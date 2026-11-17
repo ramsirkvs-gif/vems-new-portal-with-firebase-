@@ -3,7 +3,8 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
     await a.evaluate(async () => {
         teachers = [{ id: 'eval-a', name: 'Evaluator A', desig: 'PGT-English', allotments: [{ cls: '10', sec: 'A', subject: 'ENGLISH', evaluator: 'Self' }] }, { id: 'eval-b', name: 'Evaluator B', desig: 'TGT-English', allotments: [{ cls: '10', sec: 'B', subject: 'ENGLISH', evaluator: 'Self' }] }];
         archivedExams[0].datesheetSnapshot = [{ dateStr: '2026-11-12', paperSlots: [{ cls: '10', subject: 'ENGLISH', selectedSections: ['A', 'B'] }] }];
-        if (!await saveData(['teachers', 'archivedExams'])) throw Error('Fixture save failed');
+        examCoreTeam = { 'eval-b': { teacherId: 'eval-b', name: 'Evaluator B', role: 'Core Team Member' } };
+        if (!await saveData(['teachers', 'archivedExams', 'examCoreTeam'])) throw Error('Fixture save failed');
         switchTab('evaluation-planning');
     });
     const area = a.locator('#sec-evaluation-planning');
@@ -13,6 +14,8 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
     assert.match(await area.innerText(), /6 Primary faculty available/);
     assert.match(await area.innerText(), /Evaluator A/);
     assert.match(await area.innerText(), /Evaluator B/);
+    const matchingOptions = await area.locator('[data-planning-field="matcherId"]').first().locator('option').evaluateAll(options => options.map(option => option.value).filter(Boolean));
+    assert.deepEqual(matchingOptions, ['eval-b'], 'Samagam dropdown contains only the saved core team');
     const primaryId = await area.locator('[data-planning-field="checkerId"]').first().locator('option').filter({ hasText: 'ANIL KUMAR' }).getAttribute('value');
     for (let i = 0; i < 2; i++) {
         await area.locator('[data-planning-field="checkerId"]').nth(i).selectOption(primaryId);
@@ -77,6 +80,16 @@ module.exports = async ({ a, b, pageFor, login, setDenyWrites }) => {
     await area.getByRole('button', { name: 'Stop Publishing', exact: true }).click();
     await visitor.waitForFunction(() => !visiblePortalBoards().evaluationPlanning);
     await publicPlan.waitFor({ state: 'hidden' });
+    await a.evaluate(() => {
+        const previous = examCoreTeam;
+        examCoreTeam = {};
+        renderEvaluationPlanning();
+        const matcher = document.querySelector('[data-planning-field="matcherId"]');
+        if (!matcher.disabled || !document.getElementById('sec-evaluation-planning').textContent.includes('No available core team members')) throw Error('Missing core team needs a clear empty state');
+        if (evaluationPlanningRows(evaluationPlanningExam(), false).some(row => row.matcher)) throw Error('Former core members must not remain valid Samagam assignees');
+        examCoreTeam = previous;
+        renderEvaluationPlanning();
+    });
     for (const role of ['sec-ic', 'pri-ic']) {
         const ic = await pageFor();
         await login(ic, role === 'sec-ic' ? 'secondary@example.test' : 'primary@example.test', role);
